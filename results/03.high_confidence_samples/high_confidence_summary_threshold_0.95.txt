@@ -1,0 +1,32 @@
+============================================================
+HIGH CONFIDENCE SAMPLE FILTERING RESULTS
+Confidence Threshold: >= 0.95
+============================================================
+
+OVERALL STATISTICS:
+  - Original Sample Count  : 3,472
+  - Filtered Sample Count  : 3,427
+  - Retention Rate         : 98.70%
+  - Samples Excluded       : 45
+
+SAMPLE TYPE BREAKDOWN:
+  - Case    :   380 /   380 (100.00% retained)
+  - Control : 3,047 / 3,092 (98.54% retained)
+
+CLUSTER ASSIGNMENT DISTRIBUTION:
+  - Cluster 0: 3,016 samples (Case:  373, Control: 2,643)
+  - Cluster 1:   318 samples (Case:    1, Control:  317)
+  - Cluster 2:    57 samples (Case:    6, Control:   51)
+  - Cluster 3:    25 samples (Case:    0, Control:   25)
+  - Cluster 4:    11 samples (Case:    0, Control:   11)
+
+CONFIDENCE SCORE STATISTICS (Filtered Samples):
+  - Mean       : 0.9996
+  - Std Dev    : 0.0026
+  - Min        : 0.9520
+  - 25%        : 1.0000
+  - Median     : 1.0000
+  - 75%        : 1.0000
+  - Max        : 1.0000
+
+============================================================
