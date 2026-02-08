@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from sklearn.mixture import GaussianMixture
+import os
 
 def draw_ellipse(position, covariance, ax=None, **kwargs):
     """Draw an ellipse with a given position and covariance"""
@@ -60,5 +61,16 @@ ax.annotate('Cut 2', xy=(2.0, 1.6), xytext=(2.5, 0.5),
             arrowprops=dict(facecolor='black', shrink=0.05))
 
 plt.tight_layout()
-plt.savefig('fig/02a.over_segmentation_demo.png', dpi=300)
-print("Figure generated: fig/02a.over_segmentation_demo.png")
+
+# Determine output directory relative to script location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(script_dir)
+fig_dir = os.path.join(project_dir, 'fig')
+
+# Create figure directory if it doesn't exist
+os.makedirs(fig_dir, exist_ok=True)
+
+# Save figure
+output_path = os.path.join(fig_dir, '02a.over_segmentation_demo.png')
+plt.savefig(output_path, dpi=300)
+print(f"Figure generated: {output_path}")
