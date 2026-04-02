@@ -1,31 +1,31 @@
-# PopGMM: Population Clustering via HDBSCAN and Gaussian Mixture Models
+# PopGMM: Probabilistic Ancestry Inference and Population Stratification Control
 
-A comprehensive population genetic analysis pipeline for detecting and characterizing population structure in large-scale genomic cohorts using HDBSCAN denoising followed by Gaussian Mixture Model (GMM) clustering.
+**An Unsupervised Learning Approach via PCA + Gaussian Mixture Models (GMM)**
+
+A comprehensive pipeline for large-scale genomic population studies that identifies population substructure, infers ancestral origins, and enables ancestry-based population stratification in association analyses.
 
 ## Overview
 
-PopGMM is designed for large-scale genomic population studies (e.g., Japanese Biobank, multi-ancestry cohorts). The pipeline identifies population substructure and assigns individuals to ancestral populations using probabilistic models. These ancestry assignments enable:
+PopGMM uses probabilistic clustering to:
+- **Infer ancestry**: Assign individuals to inferred population clusters with posterior probabilities
+- **Control stratification**: Account for population structure in association studies (GWAS, etc.)
+- **Detect admixture**: Identify mixed-ancestry individuals and quantify ancestry proportions
+- **Enable fine-grained analysis**: Support ancestry-specific or ancestry-adjusted association analyses
 
-- **Ancestry inference**: Probabilistically assign individuals to identified population clusters with confidence scores
-- **Population stratification**: Control for population structure in downstream association studies
-- **Admixture detection**: Identify individuals of mixed ancestry and quantify ancestry proportions
-- **Fine-grained ancestry analysis**: Enable ancestry-specific or ancestry-adjusted genome-wide association studies (GWAS)
-
-The pipeline achieves this through:
-
-1. **HDBSCAN Denoising**: Removes sparse outliers/noise from PCA space to retain stable population structure
-2. **GMM Clustering**: Uses Bayesian Information Criterion (BIC) to find optimal number of population clusters
-3. **Component Merging**: Hierarchically merges nearby GMM components using Mahalanobis distance
-4. **High-confidence Assignment**: Assigns individuals to population clusters with posterior probabilities for downstream analysis
+The pipeline combines:
+1. **HDBSCAN Denoising**: Remove sparse outliers from PCA space to preserve stable population structure
+2. **GMM Clustering**: Identify optimal population clusters via Bayesian Information Criterion (BIC)
+3. **Component Merging**: Consolidate adjacent clusters using Mahalanobis distance and hierarchical clustering
+4. **Probabilistic Assignment**: Assign individuals to merged clusters with confidence scores for downstream use
 
 ## Features
 
-- **Memory-efficient processing**: Chunked data loading for large cohorts (>200k samples)
-- **Robust denoising**: HDBSCAN-based noise filtering preserves meaningful population structure
-- **Automatic model selection**: BIC-based optimization for K (number of clusters)
-- **Confidence scoring**: Posterior probabilities for individual cluster assignments
-- **Reproducibility**: Structured configuration objects and detailed audit logs
-- **Visualization**: Diagnostic plots for denoising, clustering, and merging steps
+- **Scalable**: Chunked data loading for large cohorts (>200k samples)
+- **Robust**: HDBSCAN filters noise while preserving true population signal
+- **Automated**: BIC-based model selection eliminates manual cluster number specification
+- **Interpretable**: Posterior probabilities quantify assignment confidence
+- **Reproducible**: Modular configuration objects and detailed audit logs
+- **Validated**: Diagnostic visualizations for quality control across all steps
 
 ## Project Structure
 
