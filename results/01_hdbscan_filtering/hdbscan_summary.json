@@ -1,0 +1,24 @@
+{
+  "input_rows": 183013,
+  "output_rows": 180268,
+  "noise_rows": 2745,
+  "noise_ratio": 0.014998934501920629,
+  "clusters_found": 8,
+  "pc_columns_used": [
+    "PC1_AVG",
+    "PC2_AVG"
+  ],
+  "n_pcs_hdbscan": 2,
+  "min_cluster_size": 60,
+  "min_samples": 6,
+  "cluster_selection_epsilon": 0.01,
+  "cluster_selection_method": "eom",
+  "metric": "euclidean",
+  "alpha": 1.0,
+  "allow_single_cluster": true,
+  "leaf_size": 40,
+  "algorithm": "best",
+  "approx_min_span_tree": true,
+  "gen_min_span_tree": false,
+  "use_zscale_hdbscan": true
+}
