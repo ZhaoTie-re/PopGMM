@@ -1,8 +1,8 @@
 {
   "input_rows": 183013,
-  "output_rows": 180268,
-  "noise_rows": 2745,
-  "noise_ratio": 0.014998934501920629,
+  "output_rows": 180270,
+  "noise_rows": 2743,
+  "noise_ratio": 0.014988006316491179,
   "clusters_found": 8,
   "pc_columns_used": [
     "PC1_AVG",
