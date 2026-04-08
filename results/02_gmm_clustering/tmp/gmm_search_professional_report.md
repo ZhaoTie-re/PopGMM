@@ -1,23 +1,23 @@
 # GMM One-k Convergence, BIC, and LR Audit Report
 
-- Generated (UTC): 2026-04-02T09:45:46.200621+00:00
-- Focus component count ($k_{\mathrm{best}}$): 26
+- Generated (UTC): 2026-04-08T06:06:04.025602+00:00
+- Focus component count ($k_{\mathrm{best}}$): 21
 - Search range ($k$): 2 to 30
 - Search convergence: 29/29 fits converged
 - Non-empty clusters during search: 29/29
 
 ## 1. Key Findings
-- $k_{\mathrm{best}}=26$ is selected by minimum BIC on search data.
-- Search fit at $k_{\mathrm{best}}$ converged: True in 3 EM iterations.
+- $k_{\mathrm{best}}=21$ is selected by minimum BIC on search data.
+- Search fit at $k_{\mathrm{best}}$ converged: True in 5 EM iterations.
 - BIC consistency check: abs(sklearn - manual) = 0.0 (should be near 0).
-- Final refit on full data converged: True in 3 iterations.
+- Final refit on full data converged: True in 5 iterations.
 - LR evidence around $k_{\mathrm{best}}$ is provided as a diagnostic; classical chi-square LRT assumptions are not strictly valid for GMM component-count testing.
 
 ### 1.1 Decision Snapshot
 | Question | Answer | Evidence |
 |---|---|---|
-| Best component count? | $k_{\mathrm{best}}=26$ | Section 6.2 |
-| Did EM converge at $k_{\mathrm{best}}$? | Yes, in 3 iterations | Section 5.6 |
+| Best component count? | $k_{\mathrm{best}}=21$ | Section 6.2 |
+| Did EM converge at $k_{\mathrm{best}}$? | Yes, in 5 iterations | Section 5.6 |
 | Is BIC computation self-consistent? | Yes, `bic_abs_diff = 0.0` | Section 6.3 |
 | Is LR used as formal hypothesis test? | No, diagnostics only | Section 7.0-7.1 |
 
@@ -110,12 +110,12 @@ $$
 ### 5.6 Convergence Results at $k_{\mathrm{best}}$
 
 - $\mathrm{converged}$: True
-- $n_{\mathrm{iter}}$: 3
+- $n_{\mathrm{iter}}$: 5
 - $\mathrm{tol}$: 0.001
 - $n_{\mathrm{iter,max}}$: 200
-- $\mathrm{lower\_bound}$: 7.452475547790527
+- $\mathrm{lower\_bound}$: 7.460114479064941
 - Final refit on $X_{\mathrm{full}}$ converged: True
-- Final refit $n_{\mathrm{iter}}$: 3
+- Final refit $n_{\mathrm{iter}}$: 5
 - Final refit $\mathrm{tol}/n_{\mathrm{iter,max}}$: 0.001 / 200
 
 ## 6. BIC Evidence (at $k_{\mathrm{best}}$)
@@ -171,22 +171,22 @@ $$
 $$
 
 ### 6.2 Numeric Snapshot at $k_{\mathrm{best}}$
-- $k_{\mathrm{best}}$: 26
-- $n$: 180268
+- $k_{\mathrm{best}}$: 21
+- $n$: 180270
 - $d$: 2
 - covariance_type: full
-- $p$: 155
-- $p_{\mathrm{mean}}=kd$: 52
-- $p_{\mathrm{cov}}$ (full): 78
-- $p_{\mathrm{weight}}=k-1$: 25
-- $p_{\mathrm{check}}=p_{\mathrm{mean}}+p_{\mathrm{cov}}+p_{\mathrm{weight}}$: 155
-- average log-likelihood ($\ell/n$): 7.4522294998168945
-- total log-likelihood ($\ell$): 1343398.507472992
-- fit term ($-2\ell$): -2686797.014945984
-- penalty term ($p\log n$): 1875.8409862770955
-- recomposed BIC ($-2\ell + p\log n$): -2684921.173959707
-- bic_sklearn: -2684921.173959707
-- bic_manual: -2684921.173959707
+- $p$: 125
+- $p_{\mathrm{mean}}=kd$: 42
+- $p_{\mathrm{cov}}$ (full): 63
+- $p_{\mathrm{weight}}=k-1$: 20
+- $p_{\mathrm{check}}=p_{\mathrm{mean}}+p_{\mathrm{cov}}+p_{\mathrm{weight}}$: 125
+- average log-likelihood ($\ell/n$): 7.4602580070495605
+- total log-likelihood ($\ell$): 1344860.7109308243
+- fit term ($-2\ell$): -2689721.4218616486
+- penalty term ($p\log n$): 1512.7763757495104
+- recomposed BIC ($-2\ell + p\log n$): -2688208.645485899
+- bic_sklearn: -2688208.645485899
+- bic_manual: -2688208.645485899
 - bic_abs_diff: 0.0
 
 ### 6.3 Why BIC Is Trustworthy Here
@@ -231,20 +231,20 @@ $$
 where $\mathrm{LR}$ measures fit gain and $\Delta p$ measures added complexity.
 
 ### 7.1 Local LR Diagnostics
-- Lower-neighbor comparison: $k_{hi}=26$ vs $k_{lo}=25$
-- $\log L(k_{hi})$: 1343398.507472992
-- $\log L(k_{lo})$: 1343361.7172431946
-- $\mathrm{LR}$: 73.58045959472656
+- Lower-neighbor comparison: $k_{hi}=21$ vs $k_{lo}=20$
+- $\log L(k_{hi})$: 1344860.7109308243
+- $\log L(k_{lo})$: 1344479.9965953827
+- $\mathrm{LR}$: 761.4286708831787
 - $\Delta p$: 6
-- $\Delta\mathrm{BIC}$: -0.9672601260244846
-- $\log_{10}(\mathrm{BF}_{hi,lo})$ (BIC approximation): 0.2100378676487388
-- Upper-neighbor comparison: $k_{hi}=27$ vs $k_{lo}=26$
-- $\log L(k_{hi})$: 1343299.999053955
-- $\log L(k_{lo})$: 1343398.507472992
-- $\mathrm{LR}$: -197.01683807373047
+- $\Delta\mathrm{BIC}$: -688.8154048472643
+- $\log_{10}(\mathrm{BF}_{hi,lo})$ (BIC approximation): 149.57436468756063
+- Upper-neighbor comparison: $k_{hi}=22$ vs $k_{lo}=21$
+- $\log L(k_{hi})$: 1344866.72809124
+- $\log L(k_{lo})$: 1344860.7109308243
+- $\mathrm{LR}$: 12.034320831298828
 - $\Delta p$: 6
-- $\Delta\mathrm{BIC}$: 269.63003754243255
-- $\log_{10}(\mathrm{BF}_{hi,lo})$ (BIC approximation): -58.54941873002254
+- $\Delta\mathrm{BIC}$: 60.57894520461559
+- $\log_{10}(\mathrm{BF}_{hi,lo})$ (BIC approximation): -13.154550810942004
 
 ## 8. Audit Field Dictionary
 Convergence/BIC dedicated logs are simplified views derived from these events.
@@ -351,32 +351,27 @@ Convergence/BIC dedicated logs are simplified views derived from these events.
 
 | Component | Weight | Mean L2 Norm | Covariance Trace |
 |---|---|---|---|
-| 0 | 0.110872 | 0.007372 | 0.000017 |
-| 1 | 0.007151 | 0.069955 | 0.000025 |
-| 2 | 0.062492 | 0.007487 | 0.000020 |
-| 3 | 0.003812 | 0.051673 | 0.000012 |
-| 4 | 0.123259 | 0.005933 | 0.000017 |
-| 5 | 0.020121 | 0.008318 | 0.000024 |
-| 6 | 0.031098 | 0.018443 | 0.000021 |
-| 7 | 0.010931 | 0.052717 | 0.000022 |
-| 8 | 0.035152 | 0.011555 | 0.000022 |
-| 9 | 0.036667 | 0.003054 | 0.000023 |
-| 10 | 0.046122 | 0.007832 | 0.000019 |
-| 11 | 0.046738 | 0.013040 | 0.000020 |
-| 12 | 0.022974 | 0.058696 | 0.000020 |
-| 13 | 0.033394 | 0.007585 | 0.000021 |
-| 14 | 0.001004 | 0.071907 | 0.000023 |
-| 15 | 0.002456 | 0.027395 | 0.000028 |
-| 16 | 0.082680 | 0.003930 | 0.000018 |
-| 17 | 0.043739 | 0.008600 | 0.000018 |
-| 18 | 0.036728 | 0.007563 | 0.000020 |
-| 19 | 0.042919 | 0.014375 | 0.000019 |
-| 20 | 0.069124 | 0.009563 | 0.000019 |
-| 21 | 0.092650 | 0.005002 | 0.000019 |
-| 22 | 0.015806 | 0.018166 | 0.000027 |
-| 23 | 0.019670 | 0.064027 | 0.000021 |
-| 24 | 0.002065 | 0.034964 | 0.000036 |
-| 25 | 0.000377 | 0.074347 | 0.000335 |
+| 0 | 0.052795 | 0.013100 | 0.000018 |
+| 1 | 0.015650 | 0.053964 | 0.000022 |
+| 2 | 0.109032 | 0.007977 | 0.000015 |
+| 3 | 0.042312 | 0.007420 | 0.000025 |
+| 4 | 0.001004 | 0.071907 | 0.000021 |
+| 5 | 0.029381 | 0.060658 | 0.000021 |
+| 6 | 0.049396 | 0.010606 | 0.000020 |
+| 7 | 0.105670 | 0.006693 | 0.000017 |
+| 8 | 0.002393 | 0.033714 | 0.000045 |
+| 9 | 0.155289 | 0.005092 | 0.000014 |
+| 10 | 0.045257 | 0.017621 | 0.000019 |
+| 11 | 0.015693 | 0.067385 | 0.000027 |
+| 12 | 0.017836 | 0.017825 | 0.000026 |
+| 13 | 0.002466 | 0.027358 | 0.000026 |
+| 14 | 0.081466 | 0.005655 | 0.000016 |
+| 15 | 0.058934 | 0.002380 | 0.000020 |
+| 16 | 0.073578 | 0.007174 | 0.000021 |
+| 17 | 0.070079 | 0.011359 | 0.000018 |
+| 18 | 0.000377 | 0.074344 | 0.000333 |
+| 19 | 0.003814 | 0.051669 | 0.000010 |
+| 20 | 0.067578 | 0.007747 | 0.000016 |
 
 ## 10. Quick Validation Checklist
 - Confirm `search_iteration` at $k_{\mathrm{best}}$ has `converged=true`.
