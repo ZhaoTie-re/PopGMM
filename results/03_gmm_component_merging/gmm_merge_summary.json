@@ -1,5 +1,5 @@
 {
-  "old_k": 21,
+  "old_k": 26,
   "new_k": 7,
   "covariance_type": "full",
   "distance_metric": "mahalanobis_between_component_means",
@@ -11,5 +11,5 @@
     "PC1_AVG",
     "PC2_AVG"
   ],
-  "output_rows": 180270
+  "output_rows": 181639
 }
