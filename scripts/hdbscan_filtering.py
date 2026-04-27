@@ -160,7 +160,7 @@ def _standardize_inplace(x: np.ndarray) -> None:
     x /= stds.astype(np.float32)
 
 
-def _make_hdbscan_estimator(config: HDBSCANConfig):
+def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any] | None = None):
     """Build an HDBSCAN estimator with backend-compatible parameters.
 
     Tries python-hdbscan first, then falls back to sklearn.cluster.HDBSCAN.
@@ -182,14 +182,19 @@ def _make_hdbscan_estimator(config: HDBSCANConfig):
         "gen_min_span_tree": config.gen_min_span_tree,
     }
 
-    def _filtered_kwargs(cls_or_fn: Any) -> dict[str, Any]:
+    def _filtered_kwargs(cls_or_fn: Any, kwargs_in: dict[str, Any]) -> dict[str, Any]:
         params = inspect.signature(cls_or_fn).parameters
-        return {k: v for k, v in model_kwargs.items() if k in params}
+        accepts_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if accepts_var_kwargs:
+            return dict(kwargs_in)
+        return {k: v for k, v in kwargs_in.items() if k in params}
 
     try:
         import hdbscan  # type: ignore
 
-        kwargs = _filtered_kwargs(hdbscan.HDBSCAN)
+        kwargs = _filtered_kwargs(hdbscan.HDBSCAN, model_kwargs)
+        if metric_kwargs:
+            kwargs.update(metric_kwargs)
         if kwargs.get("algorithm") == "auto":
             # python-hdbscan expects values like "best", not "auto".
             kwargs["algorithm"] = "best"
@@ -200,7 +205,13 @@ def _make_hdbscan_estimator(config: HDBSCANConfig):
         try:
             from sklearn.cluster import HDBSCAN as SklearnHDBSCAN  # type: ignore
 
-            kwargs = _filtered_kwargs(SklearnHDBSCAN)
+            kwargs = _filtered_kwargs(SklearnHDBSCAN, model_kwargs)
+            if metric_kwargs:
+                sklearn_params = inspect.signature(SklearnHDBSCAN).parameters
+                if "metric_params" in sklearn_params:
+                    kwargs["metric_params"] = metric_kwargs
+                else:
+                    kwargs.update(metric_kwargs)
             if kwargs.get("algorithm") == "best":
                 # sklearn backend accepts "auto" rather than "best".
                 kwargs["algorithm"] = "auto"
@@ -433,7 +444,16 @@ def run_hdbscan_denoise_bbj(
     if config.use_zscale_hdbscan:
         _standardize_inplace(x)
 
-    estimator = _make_hdbscan_estimator(config)
+    metric_kwargs: dict[str, Any] | None = None
+    if str(config.metric).lower() == "mahalanobis":
+        cov = np.cov(x, rowvar=False).astype(np.float64, copy=False)
+        if cov.ndim == 0:
+            cov = np.array([[float(cov)]], dtype=np.float64)
+        # Small diagonal jitter improves numerical stability for near-singular covariance.
+        cov = cov + (1e-8 * np.eye(cov.shape[0], dtype=np.float64))
+        metric_kwargs = {"V": cov, "VI": np.linalg.pinv(cov)}
+
+    estimator = _make_hdbscan_estimator(config, metric_kwargs=metric_kwargs)
     labels = estimator.fit_predict(x).astype(np.int32, copy=False)
 
     probabilities_raw = getattr(estimator, "probabilities_", None)
