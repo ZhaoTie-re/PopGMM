@@ -59,19 +59,14 @@ flowchart LR
 | $r_{nc}$ | **Aggregated Probability**: Cumulative probability of a sample belonging to macro-cluster $c$ (sum of intra-cluster $r_{nk}$). |
 | $\hat{y}_n$ (\`ŷ_n\`) | **Final Inferred Label**: Ultimate discrete classification output derived by maximizing the macro-cluster probabilities ($r_{nc}$). |
 
-## 图中要点（讲解用）
+## 图中要点
 
 - GMM 是“多个高斯的加权和”，用隐变量 $z$ 表示成分归属。
 - E-step 给出每个样本属于各成分的概率（软分配 $r_{nk}$）。
 - M-step 用 $r_{nk}$ 做加权平均，更新 $\pi,\mu,\Sigma$；`reg_covar` 可视为 $\lambda I$ 增强稳定性。
 - 收敛参考审计日志：以 `lower_bound`（即 $LB$）的相邻迭代改变量与 `tol` 比较决定停止；多次初始化 (`n_init`) 用于缓解局部最优。
 
-## PPT 可视化方案（推荐 1 页版式）
-
-- 左侧：使用上方主流程图（信息密度高但字少，适合大字号）。
-- 右侧：放“公式面板”（下面提供可直接复制进 PPT 的内容）。
-
-## 公式面板（PPT 右侧可直接粘贴）
+## 公式面板
 
 **记号与目标**
 
