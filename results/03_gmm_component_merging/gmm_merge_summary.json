@@ -1,15 +1,15 @@
 {
-  "old_k": 26,
-  "new_k": 7,
+  "old_k": 27,
+  "new_k": 6,
   "covariance_type": "full",
   "distance_metric": "mahalanobis_between_component_means",
   "covariance_for_distance": "pairwise_average_component_covariance",
   "pairwise_covariance_formula": "S_ij=0.5*(Sigma_i+Sigma_j)",
   "linkage_method": "average",
-  "merge_threshold": 5.0,
+  "merge_threshold": 6.0,
   "pc_columns_used": [
     "PC1_AVG",
     "PC2_AVG"
   ],
-  "output_rows": 181639
+  "output_rows": 180375
 }

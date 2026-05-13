@@ -1,0 +1,464 @@
+>>> ANALYZING ALL PC DISTRIBUTIONS FOR HIGH CONFIDENCE SAMPLES (CLUSTER 2)...
+   -> confidence_threshold = 0.95
+   -> output_dir = results/06_cluster2_all_pcs_kde_allpcs
+   -> Cluster 2 samples: 3090 / 3549
+   -> Case samples (Cluster 2): 434
+   -> Control samples (Cluster 2): 2656
+   -> Total PCs to analyze: 20
+   -> Running statistical tests...
+   -> Applying FDR correction (Benjamini-Hochberg method) to all tests...
+   -> FDR correction complete.
+      • Significant by t-test: 3 PC(s)
+      • Significant by Mann-Whitney U: 4 PC(s)
+================================================================================
+                   ALL PC DISTRIBUTION STATISTICS - CLUSTER 2                   
+================================================================================
+
+PC1 (39.2%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0060  |  Std:   0.0073
+    Min:   -0.0248  |  Max:   0.0165
+  CTEPH (n=434):
+    Mean:  -0.0065  |  Std:   0.0045
+    Min:   -0.0185  |  Max:   0.0075
+  Difference (CTEPH - AGP3K):  -0.0005
+
+PC2 (7.5%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0028  |  Std:   0.0083
+    Min:   -0.0234  |  Max:   0.0307
+  CTEPH (n=434):
+    Mean:  -0.0033  |  Std:   0.0044
+    Min:   -0.0187  |  Max:   0.0111
+  Difference (CTEPH - AGP3K):  -0.0005
+
+PC3 (5.2%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0026
+    Min:   -0.0089  |  Max:   0.0100
+  CTEPH (n=434):
+    Mean:   0.0002  |  Std:   0.0024
+    Min:   -0.0064  |  Max:   0.0062
+  Difference (CTEPH - AGP3K):   0.0001
+
+PC4 (4.3%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0000  |  Std:   0.0026
+    Min:   -0.0100  |  Max:   0.0102
+  CTEPH (n=434):
+    Mean:   0.0001  |  Std:   0.0025
+    Min:   -0.0061  |  Max:   0.0074
+  Difference (CTEPH - AGP3K):   0.0001
+
+PC5 (4.0%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0026
+    Min:   -0.0112  |  Max:   0.0086
+  CTEPH (n=434):
+    Mean:  -0.0000  |  Std:   0.0026
+    Min:   -0.0075  |  Max:   0.0075
+  Difference (CTEPH - AGP3K):  -0.0001
+
+PC6 (3.6%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0001  |  Std:   0.0026
+    Min:   -0.0096  |  Max:   0.0106
+  CTEPH (n=434):
+    Mean:   0.0000  |  Std:   0.0026
+    Min:   -0.0070  |  Max:   0.0086
+  Difference (CTEPH - AGP3K):   0.0002
+
+PC7 (3.2%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0013  |  Std:   0.0050
+    Min:   -0.0333  |  Max:   0.0134
+  CTEPH (n=434):
+    Mean:   0.0006  |  Std:   0.0030
+    Min:   -0.0137  |  Max:   0.0084
+  Difference (CTEPH - AGP3K):   0.0019
+
+PC8 (3.0%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0003  |  Std:   0.0030
+    Min:   -0.0127  |  Max:   0.0091
+  CTEPH (n=434):
+    Mean:  -0.0000  |  Std:   0.0028
+    Min:   -0.0089  |  Max:   0.0087
+  Difference (CTEPH - AGP3K):   0.0002
+
+PC9 (2.9%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0001  |  Std:   0.0043
+    Min:   -0.0302  |  Max:   0.0122
+  CTEPH (n=434):
+    Mean:   0.0006  |  Std:   0.0042
+    Min:   -0.0154  |  Max:   0.0099
+  Difference (CTEPH - AGP3K):   0.0006
+
+PC10 (2.7%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0005  |  Std:   0.0042
+    Min:   -0.0227  |  Max:   0.0135
+  CTEPH (n=434):
+    Mean:  -0.0007  |  Std:   0.0036
+    Min:   -0.0131  |  Max:   0.0081
+  Difference (CTEPH - AGP3K):  -0.0003
+
+PC11 (2.6%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0001  |  Std:   0.0030
+    Min:   -0.0134  |  Max:   0.0109
+  CTEPH (n=434):
+    Mean:   0.0001  |  Std:   0.0030
+    Min:   -0.0081  |  Max:   0.0072
+  Difference (CTEPH - AGP3K):   0.0002
+
+PC12 (2.6%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0000  |  Std:   0.0031
+    Min:   -0.0121  |  Max:   0.0094
+  CTEPH (n=434):
+    Mean:  -0.0002  |  Std:   0.0028
+    Min:   -0.0071  |  Max:   0.0076
+  Difference (CTEPH - AGP3K):  -0.0002
+
+PC13 (2.6%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0039
+    Min:   -0.0168  |  Max:   0.0108
+  CTEPH (n=434):
+    Mean:   0.0001  |  Std:   0.0038
+    Min:   -0.0145  |  Max:   0.0085
+  Difference (CTEPH - AGP3K):   0.0000
+
+PC14 (2.5%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0041
+    Min:   -0.0290  |  Max:   0.0165
+  CTEPH (n=434):
+    Mean:  -0.0000  |  Std:   0.0037
+    Min:   -0.0092  |  Max:   0.0127
+  Difference (CTEPH - AGP3K):  -0.0001
+
+PC15 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0039
+    Min:   -0.0456  |  Max:   0.0143
+  CTEPH (n=434):
+    Mean:   0.0003  |  Std:   0.0036
+    Min:   -0.0087  |  Max:   0.0129
+  Difference (CTEPH - AGP3K):   0.0003
+
+PC16 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:  -0.0000  |  Std:   0.0039
+    Min:   -0.0119  |  Max:   0.0595
+  CTEPH (n=434):
+    Mean:  -0.0002  |  Std:   0.0036
+    Min:   -0.0113  |  Max:   0.0113
+  Difference (CTEPH - AGP3K):  -0.0002
+
+PC17 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0038
+    Min:   -0.0134  |  Max:   0.0175
+  CTEPH (n=434):
+    Mean:   0.0009  |  Std:   0.0036
+    Min:   -0.0092  |  Max:   0.0105
+  Difference (CTEPH - AGP3K):   0.0008
+
+PC18 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0002  |  Std:   0.0038
+    Min:   -0.0121  |  Max:   0.0328
+  CTEPH (n=434):
+    Mean:   0.0004  |  Std:   0.0034
+    Min:   -0.0100  |  Max:   0.0122
+  Difference (CTEPH - AGP3K):   0.0002
+
+PC19 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0000  |  Std:   0.0039
+    Min:   -0.0184  |  Max:   0.0208
+  CTEPH (n=434):
+    Mean:  -0.0001  |  Std:   0.0036
+    Min:   -0.0120  |  Max:   0.0114
+  Difference (CTEPH - AGP3K):  -0.0002
+
+PC20 (2.4%) Statistics:
+  AGP3K (n=2656):
+    Mean:   0.0001  |  Std:   0.0038
+    Min:   -0.0159  |  Max:   0.0143
+  CTEPH (n=434):
+    Mean:   0.0002  |  Std:   0.0035
+    Min:   -0.0127  |  Max:   0.0103
+  Difference (CTEPH - AGP3K):   0.0001
+================================================================================
+
+>>> STATISTICAL TESTING (CTEPH vs AGP3K - Cluster 2) - ALL PCs
+>>> FDR Correction Applied: Benjamini-Hochberg Method (alpha=0.05)
+
+--- PC1 (39.2%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -1.9544
+    p-value (raw):      5.0981e-02
+    p-value (FDR-adj):  2.5491e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        574745.5000
+    p-value (raw):      9.2574e-01
+    p-value (FDR-adj):  9.2574e-01
+    Significant:        No
+
+--- PC2 (7.5%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -1.7043
+    p-value (raw):      8.8632e-02
+    p-value (FDR-adj):  3.5453e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        633367.0000
+    p-value (raw):      9.3704e-04
+    p-value (FDR-adj):  4.6852e-03
+    Significant:        Yes **
+
+--- PC3 (5.2%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          0.7275
+    p-value (raw):      4.6717e-01
+    p-value (FDR-adj):  5.8396e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        592904.0000
+    p-value (raw):      3.3678e-01
+    p-value (FDR-adj):  5.1812e-01
+    Significant:        No
+
+--- PC4 (4.3%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          0.5293
+    p-value (raw):      5.9681e-01
+    p-value (FDR-adj):  6.6312e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        581132.0000
+    p-value (raw):      7.8149e-01
+    p-value (FDR-adj):  8.6833e-01
+    Significant:        No
+
+--- PC5 (4.0%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -0.7935
+    p-value (raw):      4.2783e-01
+    p-value (FDR-adj):  5.7043e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        563125.0000
+    p-value (raw):      4.4273e-01
+    p-value (FDR-adj):  5.9881e-01
+    Significant:        No
+
+--- PC6 (3.6%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          1.1701
+    p-value (raw):      2.4243e-01
+    p-value (FDR-adj):  4.4078e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        594749.0000
+    p-value (raw):      2.8569e-01
+    p-value (FDR-adj):  4.9940e-01
+    Significant:        No
+
+--- PC7 (3.2%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         10.9287
+    p-value (raw):      3.5056e-26
+    p-value (FDR-adj):  7.0112e-25
+    Significant:        Yes **
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        719827.0000
+    p-value (raw):      8.3342e-17
+    p-value (FDR-adj):  1.6668e-15
+    Significant:        Yes **
+
+--- PC8 (3.0%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          1.5555
+    p-value (raw):      1.2033e-01
+    p-value (FDR-adj):  4.0111e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        598077.0000
+    p-value (raw):      2.0740e-01
+    p-value (FDR-adj):  4.9940e-01
+    Significant:        No
+
+--- PC9 (2.9%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          2.9133
+    p-value (raw):      3.7123e-03
+    p-value (FDR-adj):  2.4749e-02
+    Significant:        Yes **
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        643165.0000
+    p-value (raw):      1.0558e-04
+    p-value (FDR-adj):  7.0388e-04
+    Significant:        Yes **
+
+--- PC10 (2.7%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -1.4081
+    p-value (raw):      1.5958e-01
+    p-value (FDR-adj):  4.0826e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        535656.0000
+    p-value (raw):      1.8190e-02
+    p-value (FDR-adj):  7.2761e-02
+    Significant:        No
+
+--- PC11 (2.6%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          1.2023
+    p-value (raw):      2.2973e-01
+    p-value (FDR-adj):  4.4078e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        599936.0000
+    p-value (raw):      1.7111e-01
+    p-value (FDR-adj):  4.8889e-01
+    Significant:        No
+
+--- PC12 (2.6%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -1.0338
+    p-value (raw):      3.0164e-01
+    p-value (FDR-adj):  4.6407e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        557799.5000
+    p-value (raw):      2.8164e-01
+    p-value (FDR-adj):  4.9940e-01
+    Significant:        No
+
+--- PC13 (2.6%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          0.2026
+    p-value (raw):      8.3950e-01
+    p-value (FDR-adj):  8.3950e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        579009.0000
+    p-value (raw):      8.7748e-01
+    p-value (FDR-adj):  9.2366e-01
+    Significant:        No
+
+--- PC14 (2.5%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -0.4180
+    p-value (raw):      6.7610e-01
+    p-value (FDR-adj):  7.1168e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        565906.0000
+    p-value (raw):      5.4439e-01
+    p-value (FDR-adj):  6.8048e-01
+    Significant:        No
+
+--- PC15 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          1.3957
+    p-value (raw):      1.6331e-01
+    p-value (FDR-adj):  4.0826e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        600355.0000
+    p-value (raw):      1.6363e-01
+    p-value (FDR-adj):  4.8889e-01
+    Significant:        No
+
+--- PC16 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -1.0992
+    p-value (raw):      2.7213e-01
+    p-value (FDR-adj):  4.5355e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        563309.0000
+    p-value (raw):      4.4911e-01
+    p-value (FDR-adj):  5.9881e-01
+    Significant:        No
+
+--- PC17 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          4.3535
+    p-value (raw):      1.5744e-05
+    p-value (FDR-adj):  1.5744e-04
+    Significant:        Yes **
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        657252.5000
+    p-value (raw):      2.6668e-06
+    p-value (FDR-adj):  2.6668e-05
+    Significant:        Yes **
+
+--- PC18 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          1.2530
+    p-value (raw):      2.1066e-01
+    p-value (FDR-adj):  4.4078e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        594225.0000
+    p-value (raw):      2.9964e-01
+    p-value (FDR-adj):  4.9940e-01
+    Significant:        No
+
+--- PC19 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:         -0.8238
+    p-value (raw):      4.1036e-01
+    p-value (FDR-adj):  5.7043e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        557843.5000
+    p-value (raw):      2.8278e-01
+    p-value (FDR-adj):  4.9940e-01
+    Significant:        No
+
+--- PC20 (2.4%) Analysis ---
+  Welch's t-test (Mean):
+    t-statistic:          0.6209
+    p-value (raw):      5.3488e-01
+    p-value (FDR-adj):  6.2927e-01
+    Significant:        No
+  Mann-Whitney U (Rank Sum):
+    U-statistic:        585724.5000
+    p-value (raw):      5.8651e-01
+    p-value (FDR-adj):  6.9002e-01
+    Significant:        No
+================================================================================
+
+>>> SUMMARY: SIGNIFICANT PCs (FDR-corrected, alpha = 0.05)
+================================================================================
+
+Welch's t-test (Mean Comparison):
+   -> 3 significant PC(s) found:
+      • PC7 (3.2%): p_raw=3.5056e-26, p_adj=7.0112e-25
+      • PC9 (2.9%): p_raw=3.7123e-03, p_adj=2.4749e-02
+      • PC17 (2.4%): p_raw=1.5744e-05, p_adj=1.5744e-04
+
+Mann-Whitney U Test (Rank/Median Comparison):
+   -> 4 significant PC(s) found:
+      • PC2 (7.5%): p_raw=9.3704e-04, p_adj=4.6852e-03
+      • PC7 (3.2%): p_raw=8.3342e-17, p_adj=1.6668e-15
+      • PC9 (2.9%): p_raw=1.0558e-04, p_adj=7.0388e-04
+      • PC17 (2.4%): p_raw=2.6668e-06, p_adj=2.6668e-05
+                       
+MULTIPLE TESTING CORRECTION INFO                        
+   -> Total tests per method: 20
+   -> FDR method: Benjamini-Hochberg
+   -> Significance level: alpha = 0.05
+================================================================================
+>>> ALL PC ANALYSIS (CLUSTER 2) COMPLETED SUCCESSFULLY.
+
