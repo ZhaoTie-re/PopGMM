@@ -292,17 +292,26 @@ def _plot_gmm_overview(
 
     # A) BIC line plot.
     ax0 = axes[0, 0]
+    ks = bic_table["n_components"].to_numpy(dtype=np.int32)
+    bics = bic_table["bic"].to_numpy(dtype=np.float64)
+
+    # Keep absolute BIC as requested, but optimize readability for wide k ranges.
     ax0.plot(
-        bic_table["n_components"],
-        bic_table["bic"],
+        ks,
+        bics,
         color=line_color,
         linewidth=3.2,
-        marker="o",
-        markersize=8,
-        markerfacecolor="white",
-        markeredgewidth=2.0,
-        markeredgecolor=line_color,
         zorder=3,
+    )
+    ax0.scatter(
+        ks,
+        bics,
+        s=28,
+        color="white",
+        edgecolor=line_color,
+        linewidth=1.0,
+        alpha=0.95,
+        zorder=4,
     )
     ax0.scatter(
         [best_k],
@@ -314,14 +323,29 @@ def _plot_gmm_overview(
         zorder=5,
         label="Selected model",
     )
-    all_ticks = bic_table["n_components"].astype(int).tolist()
-    if len(all_ticks) > 12:
-        sparse_ticks = all_ticks[::2]
-        sparse_ticks = sorted(set(sparse_ticks + [all_ticks[0], all_ticks[-1], int(best_k)]))
+    # Robust tick generation for large contiguous k-ranges.
+    if ks.shape[0] > 12:
+        max_tick_count = 11
+        sampled = np.rint(np.linspace(int(ks[0]), int(ks[-1]), num=max_tick_count)).astype(np.int32)
+        tick_candidates = np.unique(sampled).tolist()
+        if len(tick_candidates) >= 2:
+            median_step = float(np.median(np.diff(np.array(tick_candidates, dtype=np.float64))))
+        else:
+            median_step = 1.0
+        if all(abs(int(best_k) - int(t)) > max(1.0, median_step * 0.35) for t in tick_candidates):
+            tick_candidates.append(int(best_k))
+        sparse_ticks = sorted(set(tick_candidates + [int(ks[0]), int(ks[-1])]))
         ax0.set_xticks(sparse_ticks)
     else:
-        ax0.set_xticks(all_ticks)
+        ax0.set_xticks(ks.tolist())
+
+    y_min = float(np.min(bics))
+    y_max = float(np.max(bics))
+    y_pad = max(1.0, (y_max - y_min) * 0.06)
     ax0.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:,.0f}"))
+
+    ax0.set_xlim(float(ks[0]) - 0.5, float(ks[-1]) + 0.5)
+    ax0.set_ylim(y_min - y_pad, y_max + y_pad)
     ax0.grid(True, linestyle="--", alpha=0.35, color="#BFBFBF")
     _ = ax0.legend(loc="upper right", frameon=True, framealpha=0.95)
 
