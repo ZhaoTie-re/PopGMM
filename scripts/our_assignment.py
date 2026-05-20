@@ -31,6 +31,7 @@ import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.colors import to_hex, to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
@@ -363,6 +364,73 @@ def _build_merged_cluster_palette(
     return merged_cluster_palette
 
 
+def _build_distinct_palette(n_colors: int) -> list[tuple[float, float, float, float]]:
+    """Match STEP2 categorical palette construction for many clusters."""
+    if n_colors <= 0:
+        return []
+
+    palette: list[tuple[float, float, float, float]] = []
+    for cmap_name in ("tab20", "tab20b", "tab20c"):
+        cmap = plt.get_cmap(cmap_name)
+        for i in range(cmap.N):
+            palette.append(cmap(i))
+
+    if n_colors > len(palette):
+        extra = n_colors - len(palette)
+        hsv = plt.get_cmap("hsv")
+        for i in range(extra):
+            palette.append(hsv((i / max(1, extra)) % 1.0))
+
+    return palette[:n_colors]
+
+
+def _build_premerge_component_palette(
+    *,
+    bbj_samples_gmm: pd.DataFrame,
+    n_clusters: int,
+) -> dict[int, str]:
+    """Build STEP2-consistent component colors for pre-merge assignment mode."""
+    if "GMM_Cluster" in bbj_samples_gmm.columns:
+        labels = bbj_samples_gmm["GMM_Cluster"].to_numpy(dtype=np.int32, copy=False)
+        unique_labels = np.unique(labels).astype(int)
+    else:
+        unique_labels = np.arange(int(n_clusters), dtype=np.int32)
+
+    palette = _build_distinct_palette(int(len(unique_labels)))
+    color_map = {int(k): str(to_hex(palette[i])) for i, k in enumerate(unique_labels.tolist())}
+
+    # Ensure every expected component has a color.
+    if int(n_clusters) > len(unique_labels):
+        fallback_hex = sns.color_palette("tab20", n_colors=int(n_clusters)).as_hex()
+        for i in range(int(n_clusters)):
+            color_map.setdefault(int(i), str(fallback_hex[int(i)]))
+
+    return color_map
+
+
+def _extract_mainland_premerge_cluster_ids(merge_map: pd.DataFrame | None) -> list[int]:
+    """Extract mainland pre-merge component IDs when STEP3 metadata is available."""
+    if not isinstance(merge_map, pd.DataFrame) or merge_map.empty:
+        return []
+
+    if "GMM_Component" not in merge_map.columns:
+        return []
+
+    if "Is_Mainland_Merged_Cluster" not in merge_map.columns:
+        return []
+
+    try:
+        mask = merge_map["Is_Mainland_Merged_Cluster"].astype(bool)
+    except Exception:
+        return []
+
+    vals = pd.to_numeric(merge_map.loc[mask, "GMM_Component"], errors="coerce").dropna().astype(int)
+    if vals.empty:
+        return []
+
+    return sorted(set(int(v) for v in vals.tolist()))
+
+
 def run_our_assignment_to_merged_gmm(
     *,
     gmm_model: GaussianMixture,
@@ -400,6 +468,10 @@ def run_our_assignment_to_merged_gmm(
 
     old_k = int(probs_original.shape[1])
     new_k = int(max(label_map.values())) + 1
+    is_premerge_identity_mode = bool(
+        int(new_k) == int(old_k)
+        and all(int(label_map.get(int(i), -1)) == int(i) for i in range(int(old_k)))
+    )
 
     probs_merged_our = np.zeros((probs_original.shape[0], int(new_k)), dtype=np.float64)
     for c_old in range(int(old_k)):
@@ -459,7 +531,13 @@ def run_our_assignment_to_merged_gmm(
         except Exception:
             var1, var2 = 0.0, 0.0
 
-        merged_cluster_palette = _build_merged_cluster_palette(merge_map=merge_map, new_k=int(new_k))
+        if is_premerge_identity_mode:
+            merged_cluster_palette = _build_premerge_component_palette(
+                bbj_samples_gmm=bbj_samples_gmm,
+                n_clusters=int(new_k),
+            )
+        else:
+            merged_cluster_palette = _build_merged_cluster_palette(merge_map=merge_map, new_k=int(new_k))
         hue_order = list(range(int(new_k)))
 
         all_x = np.concatenate([bbj_pc1, our_pc1])
@@ -603,7 +681,8 @@ def run_our_assignment_to_merged_gmm(
         )
 
         _apply_equal_centered_limits(ax2)
-        ax2.set_title("B. Assigned Merged Cluster", loc="left", pad=25, fontweight="bold")
+        panel_b_title = "B. Assigned Pre-merge Cluster" if is_premerge_identity_mode else "B. Assigned Merged Cluster"
+        ax2.set_title(panel_b_title, loc="left", pad=25, fontweight="bold")
         ax2.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
         ax2.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
         ax2.grid(True, linestyle="--", alpha=0.35, color="#C3C3C3")
@@ -713,62 +792,125 @@ def run_our_assignment_to_merged_gmm(
         stats["Control"] = df_cc.groupby("Cluster")["Control"].sum().reindex(range(int(new_k))).fillna(0).astype(int)
         stats["Total"] = df_cc.groupby("Cluster").size().reindex(range(int(new_k))).fillna(0).astype(int)
 
-        columns = [str(config.case_label), str(config.control_label), "Total"]
-        row_labels = [f"Cluster {i}" for i in range(int(new_k))]
+        case_counts_arr = stats["Case"].to_numpy(dtype=np.int64, copy=False)
+        control_counts_arr = stats["Control"].to_numpy(dtype=np.int64, copy=False)
+        total_counts_arr = stats["Total"].to_numpy(dtype=np.int64, copy=False)
+
+        case_counts_by_cluster = {cid: case_counts_arr[cid] for cid in range(int(new_k))}
+        control_counts_by_cluster = {cid: control_counts_arr[cid] for cid in range(int(new_k))}
+        total_counts_by_cluster = {cid: total_counts_arr[cid] for cid in range(int(new_k))}
+        all_cluster_ids = list(range(int(new_k)))
+
+        mainland_premerge_cluster_ids = _extract_mainland_premerge_cluster_ids(merge_map)
+        priority_ids = [cid for cid in mainland_premerge_cluster_ids if cid in case_counts_by_cluster]
+        priority_ids = sorted(priority_ids, key=lambda cid: (-case_counts_by_cluster.get(cid, 0), cid))
+        priority_set = set(priority_ids)
+        ordered_cluster_ids = priority_ids + [cid for cid in all_cluster_ids if cid not in priority_set]
+
+        columns = ["Cluster", str(config.case_label), str(config.control_label), "Total"]
         cell_text: list[list[str]] = []
-        for i in range(int(new_k)):
+        for cid in ordered_cluster_ids:
             cell_text.append([
-                f"{cast(int, stats.loc[i, 'Case']):,}",
-                f"{cast(int, stats.loc[i, 'Control']):,}",
-                f"{cast(int, stats.loc[i, 'Total']):,}",
+                f"Cluster {cid}",
+                f"{case_counts_by_cluster[cid]:,}",
+                f"{control_counts_by_cluster[cid]:,}",
+                f"{total_counts_by_cluster[cid]:,}",
             ])
 
         cell_text.append([
+            "Grand Total",
             f"{cast(int, stats['Case'].sum()):,}",
             f"{cast(int, stats['Control'].sum()):,}",
             f"{cast(int, stats['Total'].sum()):,}",
         ])
-        row_labels.append("Grand Total")
+
+        # Adaptive typography/geometry to keep dense cluster tables readable.
+        n_cluster_rows = int(len(ordered_cluster_ids))
+        if n_cluster_rows >= 30:
+            table_fontsize = 15
+            header_fontsize = 17
+            row_label_fontsize = 15
+        elif n_cluster_rows >= 22:
+            table_fontsize = 17
+            header_fontsize = 19
+            row_label_fontsize = 17
+        else:
+            table_fontsize = 20
+            header_fontsize = 22
+            row_label_fontsize = 20
 
         the_table = ax4.table(
             cellText=cell_text,
-            rowLabels=row_labels,
             colLabels=columns,
+            colWidths=[0.34, 0.22, 0.22, 0.22],
             loc="center",
             cellLoc="center",
-            bbox=Bbox.from_bounds(0.15, 0.1, 0.8, 0.8),
+            bbox=Bbox.from_bounds(0.05, 0.05, 0.90, 0.86),
         )
         the_table.auto_set_font_size(False)
-        the_table.set_fontsize(24)
+        the_table.set_fontsize(table_fontsize)
 
         cells = the_table.get_celld()
         n_rows_table = len(cell_text) + 1
-        row_height = 0.9 / n_rows_table
+        row_height = 0.84 / n_rows_table
         for (row, col), cell in cells.items():
-            cell.set_height(row_height)
             if row == 0:
-                cell.set_text_props(weight="bold", color="white", size=26)
+                cell.set_height(row_height * 1.20)
+                cell.set_text_props(weight="bold", color="white", size=header_fontsize)
                 cell.set_facecolor("#4C72B0")
                 cell.set_linewidth(1.5)
                 cell.set_edgecolor("white")
-            elif col == -1:
-                cell.set_text_props(weight="bold", size=24)
-                cell.set_facecolor("#f2f2f2")
-                cell.set_linewidth(1)
-                cell.set_edgecolor("white")
-                if row == len(cell_text):
-                    cell.set_facecolor("#d1dceb")
             else:
-                cell.set_text_props(size=24)
+                cell.set_height(row_height)
+                cell.set_text_props(size=table_fontsize)
                 cell.set_linewidth(0.5)
                 cell.set_edgecolor("#dddddd")
                 if row == len(cell_text):
                     cell.set_facecolor("#e6f3ff")
                     cell.set_text_props(weight="bold")
+                elif col == 0:
+                    cid = ordered_cluster_ids[row - 1]
+                    base_color = merged_cluster_palette.get(int(cid), "#f2f2f2")
+                    cell.set_facecolor(to_rgba(base_color, alpha=0.38))
+                    cell.set_text_props(weight="bold", size=row_label_fontsize)
                 elif row % 2 == 0:
                     cell.set_facecolor("#fbfbfb")
                 else:
                     cell.set_facecolor("white")
+
+        # Mainland annotation bracket for the prioritized pre-merge rows.
+        mainland_rows = [i + 1 for i, cid in enumerate(ordered_cluster_ids) if cid in priority_set]
+        if mainland_rows:
+            # Ensure table cell geometry is finalized before querying coordinates.
+            fig.canvas.draw()
+
+            first_row = min(mainland_rows)
+            last_row = max(mainland_rows)
+
+            x_last, y_last = cells[(last_row, 0)].get_xy()
+            _x_first, y_first = cells[(first_row, 0)].get_xy()
+            h_first = cells[(first_row, 0)].get_height()
+            y_top = float(y_first + h_first)
+            y_bot = float(y_last)
+
+            brace_x = float(max(0.01, x_last - 0.020))
+            tick_x = float(x_last - 0.003)
+            ax4.plot([brace_x, brace_x], [y_bot, y_top], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
+            ax4.plot([brace_x, tick_x], [y_top, y_top], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
+            ax4.plot([brace_x, tick_x], [y_bot, y_bot], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
+            ax4.text(
+                float(brace_x - 0.010),
+                float((y_top + y_bot) / 2.0),
+                "Mainland",
+                rotation=90,
+                va="center",
+                ha="right",
+                fontsize=max(12, table_fontsize - 1),
+                fontweight="bold",
+                color="#4A4A4A",
+                transform=ax4.transAxes,
+                clip_on=False,
+            )
 
         cohort_title = f"{str(config.case_label)} & {str(config.control_label)}"
         fig.suptitle(
@@ -787,11 +929,12 @@ def run_our_assignment_to_merged_gmm(
         else:
             plt.close(fig)
 
-        cluster_stats = stats.reset_index().rename(columns={"index": "Cluster"})
+        cluster_stats = stats.loc[ordered_cluster_ids].reset_index().rename(columns={"index": "Cluster"})
 
     if bool(getattr(config, "verbose", True)):
         print("\n" + "=" * 80)
-        print("STEP4: COHORT ASSIGNMENT TO MERGED GMM CLUSTERS".center(80))
+        mode_name = "PRE-MERGE GMM COMPONENTS" if is_premerge_identity_mode else "MERGED GMM CLUSTERS"
+        print(f"STEP4: COHORT ASSIGNMENT TO {mode_name}".center(80))
         print("=" * 80)
         print("\n[CONFIGURATION]")
         print("-" * 80)
@@ -802,7 +945,7 @@ def run_our_assignment_to_merged_gmm(
         print("\n[RESULTS]")
         print("-" * 80)
         print(f"  cohort rows           : {our_samples.shape[0]:,}")
-        print(f"  merged_clusters (K)   : {int(new_k)}")
+        print(f"  assigned_clusters (K) : {int(new_k)}")
         if assignment_tsv is not None:
             print(f"  assignment_tsv        : {assignment_tsv}")
         print("=" * 80)

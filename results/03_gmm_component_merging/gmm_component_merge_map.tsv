@@ -1,27 +1,27 @@
-GMM_Component	Merged_Cluster	Merged_Cluster_Color
-6	0	#f77189
-19	0	#f77189
-5	1	#bb9832
-0	2	#50b131
-2	2	#50b131
-3	2	#50b131
-4	2	#50b131
-7	2	#50b131
-8	2	#50b131
-11	2	#50b131
-12	2	#50b131
-13	2	#50b131
-14	2	#50b131
-15	2	#50b131
-16	2	#50b131
-18	2	#50b131
-20	2	#50b131
-22	2	#50b131
-24	2	#50b131
-25	2	#50b131
-1	3	#36ada4
-9	3	#36ada4
-10	3	#36ada4
-23	3	#36ada4
-17	4	#3ba3ec
-21	5	#e866f4
+GMM_Component	Merged_Cluster	Is_Mainland_Merged_Cluster	Merged_Cluster_Color
+6	0	False	#f77189
+19	0	False	#f77189
+5	1	False	#bb9832
+0	2	True	#50b131
+2	2	True	#50b131
+3	2	True	#50b131
+4	2	True	#50b131
+7	2	True	#50b131
+8	2	True	#50b131
+11	2	True	#50b131
+12	2	True	#50b131
+13	2	True	#50b131
+14	2	True	#50b131
+15	2	True	#50b131
+16	2	True	#50b131
+18	2	True	#50b131
+20	2	True	#50b131
+22	2	True	#50b131
+24	2	True	#50b131
+25	2	True	#50b131
+1	3	False	#36ada4
+9	3	False	#36ada4
+10	3	False	#36ada4
+23	3	False	#36ada4
+17	4	False	#3ba3ec
+21	5	False	#e866f4

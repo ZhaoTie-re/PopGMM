@@ -11,5 +11,28 @@
     "PC1_AVG",
     "PC2_AVG"
   ],
+  "mainland_merged_cluster_id": 2,
+  "mainland_premerge_cluster_id": 0,
+  "mainland_premerge_cluster_ids": [
+    0,
+    2,
+    3,
+    4,
+    7,
+    8,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    18,
+    20,
+    22,
+    24,
+    25
+  ],
+  "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
+  "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
   "output_rows": 181817
 }

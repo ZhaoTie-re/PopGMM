@@ -1,0 +1,70 @@
+{
+  "customize_cluster": [
+    0,
+    2,
+    3,
+    4,
+    7,
+    8,
+    11,
+    12,
+    13,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    25
+  ],
+  "mainland_subcluster_component_ids": [
+    0,
+    2,
+    3,
+    4,
+    7,
+    8,
+    11,
+    12,
+    13,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    25
+  ],
+  "exclude_cluster_ids": [
+    15
+  ],
+  "remaining_clusters": [
+    1,
+    5,
+    6,
+    9,
+    10,
+    15,
+    17,
+    19,
+    21,
+    23
+  ],
+  "remaining_component_ids": [
+    1,
+    5,
+    6,
+    9,
+    10,
+    15,
+    17,
+    19,
+    21,
+    23
+  ],
+  "custom_group_label": "Mainland Subcluster",
+  "custom_group_color": "#E67E22",
+  "n_groups": 11,
+  "rows": 3571,
+  "workflow_name": "mainland_subcluster_reassignment"
+}
