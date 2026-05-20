@@ -48,6 +48,9 @@ class GMMComponentMergingOutput(NamedTuple):
     label_map: dict[int, int]
     linkage_matrix: np.ndarray
     summary: dict[str, Any]
+    mainland_merged_cluster_id: int
+    mainland_premerge_cluster_id: int
+    mainland_premerge_cluster_ids: list[int]
     output_dir: Path
     figure_path: Path | None
 
@@ -755,6 +758,31 @@ def run_gmm_component_merging(
         .reset_index(drop=True)
     )
 
+    # Define a reproducible "mainland" merged cluster and its representative
+    # pre-merge cluster ID for downstream tracking.
+    merged_component_stats = (
+        merge_map.groupby("Merged_Cluster", as_index=False)
+        .agg(
+            Merged_Component_Count=("GMM_Component", "count"),
+        )
+        .sort_values(["Merged_Component_Count", "Merged_Cluster"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+
+    top_merged_cluster = merged_component_stats.iloc[0]
+    mainland_merged_component_count = int(np.asarray(top_merged_cluster["Merged_Component_Count"]).item())
+    mainland_merged_cluster_id = int(np.asarray(top_merged_cluster["Merged_Cluster"]).item())
+
+    mainland_premerge_df = (
+        merge_map.loc[merge_map["Merged_Cluster"] == mainland_merged_cluster_id, ["GMM_Component"]]
+        .sort_values(["GMM_Component"], ascending=[True])
+        .reset_index(drop=True)
+    )
+    mainland_premerge_cluster_ids = mainland_premerge_df["GMM_Component"].astype(int).tolist()
+    mainland_premerge_cluster_id = int(np.asarray(mainland_premerge_df.iloc[0]["GMM_Component"]).item())
+
+    merge_map["Is_Mainland_Merged_Cluster"] = merge_map["Merged_Cluster"].eq(mainland_merged_cluster_id)
+
     # Store merged-cluster colors (Panel C palette) for reproducibility.
     _palette_rgba, palette_hex = _build_merged_cluster_palette(int(new_k), config)
     merged_cluster_to_hex = {int(k): str(palette_hex[int(k)]) for k in range(int(new_k))}
@@ -773,7 +801,21 @@ def run_gmm_component_merging(
         "linkage_method": str(linkage_method),
         "merge_threshold": float(config.merge_threshold),
         "pc_columns_used": list(pc_cols_used),
+        "mainland_merged_cluster_id": int(mainland_merged_cluster_id),
+        "mainland_premerge_cluster_id": int(mainland_premerge_cluster_id),
+        "mainland_premerge_cluster_ids": [int(x) for x in mainland_premerge_cluster_ids],
+        "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
+        "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
         "output_rows": int(bbj_samples_gmm_merged.shape[0]),
+    }
+
+    mainland_reference = {
+        "mainland_merged_cluster_id": int(mainland_merged_cluster_id),
+        "mainland_premerge_cluster_id": int(mainland_premerge_cluster_id),
+        "mainland_premerge_cluster_ids": [int(x) for x in mainland_premerge_cluster_ids],
+        "mainland_merged_component_count": int(mainland_merged_component_count),
+        "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
+        "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
     }
 
     figure_path: Path | None = None
@@ -784,8 +826,22 @@ def run_gmm_component_merging(
         merged_counts.to_csv(out_dir / "gmm_merged_cluster_summary.tsv", sep="\t", index=False)
         np.save(out_dir / "gmm_merged_posterior_probabilities.npy", probs_merged)
 
+        pd.DataFrame(
+            [
+                {
+                    "Mainland_Merged_Cluster": int(mainland_merged_cluster_id),
+                    "Mainland_Premerge_Cluster_Default": int(mainland_premerge_cluster_id),
+                    "Mainland_Premerge_Clusters": ",".join(str(x) for x in mainland_premerge_cluster_ids),
+                    "Mainland_Merged_Component_Count": int(mainland_merged_component_count),
+                }
+            ]
+        ).to_csv(out_dir / "gmm_mainland_cluster_reference.tsv", sep="\t", index=False)
+
         with (out_dir / "gmm_merge_summary.json").open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
+
+        with (out_dir / "gmm_mainland_cluster_reference.json").open("w", encoding="utf-8") as f:
+            json.dump(mainland_reference, f, indent=2)
 
     if bool(config.save_plot):
         figure_path = out_dir / "gmm_component_merging_overview.png"
@@ -825,6 +881,8 @@ def run_gmm_component_merging(
         print(f"  conf_scale_hard_floor : {getattr(config, 'conf_scale_hard_floor', None)}")
         print(f"  save_plot             : {bool(config.save_plot)}")
         print(f"  save_tables           : {bool(config.save_tables)}")
+        print(f"  mainland_merged_id    : {int(mainland_merged_cluster_id)}")
+        print(f"  mainland_premerge_id  : {int(mainland_premerge_cluster_id)}")
         print(f"  output_dir            : {out_dir}")
         print("\n[RESULTS]")
         print("-" * 80)
@@ -844,6 +902,9 @@ def run_gmm_component_merging(
         label_map=label_map,
         linkage_matrix=Z,
         summary=summary,
+        mainland_merged_cluster_id=int(mainland_merged_cluster_id),
+        mainland_premerge_cluster_id=int(mainland_premerge_cluster_id),
+        mainland_premerge_cluster_ids=[int(x) for x in mainland_premerge_cluster_ids],
         output_dir=out_dir,
         figure_path=figure_path,
     )
