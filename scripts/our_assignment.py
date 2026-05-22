@@ -500,6 +500,7 @@ def run_our_assignment_to_merged_gmm(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     assignment_tsv: Path | None = None
+    mainland_samples_tsv: Path | None = None
     if bool(config.save_tables):
         assignment_tsv = out_dir / str(config.output_file)
         df_results.to_csv(assignment_tsv, sep="\t", index=False)
@@ -803,18 +804,42 @@ def run_our_assignment_to_merged_gmm(
 
         mainland_premerge_cluster_ids = _extract_mainland_premerge_cluster_ids(merge_map)
         priority_ids = [cid for cid in mainland_premerge_cluster_ids if cid in case_counts_by_cluster]
-        priority_ids = sorted(priority_ids, key=lambda cid: (-case_counts_by_cluster.get(cid, 0), cid))
         priority_set = set(priority_ids)
-        ordered_cluster_ids = priority_ids + [cid for cid in all_cluster_ids if cid not in priority_set]
 
-        columns = ["Cluster", str(config.case_label), str(config.control_label), "Total"]
+        # Compute Case/Control ratio and extremity for ranking
+        ratio_extremity_map: dict[int, tuple[float, float]] = {}
+        for cid in range(int(new_k)):
+            case_n = int(case_counts_by_cluster[cid])
+            ctrl_n = int(control_counts_by_cluster[cid])
+            ratio = float(case_n) / float(ctrl_n) if ctrl_n > 0 else 0.0
+            extremity = abs(ratio - 1.0)
+            ratio_extremity_map[cid] = (ratio, extremity)
+
+        # Rank by extremity (mainland clusters only), sorted descending by extremity
+        mainland_extremities = [(cid, ratio_extremity_map[cid][1]) for cid in priority_ids]
+        mainland_extremities_sorted = sorted(mainland_extremities, key=lambda x: -x[1])
+        rank_map: dict[int, int] = {}
+        for rank, (cid, _) in enumerate(mainland_extremities_sorted, start=1):
+            rank_map[cid] = rank
+
+        # Sort mainland clusters by Rank (ascending: Rank 1, 2, 3, ...)
+        priority_ids_sorted_by_rank = sorted(priority_ids, key=lambda cid: rank_map[cid])
+        all_cluster_ids = list(range(int(new_k)))
+        ordered_cluster_ids = priority_ids_sorted_by_rank + [cid for cid in all_cluster_ids if cid not in priority_set]
+
+        columns = ["Cluster", str(config.case_label), str(config.control_label), "Total", "Case/Ctrl", "Rank"]
         cell_text: list[list[str]] = []
         for cid in ordered_cluster_ids:
+            ratio, _ = ratio_extremity_map[cid]
+            rank_str = str(rank_map[cid]) if cid in priority_set else "-"
+            ratio_str = f"{ratio:.3f}" if cid in priority_set else "-"
             cell_text.append([
                 f"Cluster {cid}",
                 f"{case_counts_by_cluster[cid]:,}",
                 f"{control_counts_by_cluster[cid]:,}",
                 f"{total_counts_by_cluster[cid]:,}",
+                ratio_str,
+                rank_str,
             ])
 
         cell_text.append([
@@ -822,6 +847,8 @@ def run_our_assignment_to_merged_gmm(
             f"{cast(int, stats['Case'].sum()):,}",
             f"{cast(int, stats['Control'].sum()):,}",
             f"{cast(int, stats['Total'].sum()):,}",
+            "-",
+            "-",
         ])
 
         # Adaptive typography/geometry to keep dense cluster tables readable.
@@ -842,10 +869,10 @@ def run_our_assignment_to_merged_gmm(
         the_table = ax4.table(
             cellText=cell_text,
             colLabels=columns,
-            colWidths=[0.34, 0.22, 0.22, 0.22],
+            colWidths=[0.24, 0.18, 0.18, 0.18, 0.12, 0.10],
             loc="center",
             cellLoc="center",
-            bbox=Bbox.from_bounds(0.05, 0.05, 0.90, 0.86),
+            bbox=Bbox.from_bounds(0.02, 0.05, 0.96, 0.86),
         )
         the_table.auto_set_font_size(False)
         the_table.set_fontsize(table_fontsize)
@@ -873,6 +900,26 @@ def run_our_assignment_to_merged_gmm(
                     base_color = merged_cluster_palette.get(int(cid), "#f2f2f2")
                     cell.set_facecolor(to_rgba(base_color, alpha=0.38))
                     cell.set_text_props(weight="bold", size=row_label_fontsize)
+                elif col == 4:  # Case/Ctrl column
+                    cid = ordered_cluster_ids[row - 1]
+                    if cid in priority_set:
+                        cell.set_text_props(weight="bold", color="#D32F2F")
+                        cell.set_facecolor("#FFF3E0")
+                    else:
+                        if row % 2 == 0:
+                            cell.set_facecolor("#fbfbfb")
+                        else:
+                            cell.set_facecolor("white")
+                elif col == 5:  # Rank column
+                    cid = ordered_cluster_ids[row - 1]
+                    if cid in priority_set:
+                        cell.set_text_props(weight="bold", color="#1565C0")
+                        cell.set_facecolor("#E3F2FD")
+                    else:
+                        if row % 2 == 0:
+                            cell.set_facecolor("#fbfbfb")
+                        else:
+                            cell.set_facecolor("white")
                 elif row % 2 == 0:
                     cell.set_facecolor("#fbfbfb")
                 else:
@@ -931,6 +978,14 @@ def run_our_assignment_to_merged_gmm(
 
         cluster_stats = stats.loc[ordered_cluster_ids].reset_index().rename(columns={"index": "Cluster"})
 
+        if bool(config.save_tables):
+            mainland_samples_tsv = out_dir / "mainland_samples.fid_iid.txt"
+            mainland_mask = np.isin(assigned_merged, np.array(sorted(priority_set), dtype=int)) if priority_set else np.zeros_like(assigned_merged, dtype=bool)
+            mainland_sample_df = df_results.loc[mainland_mask, [c for c in ["FID", "IID"] if c in df_results.columns]].copy()
+            if "FID" not in mainland_sample_df.columns and "#FID" in our_samples.columns:
+                mainland_sample_df = our_samples.loc[mainland_mask, ["#FID", "IID"]].copy().rename(columns={"#FID": "FID"})
+            mainland_sample_df.to_csv(mainland_samples_tsv, sep="\t", index=False, header=False)
+
     if bool(getattr(config, "verbose", True)):
         print("\n" + "=" * 80)
         mode_name = "PRE-MERGE GMM COMPONENTS" if is_premerge_identity_mode else "MERGED GMM CLUSTERS"
@@ -948,6 +1003,8 @@ def run_our_assignment_to_merged_gmm(
         print(f"  assigned_clusters (K) : {int(new_k)}")
         if assignment_tsv is not None:
             print(f"  assignment_tsv        : {assignment_tsv}")
+        if mainland_samples_tsv is not None:
+            print(f"  mainland_samples_tsv  : {mainland_samples_tsv}")
         print("=" * 80)
 
     return OURAssignmentOutput(
