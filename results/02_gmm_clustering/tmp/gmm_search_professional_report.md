@@ -1,6 +1,6 @@
 # GMM One-k Convergence, BIC, and LR Audit Report
 
-- Generated (UTC): 2026-05-19T11:13:44.018645+00:00
+- Generated (UTC): 2026-05-21T16:59:35.692228+00:00
 - Focus component count ($k_{\mathrm{best}}$): 26
 - Search range ($k$): 2 to 100
 - Search convergence: 99/99 fits converged
