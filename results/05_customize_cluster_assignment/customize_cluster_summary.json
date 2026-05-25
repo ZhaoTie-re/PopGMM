@@ -22,13 +22,13 @@
     25
   ],
   "exclude_cluster_ids": [
-    13,
-    15,
     4,
     8,
     11,
-    20,
+    13,
+    15,
     16,
+    20,
     22
   ],
   "remaining_clusters": [
