@@ -212,6 +212,10 @@ def run_customize_cluster_assignment(
     row_sums[row_sums == 0] = 1.0
     probs_customize = probs_customize / row_sums
 
+    # Assignment is based on the recomputed composite posterior: a sample belongs to
+    # Mainland Subcluster iff the merged group posterior is highest.  This naturally
+    # absorbs borderline samples whose joint subcluster probability exceeds any single
+    # non-subcluster component.
     assigned_idx = np.argmax(probs_customize, axis=1).astype(np.int32)
     custom_group_label = str(config.custom_group_label)
     custom_group_slug = _slugify_label(custom_group_label)
@@ -235,12 +239,14 @@ def run_customize_cluster_assignment(
     # Professional primary fields.
     df_results["Assigned_Mainland_Subcluster_Group"] = assigned_group
     df_results["Assigned_Component_ID_If_Not_Subcluster"] = assigned_customize
+    # Merged-group posterior: P(sample belongs to Mainland Subcluster) under recomputed model.
     df_results["Prob_Mainland_Subcluster"] = probs_customize[:, 0].astype(np.float32)
 
     # Backward-compatible fields.
     df_results["Assigned_Customize_Group"] = assigned_group
     df_results["Assigned_Composite_Group"] = assigned_group
     df_results["Assigned_Customize_ClusterID"] = assigned_customize
+    # Confidence = max posterior under recomputed (merged) model.
     df_results["Assignment_Confidence"] = assignment_conf
     df_results["Prob_Customize_Cluster"] = probs_customize[:, 0].astype(np.float32)
     df_results[f"Prob_{custom_group_slug}"] = probs_customize[:, 0].astype(np.float32)
@@ -453,11 +459,11 @@ def run_customize_cluster_assignment(
                 else:
                     cell.set_facecolor("white")
 
-        excluded_txt = ", ".join(str(int(x)) for x in exclude_cluster_ids)
+        included_txt = ", ".join(str(int(x)) for x in sorted(mainland_subcluster_component_ids))
         fig.suptitle(
             (
                 "Global Posterior Reassignment with Mainland Subcluster as a Composite Group "
-                f"(Subcluster definition excludes mainland components: {excluded_txt})"
+                f"(Subcluster definition includes mainland components: {included_txt})"
             ),
             fontsize=34,
             fontweight="bold",

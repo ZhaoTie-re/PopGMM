@@ -806,33 +806,43 @@ def run_our_assignment_to_merged_gmm(
         priority_ids = [cid for cid in mainland_premerge_cluster_ids if cid in case_counts_by_cluster]
         priority_set = set(priority_ids)
 
-        # Compute Case/Control ratio and extremity for ranking
-        ratio_extremity_map: dict[int, tuple[float, float]] = {}
+        # Compute Case/Control ratio for mainland ordering and ranking.
+        ratio_map: dict[int, float] = {}
         for cid in range(int(new_k)):
             case_n = int(case_counts_by_cluster[cid])
             ctrl_n = int(control_counts_by_cluster[cid])
-            ratio = float(case_n) / float(ctrl_n) if ctrl_n > 0 else 0.0
-            extremity = abs(ratio - 1.0)
-            ratio_extremity_map[cid] = (ratio, extremity)
+            if ctrl_n > 0:
+                ratio = float(case_n) / float(ctrl_n)
+            elif case_n > 0:
+                ratio = float("inf")
+            else:
+                ratio = 0.0
+            ratio_map[cid] = ratio
 
-        # Rank by extremity (mainland clusters only), sorted descending by extremity
-        mainland_extremities = [(cid, ratio_extremity_map[cid][1]) for cid in priority_ids]
-        mainland_extremities_sorted = sorted(mainland_extremities, key=lambda x: -x[1])
+        # Mainland clusters are sorted by Case/Ctrl ratio (descending);
+        # Rank follows this order as 1, 2, 3, ... (ascending).
+        mainland_ratio_sorted = sorted(
+            priority_ids,
+            key=lambda cid: (-float(ratio_map[cid]), int(cid)),
+        )
         rank_map: dict[int, int] = {}
-        for rank, (cid, _) in enumerate(mainland_extremities_sorted, start=1):
+        for rank, cid in enumerate(mainland_ratio_sorted, start=1):
             rank_map[cid] = rank
 
-        # Sort mainland clusters by Rank (ascending: Rank 1, 2, 3, ...)
-        priority_ids_sorted_by_rank = sorted(priority_ids, key=lambda cid: rank_map[cid])
+        # Sort mainland clusters by Rank (ascending: 1, 2, 3, ...).
+        priority_ids_sorted_by_rank = sorted(priority_ids, key=lambda cid: (rank_map[cid], int(cid)))
         all_cluster_ids = list(range(int(new_k)))
         ordered_cluster_ids = priority_ids_sorted_by_rank + [cid for cid in all_cluster_ids if cid not in priority_set]
 
         columns = ["Cluster", str(config.case_label), str(config.control_label), "Total", "Case/Ctrl", "Rank"]
         cell_text: list[list[str]] = []
         for cid in ordered_cluster_ids:
-            ratio, _ = ratio_extremity_map[cid]
+            ratio = ratio_map[cid]
             rank_str = str(rank_map[cid]) if cid in priority_set else "-"
-            ratio_str = f"{ratio:.3f}" if cid in priority_set else "-"
+            if cid in priority_set:
+                ratio_str = "inf" if np.isinf(ratio) else f"{ratio:.3f}"
+            else:
+                ratio_str = "-"
             cell_text.append([
                 f"Cluster {cid}",
                 f"{case_counts_by_cluster[cid]:,}",
