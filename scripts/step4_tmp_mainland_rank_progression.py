@@ -38,6 +38,11 @@ class Step4TmpMainlandRankProgressionConfig:
     case_label: str = "Case"
     control_label: str = "Control"
 
+    # Override the Pareto-detected recommended rank.  When set, the figure
+    # annotation and decision-table Is_Recommended column will use this value
+    # instead of the automatically computed optimum.
+    forced_recommended_rank: int | None = None
+
     save_plot: bool = True
     show_plot: bool = False
     figure_dpi: int = 600
@@ -70,6 +75,29 @@ def _resolve_pc12_columns(df: pd.DataFrame) -> tuple[str, str]:
         return str(pc1_candidates[0]), str(pc2_candidates[0])
 
     raise KeyError("df_results must contain PC1/PC2 columns (e.g., PC1_AVG and PC2_AVG).")
+
+
+def _resolve_model_pc_columns(
+    df: pd.DataFrame,
+    gmm_model: Any,
+    gmm_summary: dict[str, Any] | None,
+) -> list[str]:
+    """Return the PC column names that match the GMM model's feature dimensionality."""
+    if isinstance(gmm_summary, dict):
+        cols = [c for c in gmm_summary.get("pc_columns_used", []) if c in df.columns]
+        if len(cols) >= 2:
+            return cols
+    n_features = int(getattr(gmm_model, "n_features_in_", 2))
+    candidates = sorted(
+        [c for c in df.columns if str(c).upper().startswith("PC") and str(c).upper().endswith("_AVG")],
+        key=lambda c: int("".join(ch for ch in str(c).split("_AVG")[0] if ch.isdigit()) or "0"),
+    )
+    if len(candidates) >= n_features:
+        return candidates[:n_features]
+    any_pc = [c for c in df.columns if str(c).upper().startswith("PC")][:n_features]
+    if len(any_pc) < n_features:
+        raise KeyError(f"Cannot find {n_features} PC columns in df_results for GMM projection.")
+    return any_pc
 
 
 def _case_ctrl_mahalanobis_pc12(case_xy: np.ndarray, ctrl_xy: np.ndarray) -> float:
@@ -171,9 +199,21 @@ def run_step4_tmp_mainland_rank_progression(
     merge_map: pd.DataFrame,
     our_case_iids: list[Any],
     our_ctrl_iids: list[Any],
+    gmm_model: Any,
+    gmm_summary: dict[str, Any] | None = None,
     config: Step4TmpMainlandRankProgressionConfig | None = None,
 ) -> Step4TmpMainlandRankProgressionOutput:
-    """Run STEP4_tmp cumulative analysis over mainland clusters ranked by Case/Ctrl."""
+    """Run STEP4_tmp cumulative analysis over mainland clusters ranked by Case/Ctrl.
+
+    Per-cluster ranking uses direct pre-merge MAP assignment from df_results
+    (Assigned_Merged_Cluster) to compute case/ctrl ratios for sorting.
+
+    Cumulative trade-off metrics (case/ctrl counts, Neff, heterogeneity) use
+    the same composite posterior recomputation as STEP5: for each cumulative k,
+    the top-k clusters are merged into a composite group, posteriors are
+    re-normalized, and assignment is via argmax.  This ensures consistency
+    with the STEP5 sample counts.
+    """
 
     config = config or Step4TmpMainlandRankProgressionConfig()
 
@@ -243,9 +283,9 @@ def run_step4_tmp_mainland_rank_progression(
             {
                 "Rank": int(rank),
                 "Cluster": int(cid),
-                f"{config.case_label}_Count": int(case_counts[int(cid)]),
-                f"{config.control_label}_Count": int(ctrl_counts[int(cid)]),
-                "Total_Count": int(total_counts[int(cid)]),
+                f"{config.case_label}_Count_MAP": int(case_counts[int(cid)]),
+                f"{config.control_label}_Count_MAP": int(ctrl_counts[int(cid)]),
+                "Total_Count_MAP": int(total_counts[int(cid)]),
                 "Case_Ctrl_Ratio": float(ratio),
             }
         )
@@ -254,20 +294,42 @@ def run_step4_tmp_mainland_rank_progression(
     cum_records: list[dict[str, Any]] = []
     selected_clusters = ranked_mainland_clusters[:max_rank]
 
+    # ── Pre-compute raw GMM posteriors once (same approach as STEP5) ─────────
+    pc_cols_model = _resolve_model_pc_columns(df, gmm_model, gmm_summary)
+    x_our = df[pc_cols_model].to_numpy(dtype=np.float64, copy=False)
+    probs_original = gmm_model.predict_proba(x_our).astype(np.float64, copy=False)
+    old_k = int(probs_original.shape[1])
+    is_case_arr = df["__is_case"].to_numpy(dtype=bool, copy=False)
+    is_ctrl_arr = df["__is_ctrl"].to_numpy(dtype=bool, copy=False)
+    pc1_arr = pd.to_numeric(df[pc1_col], errors="coerce").to_numpy(dtype=np.float64, copy=False)
+    pc2_arr = pd.to_numeric(df[pc2_col], errors="coerce").to_numpy(dtype=np.float64, copy=False)
+
     for k in range(1, max_rank + 1):
         included_clusters = selected_clusters[:k]
-        include_mask = df["Assigned_Merged_Cluster"].isin(included_clusters)
+        included_set = set(int(c) for c in included_clusters)
+        remaining = [c for c in range(old_k) if c not in included_set]
 
-        case_mask = include_mask & df["__is_case"]
-        ctrl_mask = include_mask & df["__is_ctrl"]
+        # Build composite posterior: col 0 = mainland subcluster (sum of included),
+        # cols 1..m = individual remaining components, then re-normalize row-wise.
+        n_groups = 1 + len(remaining)
+        probs_k = np.zeros((probs_original.shape[0], n_groups), dtype=np.float64)
+        probs_k[:, 0] = probs_original[:, sorted(included_set)].sum(axis=1)
+        for i, cid in enumerate(remaining, start=1):
+            probs_k[:, i] = probs_original[:, cid]
+        row_sums = probs_k.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0.0] = 1.0
+        probs_k /= row_sums
 
-        case_n = int(case_mask.sum())
-        ctrl_n = int(ctrl_mask.sum())
-        total_n = int((include_mask).sum())
+        in_sub = np.argmax(probs_k, axis=1) == 0
+
+        case_n = int((in_sub & is_case_arr).sum())
+        ctrl_n = int((in_sub & is_ctrl_arr).sum())
+        total_n = int(in_sub.sum())
 
         neff = _gwas_neff(case_n, ctrl_n)
 
-        all_xy = df.loc[include_mask, [pc1_col, pc2_col]].dropna().to_numpy(dtype=np.float64, copy=False)
+        finite_mask = in_sub & np.isfinite(pc1_arr) & np.isfinite(pc2_arr)
+        all_xy = np.stack([pc1_arr[finite_mask], pc2_arr[finite_mask]], axis=1)
         heterogeneity = _overall_heterogeneity_pc12(all_xy=all_xy)
 
         cum_records.append(
@@ -328,6 +390,17 @@ def run_step4_tmp_mainland_rank_progression(
             order = np.lexsort((k_pf, d_pf))
             best_idx = int(pf_global[int(order[0])])
             recommended_rank = int(decision_table.loc[best_idx, "Included_Max_Rank"])
+
+    # Override with user-specified rank when provided.
+    if config.forced_recommended_rank is not None:
+        forced = int(config.forced_recommended_rank)
+        valid_ranks = decision_table["Included_Max_Rank"].tolist()
+        if forced not in valid_ranks:
+            raise ValueError(
+                f"forced_recommended_rank={forced} is not in the valid rank range "
+                f"{valid_ranks[0]}..{valid_ranks[-1]}."
+            )
+        recommended_rank = forced
 
     decision_table["Delta_Neff"] = delta_neff
     decision_table["Delta_Heterogeneity"] = delta_het
@@ -453,8 +526,8 @@ def run_step4_tmp_mainland_rank_progression(
                 if _case_n is not None and _ctrl_n is not None and _total_n is not None:
                     _ann_lines = [
                         f"k = {rec_k}  (recommended)",
-                        f"Case: {_case_n:,}  |  Control: {_ctrl_n:,}",
-                        f"Total: {_total_n:,}",
+                        f"{config.case_label}: {_case_n:,}  |  {config.control_label}: {_ctrl_n:,}",
+                        f"Total: {_total_n:,}  (composite posterior)",
                     ]
                 else:
                     _ann_lines = [f"k = {rec_k}  (recommended)"]
@@ -626,6 +699,23 @@ def run_step4_tmp_mainland_rank_progression(
 
         _rule(0.072)
 
+        # ══ Section 3: Counting methods ═══════════════════════════════════
+        ax_note.text(
+            _X, 0.057,
+            "Counting methods:",
+            fontsize=10.5, fontweight="bold", va="top", ha="left", color=_BK,
+        )
+        ax_note.text(
+            _X, 0.035,
+            r"Rank table: per-component argmax (MAP), same as STEP4 Panel D.",
+            fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
+        )
+        ax_note.text(
+            _X, 0.011,
+            r"Scatter plot: composite posterior recomputation (top-$k$ merged), same as STEP5.",
+            fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
+        )
+
         fig.suptitle(
             "Mainland Rank-Cumulative Trade-off Analysis",
             fontsize=18, fontweight="bold", y=0.972,
@@ -646,7 +736,8 @@ def run_step4_tmp_mainland_rank_progression(
         print("STEP4_tmp: MAINLAND RANK-CUMULATIVE ANALYSIS".center(92))
         print("=" * 92)
         print(f"Mainland clusters ranked (top {max_rank}): {selected_clusters}")
-        print(f"Recommended rank k   : {recommended_rank}")
+        _rec_source = "(forced)" if config.forced_recommended_rank is not None else "(Pareto-auto)"
+        print(f"Recommended rank k   : {recommended_rank}  {_rec_source}")
         print(f"Rank table saved      : {rank_table_path}")
         print(f"Cumulative table saved: {cumulative_table_path}")
         print(f"Decision table saved  : {decision_table_path}")

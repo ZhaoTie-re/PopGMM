@@ -76,6 +76,8 @@ class OURAssignmentConfig:
         Save TSV outputs.
     output_file : str
         Filename for posterior TSV.
+    mainland_cluster_rank_file : str
+        Filename for Mainland sample-level cluster/rank TSV aligned to panel D.
     figure_file : str
         Filename for composite figure.
     bbj_color : str
@@ -98,6 +100,7 @@ class OURAssignmentConfig:
     save_tables: bool = True
 
     output_file: str = "our_posterior_probabilities_merged.tsv"
+    mainland_cluster_rank_file: str = "mainland_samples_cluster_rank.tsv"
     figure_file: str = "our_assignment_2x2.png"
 
     bbj_color: str = "#B0B0B0"
@@ -501,6 +504,7 @@ def run_our_assignment_to_merged_gmm(
 
     assignment_tsv: Path | None = None
     mainland_samples_tsv: Path | None = None
+    mainland_cluster_rank_tsv: Path | None = None
     if bool(config.save_tables):
         assignment_tsv = out_dir / str(config.output_file)
         df_results.to_csv(assignment_tsv, sep="\t", index=False)
@@ -834,7 +838,7 @@ def run_our_assignment_to_merged_gmm(
         all_cluster_ids = list(range(int(new_k)))
         ordered_cluster_ids = priority_ids_sorted_by_rank + [cid for cid in all_cluster_ids if cid not in priority_set]
 
-        columns = ["Cluster", str(config.case_label), str(config.control_label), "Total", "Case/Ctrl", "Rank"]
+        columns = ["Cluster", f"{config.case_label}*", f"{config.control_label}*", "Total*", "Case/Ctrl", "Rank"]
         cell_text: list[list[str]] = []
         for cid in ordered_cluster_ids:
             ratio = ratio_map[cid]
@@ -935,6 +939,19 @@ def run_our_assignment_to_merged_gmm(
                 else:
                     cell.set_facecolor("white")
 
+        # Counting method footnote below the table.
+        ax4.text(
+            0.02, 0.038,
+            f"* Per-component argmax (MAP) assignment. "
+            f"Cumulative analysis (STEP4_tmp) uses composite posterior recomputation.",
+            transform=ax4.transAxes,
+            fontsize=max(9, table_fontsize - 9),
+            color="#757575",
+            fontstyle="italic",
+            va="top", ha="left",
+            clip_on=False,
+        )
+
         # Mainland annotation bracket for the prioritized pre-merge rows.
         mainland_rows = [i + 1 for i, cid in enumerate(ordered_cluster_ids) if cid in priority_set]
         if mainland_rows:
@@ -996,6 +1013,25 @@ def run_our_assignment_to_merged_gmm(
                 mainland_sample_df = our_samples.loc[mainland_mask, ["#FID", "IID"]].copy().rename(columns={"#FID": "FID"})
             mainland_sample_df.to_csv(mainland_samples_tsv, sep="\t", index=False, header=False)
 
+            # Sample-level Mainland export aligned to panel D ranking.
+            mainland_cluster_rank_tsv = out_dir / str(config.mainland_cluster_rank_file)
+            sample_id_col = "IID" if "IID" in df_results.columns else ("FID" if "FID" in df_results.columns else None)
+            if sample_id_col is not None:
+                mainland_cluster_rank_df = pd.DataFrame(
+                    {
+                        "Sample_ID": df_results.loc[mainland_mask, sample_id_col].astype(str).to_numpy(),
+                        "Original_Cluster": [f"Cluster {int(cid)}" for cid in assigned_merged[mainland_mask]],
+                        "Rank": [int(rank_map[int(cid)]) for cid in assigned_merged[mainland_mask]],
+                    }
+                )
+                mainland_cluster_rank_df["_cluster_id"] = [int(cid) for cid in assigned_merged[mainland_mask]]
+                mainland_cluster_rank_df = mainland_cluster_rank_df.sort_values(
+                    by=["Rank", "_cluster_id", "Sample_ID"],
+                    ascending=[True, True, True],
+                    kind="stable",
+                ).drop(columns=["_cluster_id"])
+                mainland_cluster_rank_df.to_csv(mainland_cluster_rank_tsv, sep="\t", index=False)
+
     if bool(getattr(config, "verbose", True)):
         print("\n" + "=" * 80)
         mode_name = "PRE-MERGE GMM COMPONENTS" if is_premerge_identity_mode else "MERGED GMM CLUSTERS"
@@ -1015,6 +1051,8 @@ def run_our_assignment_to_merged_gmm(
             print(f"  assignment_tsv        : {assignment_tsv}")
         if mainland_samples_tsv is not None:
             print(f"  mainland_samples_tsv  : {mainland_samples_tsv}")
+        if mainland_cluster_rank_tsv is not None:
+            print(f"  mainland_cluster_rank : {mainland_cluster_rank_tsv}")
         print("=" * 80)
 
     return OURAssignmentOutput(
