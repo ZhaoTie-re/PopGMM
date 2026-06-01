@@ -1,9 +1,9 @@
 >>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND SAMPLES...
    -> output_dir = results/04_our_assignment
-   -> mainland clusters = [0, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 25]
-   -> Mainland samples: 3099 / 3571
+   -> mainland clusters = [0, 2, 3, 5, 6, 8, 9, 10, 12, 14, 15, 17, 18, 19, 20, 21, 24, 25, 26, 27]
+   -> Mainland samples: 3104 / 3571
    -> Case samples (Mainland): 434
-   -> Control samples (Mainland): 2665
+   -> Control samples (Mainland): 2670
    -> Total PCs to analyze: 20
    -> Running statistical tests...
    -> Applying FDR correction (Benjamini-Hochberg method) to all tests...

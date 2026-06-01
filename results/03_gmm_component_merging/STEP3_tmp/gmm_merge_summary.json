@@ -1,6 +1,6 @@
 {
-  "old_k": 26,
-  "new_k": 12,
+  "old_k": 29,
+  "new_k": 13,
   "covariance_type": "full",
   "distance_metric": "mahalanobis_between_component_means",
   "covariance_for_distance": "pairwise_average_component_covariance",
@@ -11,15 +11,14 @@
     "PC1_AVG",
     "PC2_AVG"
   ],
-  "mainland_merged_cluster_id": 3,
-  "mainland_premerge_cluster_id": 0,
+  "mainland_merged_cluster_id": 4,
+  "mainland_premerge_cluster_id": 3,
   "mainland_premerge_cluster_ids": [
-    0,
     3,
-    4,
-    13,
-    16,
-    22
+    10,
+    20,
+    25,
+    27
   ],
   "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
   "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
