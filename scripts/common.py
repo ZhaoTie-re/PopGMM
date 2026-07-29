@@ -1,0 +1,223 @@
+"""Shared helpers for the PopGMM step modules.
+
+Import direction is strictly one-way: this module imports nothing from
+``scripts.*``, and every other module imports from it. That dissolves the
+previous tangle in which ``cluster_all_pcs_kde`` acted as an accidental utility
+library for the two ``mainland_*_kde`` modules while itself importing
+``_PLOT_STYLE_RC`` back out of ``our_assignment``.
+
+Only helpers that were verified to be behaviourally identical across their
+copies live here. Two deliberate exceptions are recorded so the next person does
+not "finish the job" and change a figure:
+
+* ``format_pc_axis_label`` takes ``decimals`` because
+  ``gmm_component_merging`` formatted variance as ``.1f`` while
+  ``gmm_clustering`` and ``hdbscan_filtering`` used ``.2f`` -- i.e. it drew
+  ``PC1 (39.2%)`` where the others drew ``PC1 (39.24%)``. The call site in
+  the merging module must pass ``decimals=1``.
+* ``resolve_pc_columns`` returns *all* PC columns.
+  ``mainland_subcluster_only`` needs a 2-PC variant that raises when fewer than
+  two are present, so it keeps a thin local wrapper rather than changing this
+  one.
+
+``_build_merged_cluster_palette`` and ``_build_premerge_component_palette`` are
+NOT here: they have two genuinely different implementations each, and unifying
+them would recolour published figures for the sake of ~40 lines.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+# ---------------------------------------------------------------------------
+# Plot style
+# ---------------------------------------------------------------------------
+
+#: Shared rcParams for publication figures (dpi=400, large type).
+PLOT_STYLE_RC: dict[str, object] = {
+    "figure.dpi": 400,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    "font.size": 22,
+    "axes.titlesize": 30,
+    "axes.labelsize": 26,
+    "axes.linewidth": 2.0,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "xtick.labelsize": 22,
+    "ytick.labelsize": 22,
+    "xtick.major.width": 2.0,
+    "ytick.major.width": 2.0,
+    "legend.fontsize": 22,
+    "legend.title_fontsize": 24,
+    "figure.titlesize": 40,
+}
+
+_PC_RE = re.compile(r"^PC(\d+)(?:_AVG)?$")
+
+# ---------------------------------------------------------------------------
+# PC column handling
+# ---------------------------------------------------------------------------
+
+
+def pc_sort_key(col: str) -> int:
+    """Sort key placing PC columns in numeric order and non-PC columns last."""
+    match = _PC_RE.match(str(col))
+    return int(match.group(1)) if match else 10**9
+
+
+def pc_index_from_col(col: str) -> int | None:
+    """``"PC3_AVG" -> 3``; ``None`` for anything that is not a PC column."""
+    match = _PC_RE.match(str(col))
+    return int(match.group(1)) if match else None
+
+
+def resolve_pc_columns(df: pd.DataFrame) -> list[str]:
+    """All PC columns of ``df`` in numeric order (possibly empty)."""
+    return sorted((c for c in df.columns if _PC_RE.match(str(c))), key=pc_sort_key)
+
+
+def resolve_all_pc_columns(df: pd.DataFrame) -> list[str]:
+    """All PC columns of ``df`` in numeric order; raises when there are none."""
+    pc_cols = resolve_pc_columns(df)
+    if not pc_cols:
+        raise RuntimeError("No PC columns detected (expected e.g., PC1_AVG ...).")
+    return pc_cols
+
+
+def format_pc_axis_label(
+    col: str, eigenval: pd.DataFrame | None, *, decimals: int = 2
+) -> str:
+    """Axis label like ``PC1 (39.24%)``; never shows the ``_AVG`` suffix.
+
+    ``decimals`` exists only to preserve the pre-existing difference between
+    modules -- see the module docstring.
+    """
+    pc_idx = pc_index_from_col(col)
+    if pc_idx is None:
+        return str(col).replace("_AVG", "")
+
+    base = f"PC{pc_idx}"
+    if eigenval is None or eigenval.empty:
+        return base
+    if "PC" not in eigenval.columns or "variance_explained" not in eigenval.columns:
+        return base
+
+    row = eigenval.loc[eigenval["PC"] == pc_idx, "variance_explained"]
+    if row.empty:
+        return base
+
+    return f"{base} ({float(row.iloc[0]) * 100.0:.{decimals}f}%)"
+
+
+# ---------------------------------------------------------------------------
+# Palettes
+# ---------------------------------------------------------------------------
+
+
+def build_distinct_palette(n_colors: int) -> list[tuple[float, float, float, float]]:
+    """High-contrast categorical palette for many clusters.
+
+    Uses tab20/tab20b/tab20c first (better categorical separability than a
+    single colormap), then falls back to evenly spaced HSV colors if needed.
+    """
+    if n_colors <= 0:
+        return []
+
+    palette: list[tuple[float, float, float, float]] = []
+    for cmap_name in ("tab20", "tab20b", "tab20c"):
+        cmap = plt.get_cmap(cmap_name)
+        for i in range(cmap.N):
+            palette.append(cmap(i))
+
+    if n_colors > len(palette):
+        extra = n_colors - len(palette)
+        hsv = plt.get_cmap("hsv")
+        for i in range(extra):
+            palette.append(hsv((i / max(1, extra)) % 1.0))
+
+    return palette[:n_colors]
+
+
+# ---------------------------------------------------------------------------
+# Statistics
+# ---------------------------------------------------------------------------
+
+
+def bh_fdr_adjust(pvals: np.ndarray) -> np.ndarray:
+    """Benjamini-Hochberg adjusted p-values; NaNs pass through untouched."""
+    pvals = np.asarray(pvals, dtype=float)
+    out = np.full_like(pvals, np.nan, dtype=float)
+    mask = np.isfinite(pvals)
+    if not mask.any():
+        return out
+    p = pvals[mask]
+    n = p.size
+    order = np.argsort(p)
+    adj = p[order] * n / np.arange(1, n + 1)
+    adj = np.minimum.accumulate(adj[::-1])[::-1]
+    adj = np.clip(adj, 0.0, 1.0)
+    tmp = np.empty_like(adj)
+    tmp[order] = adj
+    out[mask] = tmp
+    return out
+
+
+def safe_stats(x: np.ndarray) -> dict[str, float]:
+    """mean/std/min/max over the finite entries; all-NaN for an empty input."""
+    x = np.asarray(x, dtype=float)
+    x = x[np.isfinite(x)]
+    if x.size == 0:
+        return {"mean": np.nan, "std": np.nan, "min": np.nan, "max": np.nan}
+    return {
+        "mean": float(np.mean(x)),
+        "std": float(np.std(x, ddof=1)) if x.size >= 2 else float(np.std(x, ddof=0)),
+        "min": float(np.min(x)),
+        "max": float(np.max(x)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Logging and templating
+# ---------------------------------------------------------------------------
+
+
+def setup_file_logger(name: str, log_path: Path) -> logging.Logger:
+    """Logger writing to ``log_path`` and stdout with no timestamp prefix.
+
+    The bare ``%(message)s`` format is what makes the emitted ``.log`` files
+    byte-comparable between runs, which ``tools/verify_results.py`` relies on.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    fh = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    fh.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(fh)
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(sh)
+    return logger
+
+
+def format_template(template: str, *, cluster_id: int, threshold: float) -> str:
+    """Expand ``{cluster_id}``/``{threshold*}`` placeholders in a filename."""
+    threshold_str = f"{float(threshold):.2f}"
+    threshold_tag = threshold_str.replace(".", "p")
+    return str(template).format(
+        cluster_id=int(cluster_id),
+        threshold=float(threshold),
+        threshold_str=threshold_str,
+        threshold_tag=threshold_tag,
+        threshold_pct=int(round(float(threshold) * 100.0)),
+    )

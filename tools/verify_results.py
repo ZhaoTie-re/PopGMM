@@ -65,30 +65,46 @@ VOLATILE_PDF = [
 SKIP_NAMES = {".DS_Store"}
 
 # ---------------------------------------------------------------------------
-# Documented numerical noise floor
+# Documented numerical noise in the STEP2 model search
 # ---------------------------------------------------------------------------
 #
-# Two independent runs of the UNMODIFIED pipeline in the same environment agree
-# byte-for-byte on 54 of 58 artifacts, including best_k, best_bic and every
-# FID/IID keep-list. The exception is the k=2..100 BIC search log: 15 of the 99
-# candidate fits differ by an exact multiple of 0.173394 BIC units, which is one
-# float32 ULP of `average_log_likelihood` (4.77e-7 at magnitude 7.38) amplified
-# by 2 x 181,817 samples. The cause is float reduction order varying across the
-# ProcessPool workers; see docs/reproducibility_probe.md.
+# Independent runs of the pipeline in the same environment agree byte-for-byte
+# on every artifact except the k=2..100 BIC search log. Across three measured
+# run pairs, 15-18 of the 99 candidate fits differ, by at most 11.27 BIC units
+# (4.2e-6 relative). Two mechanisms are at work:
 #
-# This is a real, bounded, NON-PROPAGATING effect: the largest perturbation is
-# 1.39 BIC units against a 155.92-unit margin between the winner (k=26) and the
-# runner-up (k=29), and the best perturbed candidate is 420 units off the
-# winner. So the search log is compared with a relative tolerance, while the
-# invariant that actually matters -- which k wins -- is asserted exactly.
+#   * most differences are exact multiples of 0.173394 BIC units -- one float32
+#     ULP of `average_log_likelihood` amplified by 2 x 181,817 samples, from
+#     float reduction order varying across the ProcessPool workers;
+#   * occasionally a candidate jumps by ~10 units because n_init=3 means EM is
+#     restarted three times and the best is kept, and a float difference can
+#     flip which restart wins.
 #
-# Nothing else in the tree gets a tolerance. Widening this table is a
+# Neither propagates: best_k, the fitted model, and all 57 downstream artifacts
+# are byte-identical in every run pair measured. See
+# docs/reproducibility_probe.md.
+#
+# Rather than pick an arbitrary relative tolerance, the search table is judged
+# on what actually carries the science:
+#
+#   1. argmin(BIC) -- which k is selected -- must not move (ARGMIN_INVARIANT);
+#   2. the winning BIC value must be identical;
+#   3. no candidate may be perturbed by more than SEARCH_NOISE_MARGIN_FRACTION
+#      of the winner-to-runner-up margin, which the tool derives from the
+#      baseline itself. At the observed margin of 155.92 units this admits
+#      15.59 units of wobble -- above the 11.27 seen in practice, and far below
+#      anything that could reorder the top of the ranking.
+#
+# The two JSONL audit logs hold the same quantities and get a matching relative
+# tolerance. Nothing else in the tree gets any tolerance; widening this is a
 # scientific decision, not a convenience.
 
+SEARCH_NOISE_MARGIN_FRACTION = 0.10
+
 NOISE_TOLERANT_FILES = {
-    "02_gmm_clustering/gmm_bic_search.tsv": 1e-6,
-    "02_gmm_clustering/tmp/gmm_search_bic_log.jsonl": 1e-6,
-    "02_gmm_clustering/tmp/gmm_search_convergence_log.jsonl": 1e-6,
+    "02_gmm_clustering/gmm_bic_search.tsv": 1e-5,
+    "02_gmm_clustering/tmp/gmm_search_bic_log.jsonl": 1e-5,
+    "02_gmm_clustering/tmp/gmm_search_convergence_log.jsonl": 1e-5,
 }
 
 # In the BIC search table, the selected k must never move.
@@ -252,7 +268,7 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
     if a.shape != b.shape:
         return FAIL, f"shape {a.shape} vs {b.shape}"
 
-    # The scientifically load-bearing invariant survives any tolerance.
+    # The scientifically load-bearing invariants survive any tolerance.
     if rel in ARGMIN_INVARIANT:
         value_col, label_col = ARGMIN_INVARIANT[rel]
         ka = pd.to_numeric(a[value_col], errors="coerce")
@@ -263,6 +279,21 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
                 f"argmin({value_col}) moved: {label_col}={wa} ({ka.min()!r}) "
                 f"vs {label_col}={wb} ({kb.min()!r})"
             )
+        # No candidate may wobble by an appreciable fraction of the margin that
+        # separates the winner from the runner-up -- that is what would make the
+        # selection fragile, regardless of how small the relative change looks.
+        ranked = ka.sort_values()
+        margin = float(ranked.iloc[1] - ranked.iloc[0])
+        budget = SEARCH_NOISE_MARGIN_FRACTION * margin
+        drift = float(np.nanmax(np.abs(ka.to_numpy(float) - kb.to_numpy(float))))
+        if drift > budget:
+            i = int(np.nanargmax(np.abs(ka.to_numpy(float) - kb.to_numpy(float))))
+            return FAIL, (
+                f"{value_col} drift {drift:.2f} at {label_col}={a[label_col][i]} "
+                f"exceeds {SEARCH_NOISE_MARGIN_FRACTION:.0%} of the "
+                f"{margin:.2f}-unit winner margin ({budget:.2f})"
+            )
+        noted = f" [search noise {drift:.2f} of {budget:.2f} budget]"
 
     worst = 0.0
     worst_at = ""

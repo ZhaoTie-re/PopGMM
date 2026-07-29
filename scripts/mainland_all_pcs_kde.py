@@ -22,15 +22,17 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import mannwhitneyu, ttest_ind
 
-from scripts.cluster_all_pcs_kde import (
-    _PLOT_STYLE_RC,
-    _bh_fdr_adjust,
-    _format_template,
-    _resolve_all_pc_columns,
-    _safe_stats,
-    _setup_file_logger,
-)
 from scripts.our_assignment import OURAssignmentConfig
+
+from scripts.common import (
+    PLOT_STYLE_RC as _PLOT_STYLE_RC,
+    bh_fdr_adjust as _bh_fdr_adjust,
+    format_template as _format_template,
+    pc_sort_key as _pc_sort_key,
+    resolve_all_pc_columns as _resolve_all_pc_columns,
+    safe_stats as _safe_stats,
+    setup_file_logger as _setup_file_logger,
+)
 
 
 class MainlandAllPCsKDEOutput(NamedTuple):
@@ -58,14 +60,6 @@ class MainlandAllPCsKDEConfig:
     case_color: str = "#E31A1C"
     alpha: float = 0.65
     verbose: bool = True
-
-
-def _pc_sort_key(col: str) -> int:
-    col = str(col)
-    if col.startswith("PC") and (col[2:].isdigit() or col[2:-4].isdigit() and col.endswith("_AVG")):
-        digits = col[2:-4] if col.endswith("_AVG") else col[2:]
-        return int(digits)
-    return 10**9
 
 
 def _format_title(pc_num: int, var: float) -> str:

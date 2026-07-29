@@ -34,6 +34,20 @@ from scipy.cluster.hierarchy import dendrogram, fcluster, linkage, to_tree
 from scipy.spatial.distance import squareform
 from sklearn.mixture import GaussianMixture
 
+from scripts.common import (
+    build_distinct_palette as _build_distinct_palette,
+    format_pc_axis_label as _shared_format_pc_axis_label,
+    pc_index_from_col as _pc_index_from_col,
+    pc_sort_key as _pc_sort_key,
+    resolve_pc_columns as _resolve_pc_columns,
+)
+
+
+def _format_pc_axis_label(col: str, eigenval: pd.DataFrame | None) -> str:
+    """One decimal here, unlike the two used elsewhere -- keeping the
+    published axis text of gmm_component_merging_overview.png unchanged."""
+    return _shared_format_pc_axis_label(col, eigenval, decimals=1)
+
 
 class GMMComponentMergingOutput(NamedTuple):
     """Container for GMM component merging outputs."""
@@ -137,60 +151,6 @@ class GMMComponentMergingConfig:
     conf_power_gamma: float = 0.40
 
     verbose: bool = True
-
-
-def _pc_sort_key(col: str) -> int:
-    match = re.match(r"^PC(\d+)(?:_AVG)?$", col)
-    return int(match.group(1)) if match else 10**9
-
-
-def _resolve_pc_columns(df: pd.DataFrame) -> list[str]:
-    pc_cols = [c for c in df.columns if re.match(r"^PC\d+(?:_AVG)?$", c)]
-    return sorted(pc_cols, key=_pc_sort_key)
-
-
-def _pc_index_from_col(col: str) -> int | None:
-    match = re.match(r"^PC(\d+)", col)
-    return int(match.group(1)) if match else None
-
-
-def _format_pc_axis_label(col: str, eigenval: pd.DataFrame | None) -> str:
-    pc_idx = _pc_index_from_col(col)
-    base = col.replace("_AVG", "") if pc_idx is None else f"PC{pc_idx}"
-
-    if eigenval is None or eigenval.empty:
-        return base
-
-    if "PC" not in eigenval.columns or "variance_explained" not in eigenval.columns:
-        return base
-
-    if pc_idx is None:
-        return base
-
-    row = eigenval.loc[eigenval["PC"] == pc_idx, "variance_explained"]
-    if row.empty:
-        return base
-
-    return f"{base} ({float(row.iloc[0]) * 100.0:.1f}%)"
-
-
-def _build_distinct_palette(n_colors: int) -> list[tuple[float, float, float, float]]:
-    if n_colors <= 0:
-        return []
-
-    palette: list[tuple[float, float, float, float]] = []
-    for cmap_name in ("tab20", "tab20b", "tab20c"):
-        cmap = plt.get_cmap(cmap_name)
-        for i in range(cmap.N):
-            palette.append(cmap(i))
-
-    if n_colors > len(palette):
-        extra = n_colors - len(palette)
-        hsv = plt.get_cmap("hsv")
-        for i in range(extra):
-            palette.append(hsv((i / max(1, extra)) % 1.0))
-
-    return palette[:n_colors]
 
 
 def _build_merged_cluster_palette(

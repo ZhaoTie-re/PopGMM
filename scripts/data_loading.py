@@ -30,9 +30,6 @@ class DataLoadingConfig:
 
 
 # Backward-compatible alias.
-BBJDataLoadingConfig = DataLoadingConfig
-
-
 def _col_candidates(col: str) -> list[str]:
     if col == "#FID" or col == "FID":
         return ["#FID", "FID"]

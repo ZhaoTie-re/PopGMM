@@ -16,6 +16,8 @@ from matplotlib.lines import Line2D
 from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
+from scripts.common import build_distinct_palette as _build_distinct_palette
+
 
 class CustomizeClusterAssignmentOutput(NamedTuple):
     df_results: pd.DataFrame
@@ -30,9 +32,6 @@ class CustomizeClusterAssignmentOutput(NamedTuple):
 
 
 # Backward-compatible alias.
-MainlandSubclusterReassignmentOutput = CustomizeClusterAssignmentOutput
-
-
 @dataclass(frozen=True)
 class CustomizeClusterAssignmentConfig:
     output_dir: str = "results/05_customize_cluster_assignment"
@@ -50,7 +49,10 @@ class CustomizeClusterAssignmentConfig:
     # If customize_cluster is provided, it has priority.
     customize_cluster: tuple[int, ...] | None = None
     # Remove these clusters from mainland_premerge_cluster_ids by default.
-    exclude_cluster_ids: int | tuple[int, ...] | list[int] = (13, 15)
+    # No default membership: (13, 15) was a leftover from one specific old run
+    # and would silently mis-run any caller that forgot to pass this. The
+    # notebook always supplies it explicitly, derived from the STEP4_tmp cut.
+    exclude_cluster_ids: int | tuple[int, ...] | list[int] = ()
 
     bbj_color: str = "#B0B0B0"
     bbj_alpha: float = 0.20
@@ -63,9 +65,6 @@ class CustomizeClusterAssignmentConfig:
 
 
 # Backward-compatible alias with professional naming.
-MainlandSubclusterReassignmentConfig = CustomizeClusterAssignmentConfig
-
-
 def _normalize_cluster_ids(ids: int | tuple[int, ...] | list[int] | None) -> tuple[int, ...]:
     if ids is None:
         return tuple()
@@ -105,25 +104,6 @@ def _resolve_pc_columns_for_projection(
         raise RuntimeError("At least two PC columns are required for assignment visualization.")
 
     return list(pc_cols_used)
-
-
-def _build_distinct_palette(n_colors: int) -> list[tuple[float, float, float, float]]:
-    if n_colors <= 0:
-        return []
-
-    palette: list[tuple[float, float, float, float]] = []
-    for cmap_name in ("tab20", "tab20b", "tab20c"):
-        cmap = plt.get_cmap(cmap_name)
-        for i in range(cmap.N):
-            palette.append(cmap(i))
-
-    if n_colors > len(palette):
-        extra = n_colors - len(palette)
-        hsv = plt.get_cmap("hsv")
-        for i in range(extra):
-            palette.append(hsv((i / max(1, extra)) % 1.0))
-
-    return palette[:n_colors]
 
 
 def _build_premerge_component_palette(bbj_samples_gmm: pd.DataFrame, n_clusters: int) -> dict[int, str]:
@@ -506,27 +486,3 @@ def run_customize_cluster_assignment(
     )
 
 
-def run_mainland_subcluster_reassignment(
-    *,
-    gmm_model: GaussianMixture,
-    bbj_samples_gmm: pd.DataFrame,
-    our_samples: pd.DataFrame,
-    our_case_iids: list[Any],
-    our_ctrl_iids: list[Any],
-    mainland_premerge_cluster_ids: list[int],
-    eigenval: pd.DataFrame | None = None,
-    gmm_summary: dict[str, Any] | None = None,
-    config: MainlandSubclusterReassignmentConfig | None = None,
-) -> MainlandSubclusterReassignmentOutput:
-    """Professional alias for Step5 reassignment API."""
-    return run_customize_cluster_assignment(
-        gmm_model=gmm_model,
-        bbj_samples_gmm=bbj_samples_gmm,
-        our_samples=our_samples,
-        our_case_iids=our_case_iids,
-        our_ctrl_iids=our_ctrl_iids,
-        mainland_premerge_cluster_ids=mainland_premerge_cluster_ids,
-        eigenval=eigenval,
-        gmm_summary=gmm_summary,
-        config=config,
-    )

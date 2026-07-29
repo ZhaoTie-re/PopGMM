@@ -34,6 +34,13 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.lines import Line2D
 
+from scripts.common import (
+    format_pc_axis_label as _format_pc_axis_label,
+    pc_index_from_col as _pc_index_from_col,
+    pc_sort_key as _pc_sort_key,
+    resolve_pc_columns as _resolve_pc_columns,
+)
+
 
 class HDBSCANDenoiseOutput(NamedTuple):
     """Container for HDBSCAN denoising outputs."""
@@ -113,43 +120,6 @@ class HDBSCANConfig:
     save_tables: bool = True
     save_full_table: bool = False
     verbose: bool = True
-
-
-def _pc_sort_key(col: str) -> int:
-    match = re.match(r"^PC(\d+)(?:_AVG)?$", col)
-    return int(match.group(1)) if match else 10**9
-
-
-def _resolve_pc_columns(df: pd.DataFrame) -> list[str]:
-    pc_cols = [c for c in df.columns if re.match(r"^PC\d+(?:_AVG)?$", c)]
-    return sorted(pc_cols, key=_pc_sort_key)
-
-
-def _pc_index_from_col(col: str) -> int | None:
-    match = re.match(r"^PC(\d+)(?:_AVG)?$", col)
-    return int(match.group(1)) if match else None
-
-
-def _format_pc_axis_label(col: str, eigenval: pd.DataFrame | None) -> str:
-    """Return display label like `PC1 (12.34%)` and never show `_AVG`."""
-
-    pc_idx = _pc_index_from_col(col)
-    if pc_idx is None:
-        return col.replace("_AVG", "")
-
-    base = f"PC{pc_idx}"
-    if eigenval is None or eigenval.empty:
-        return base
-
-    if "PC" not in eigenval.columns or "variance_explained" not in eigenval.columns:
-        return base
-
-    row = eigenval.loc[eigenval["PC"] == pc_idx, "variance_explained"]
-    if row.empty:
-        return base
-
-    ratio = float(row.iloc[0]) * 100.0
-    return f"{base} ({ratio:.2f}%)"
 
 
 def _standardize_inplace(x: np.ndarray) -> None:
