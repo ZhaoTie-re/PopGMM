@@ -127,15 +127,29 @@ POPGMM_DATA_ROOT=/path/to/data
 `RUN_MODE` at the top of the notebook:
 
 - `"fresh"` (default) — execute every step and write all of its output files.
-  **Use this for any run whose results you intend to keep or verify.**
+  **Use this for any run whose results you intend to keep, publish or verify.**
 - `"resume"` — reuse cached STEP0–STEP2 artifacts to skip the ~5 minute GMM
-  search while iterating. A cache hit skips the function, so those steps' tables,
-  figures and audit logs are *not* rewritten. The mode is recorded in
-  `run_environment.json`.
+  search while iterating. Measured: 6 min 52 s → **47 s**.
+
+`"resume"` is a development convenience with two consequences, both measured:
+
+1. A cache hit skips the function, so STEP1 and STEP2 write nothing — their 12
+   output files are simply absent from the results tree.
+2. **The figures of later steps change.** Data is unaffected (all 40 files a
+   resume run does write, including every keep-list, are byte-identical), but
+   `gmm_component_merging_overview.png` differs in 3.4 % of its pixels. The
+   cause is the `rcParams` leak described under Known issues: skipping STEP1/2
+   means their plotting code never runs, so STEP3 onward inherits a different
+   global style state.
+
+The mode is recorded in `run_environment.json`, and `verify_results.py` refuses
+to verify a tree produced with it.
 
 The cache lives in `.cache/popgmm/` (untracked), keyed on the step config,
 upstream step keys, input fingerprints and library versions — so any change to
-parameters, inputs or dependencies misses.
+parameters, inputs or dependencies misses. The results-root prefix is normalised
+out of the key, so a run into `results_verify` reuses a cache populated by a run
+into `results`; genuine subdirectory differences (`STEP3_tmp`) still miss.
 
 ---
 
@@ -251,12 +265,19 @@ their checksums are in `tools/baseline_manifest.json`, so
 
 ## Known issues
 
-- The plotting modules mutate global `plt.rcParams` without restoring them, and
-  four of them call `plt.style.use()` without setting the shared style dict, so
-  they inherit whatever the previously executed cell left behind. This is
-  deliberately **not** fixed: the committed figures may encode that state, and
-  "fixing" it would change them. Run the notebook top to bottom, as intended,
-  and the figures reproduce.
+- **The plotting modules mutate global `plt.rcParams` without restoring them**,
+  and four of them call `plt.style.use()` without setting the shared style dict,
+  so they inherit whatever the previously executed cell left behind. The figures
+  therefore depend on *which steps ran before them*, not only on their own data.
+  Demonstrated by the `RUN_MODE="resume"` measurement above: skipping STEP1–2
+  leaves every data file byte-identical while shifting 3.4 % of the pixels in
+  `gmm_component_merging_overview.png`.
+
+  This is deliberately **not** fixed — the committed figures encode the current
+  state, and wrapping the mutations in `rc_context` would change them. Run the
+  notebook top to bottom in `"fresh"` mode, as intended, and the figures
+  reproduce exactly. If the figures are ever regenerated for publication, fix
+  this first and regenerate all of them together.
 - `GMMConfig.use_zscale=True` is not usable end to end — `our_assignment` raises
   because the training scaler is never persisted. The committed run uses
   `use_zscale=False`.
