@@ -1,0 +1,20 @@
+{
+  "libraries": {
+    "hdbscan": "0.8.42",
+    "joblib": "1.5.3",
+    "numpy": "2.4.2",
+    "pandas": "2.2.3",
+    "scikit-learn": "1.8.0",
+    "scipy": "1.17.0"
+  },
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "python": "3.12.6",
+  "run_mode": "fresh",
+  "threading": {
+    "MKL_NUM_THREADS": null,
+    "NUMEXPR_NUM_THREADS": null,
+    "OMP_NUM_THREADS": null,
+    "OPENBLAS_NUM_THREADS": null,
+    "VECLIB_MAXIMUM_THREADS": null
+  }
+}
