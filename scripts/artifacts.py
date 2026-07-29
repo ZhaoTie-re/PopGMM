@@ -21,9 +21,16 @@ Design constraints, in order of importance:
 3. **A hit must never be mistaken for a run.** Hits skip the function, so the
    step's side-effect files (tables, figures, audit logs) are *not* written.
    ``RUN_MODE="fresh"`` -- the default -- therefore always executes, and only
-   populates the cache. ``"resume"`` is a development convenience and is
-   recorded in ``run_environment.json`` so a verification run performed in that
-   mode can be rejected.
+   populates the cache. ``"resume"`` is a development convenience, is recorded
+   in ``run_environment.json``, and ``tools/verify_results.py`` refuses to
+   verify a tree produced with it.
+
+   This is not a theoretical concern. A measured resume run leaves all 40 data
+   files it writes byte-identical -- every keep-list included -- but shifts
+   3.4 % of the pixels in ``gmm_component_merging_overview.png``, because
+   skipping STEP1/STEP2 means their plotting code never runs and later steps
+   inherit a different global ``rcParams`` state. Never publish figures from a
+   resume run.
 """
 
 from __future__ import annotations
@@ -91,12 +98,44 @@ def run_environment(run_mode: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _normalize_roots(value: Any) -> Any:
+    """Collapse the results/data root prefix in any path-like config value.
+
+    Step configs carry ``output_dir``, which moves when ``POPGMM_RESULTS_ROOT``
+    is set -- so without this, a verification run into ``results_verify`` would
+    miss every cache entry a run into ``results`` had populated, purely because
+    of where the *side-effect* files go. Where output is written cannot affect
+    what a step returns: the step output NamedTuples carry no paths and the
+    summary dicts contain no path keys (both checked).
+
+    The prefix is replaced rather than dropped, so a genuine change of
+    subdirectory -- ``03_gmm_component_merging`` vs its ``STEP3_tmp`` -- still
+    produces a different key.
+    """
+    import scripts.params as params
+
+    if isinstance(value, Path) or (isinstance(value, str) and ("/" in value or "\\" in value)):
+        text = Path(str(value)).as_posix()
+        for root, token in (
+            (params.RESULTS_ROOT.as_posix(), "<RESULTS_ROOT>"),
+            (params.DATA_ROOT.as_posix(), "<DATA_ROOT>"),
+        ):
+            if root and text.startswith(root):
+                return token + text[len(root):]
+        return text
+    if isinstance(value, dict):
+        return {k: _normalize_roots(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalize_roots(v) for v in value]
+    return value
+
+
 def _fingerprint_config(config: Any) -> Any:
     if config is None:
         return None
     if dataclasses.is_dataclass(config) and not isinstance(config, type):
-        return dataclasses.asdict(config)
-    return config
+        return _normalize_roots(dataclasses.asdict(config))
+    return _normalize_roots(config)
 
 
 def _fingerprint_frame(df: pd.DataFrame) -> str:

@@ -113,7 +113,7 @@ ARGMIN_INVARIANT = {"02_gmm_clustering/gmm_bic_search.tsv": ("bic", "n_component
 PASS, WARN, FAIL = "PASS", "WARN", "FAIL"
 
 # Classes whose mismatch must never be tolerated.
-HARD_CLASSES = frozenset({"exact", "tsv", "json", "npy"})
+HARD_CLASSES = frozenset({"exact", "tsv", "json", "npy", "run_mode"})
 
 
 # ---------------------------------------------------------------------------
@@ -596,6 +596,28 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--candidate is required")
     croot = args.candidate.as_posix()
     checks: list[Check] = []
+
+    # A "resume" run reuses cached STEP0-STEP2 results, which means those steps'
+    # side-effect files were never rewritten -- whatever is on disk for them came
+    # from some earlier run. Such a tree cannot testify to anything, so reject it
+    # outright rather than let it pass on stale files.
+    env_path = args.candidate / "run_environment.json"
+    if env_path.exists():
+        try:
+            mode = json.loads(env_path.read_text()).get("run_mode")
+        except Exception:
+            mode = None
+        if mode is not None and mode != "fresh":
+            checks.append(
+                Check(
+                    "run_environment.json",
+                    "run_mode",
+                    FAIL,
+                    f"candidate was produced with RUN_MODE={mode!r}; cached steps did "
+                    f"not rewrite their outputs, so this tree cannot be verified. "
+                    f"Re-run with RUN_MODE=\"fresh\".",
+                )
+            )
 
     if args.manifest:
         blob = json.loads(args.manifest.read_text())
