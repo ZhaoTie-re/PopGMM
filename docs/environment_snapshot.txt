@@ -1,0 +1,116 @@
+# PopGMM environment snapshot
+
+Captured: 2026-07-29T16:46:06Z
+Host: Darwin 25.5.0 arm64
+
+## Interpreter
+Python 3.12.6 | packaged by conda-forge | (main, Sep 22 2024, 14:07:06) [Clang 17.0.6 ]
+platform: macOS-26.5.2-arm64-arm-64bit
+prefix: /Users/tie_zhao/miniconda3/envs/digital_market
+
+## Threading (affects float reduction order in BLAS)
+OMP_NUM_THREADS=<unset>
+OPENBLAS_NUM_THREADS=<unset>
+MKL_NUM_THREADS=<unset>
+VECLIB_MAXIMUM_THREADS=<unset>
+NUMEXPR_NUM_THREADS=<unset>
+
+## numpy build configuration
+Build Dependencies:
+  blas:
+    detection method: pkgconfig
+    found: true
+    include directory: /Users/tie_zhao/miniconda3/envs/digital_market/include
+    lib directory: /Users/tie_zhao/miniconda3/envs/digital_market/lib
+    name: openblas
+    openblas configuration: USE_64BITINT=0 DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS=
+      NO_LAPACK=0 NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP=0 VORTEX MAX_THREADS=128
+    pc file directory: /Users/tie_zhao/miniconda3/envs/digital_market/lib/pkgconfig
+    version: 0.3.31
+  lapack:
+    detection method: pkgconfig
+    found: true
+    include directory: /Users/tie_zhao/miniconda3/envs/digital_market/include
+    lib directory: /Users/tie_zhao/miniconda3/envs/digital_market/lib
+    name: openblas
+    openblas configuration: USE_64BITINT=0 DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS=
+      NO_LAPACK=0 NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP=0 VORTEX MAX_THREADS=128
+    pc file directory: /Users/tie_zhao/miniconda3/envs/digital_market/lib/pkgconfig
+    version: 0.3.31
+Compilers:
+  c:
+    args: -ftree-vectorize, -fPIC, -fstack-protector-strong, -O2, -pipe, -isystem,
+      /Users/tie_zhao/miniconda3/envs/digital_market/include, -fdebug-prefix-map=/Users/ec2-user/croot/numpy_and_numpy_base_1770732576627/work=/usr/local/src/conda/numpy-base-2.4.2,
+      -fdebug-prefix-map=/Users/tie_zhao/miniconda3/envs/digital_market=/usr/local/src/conda-prefix,
+      -mmacosx-version-min=12.1
+    commands: arm64-apple-darwin20.0.0-clang
+    linker: ld64
+    linker args: -Wl,-headerpad_max_install_names, -Wl,-dead_strip_dylibs, -Wl,-rpath,/Users/tie_zhao/miniconda3/envs/digital_market/lib,
+      -L/Users/tie_zhao/miniconda3/envs/digital_market/lib, -ftree-vectorize, -fPIC,
+      -fstack-protector-strong, -O2, -pipe, -isystem, /Users/tie_zhao/miniconda3/envs/digital_market/include,
+      -fdebug-prefix-map=/Users/ec2-user/croot/numpy_and_numpy_base_1770732576627/work=/usr/local/src/conda/numpy-base-2.4.2,
+      -fdebug-prefix-map=/Users/tie_zhao/miniconda3/envs/digital_market=/usr/local/src/conda-prefix,
+      -mmacosx-version-min=12.1
+    name: clang
+    version: 17.0.6
+  c++:
+    args: -ftree-vectorize, -fPIC, -fstack-protector-strong, -O2, -pipe, -stdlib=libc++,
+      -fvisibility-inlines-hidden, -fmessage-length=0, -isystem, /Users/tie_zhao/miniconda3/envs/digital_market/include,
+      -fdebug-prefix-map=/Users/ec2-user/croot/numpy_and_numpy_base_1770732576627/work=/usr/local/src/conda/numpy-base-2.4.2,
+      -fdebug-prefix-map=/Users/tie_zhao/miniconda3/envs/digital_market=/usr/local/src/conda-prefix,
+      -mmacosx-version-min=12.1
+    commands: arm64-apple-darwin20.0.0-clang++
+    linker: ld64
+    linker args: -Wl,-headerpad_max_install_names, -Wl,-dead_strip_dylibs, -Wl,-rpath,/Users/tie_zhao/miniconda3/envs/digital_market/lib,
+      -L/Users/tie_zhao/miniconda3/envs/digital_market/lib, -ftree-vectorize, -fPIC,
+      -fstack-protector-strong, -O2, -pipe, -stdlib=libc++, -fvisibility-inlines-hidden,
+      -fmessage-length=0, -isystem, /Users/tie_zhao/miniconda3/envs/digital_market/include,
+      -fdebug-prefix-map=/Users/ec2-user/croot/numpy_and_numpy_base_1770732576627/work=/usr/local/src/conda/numpy-base-2.4.2,
+      -fdebug-prefix-map=/Users/tie_zhao/miniconda3/envs/digital_market=/usr/local/src/conda-prefix,
+      -mmacosx-version-min=12.1
+    name: clang
+    version: 17.0.6
+  cython:
+    commands: cython
+    linker: cython
+    name: cython
+    version: 3.2.4
+Machine Information:
+  build:
+    cpu: aarch64
+    endian: little
+    family: aarch64
+    system: darwin
+  host:
+    cpu: aarch64
+    endian: little
+    family: aarch64
+    system: darwin
+Python Information:
+  path: /Users/tie_zhao/miniconda3/envs/digital_market/bin/python
+  version: '3.12'
+SIMD Extensions:
+  baseline:
+  - NEON
+  - NEON_FP16
+  - NEON_VFPV4
+  - ASIMD
+  found:
+  - ASIMDHP
+  - ASIMDDP
+  not found:
+  - ASIMDFHM
+
+
+## Core package versions
+numpy==2.4.2
+pandas==2.2.3
+scikit-learn==1.8.0
+scipy==1.17.0
+matplotlib==3.9.2
+seaborn==0.13.2
+hdbscan==0.8.42
+joblib==1.5.3
+pillow==10.4.0
+nbconvert==7.16.4
+ipykernel==6.29.5

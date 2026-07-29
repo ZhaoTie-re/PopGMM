@@ -1,0 +1,34 @@
+# Conda environment that produced the committed `results/` tree.
+#
+# The pipeline is driven from workflow.ipynb via a Jupyter kernel; the original
+# run used a conda env displayed as "digital_market". See requirements.txt for
+# why these pins are scientifically load-bearing rather than mere hygiene, and
+# docs/reproducibility_probe.md for the evidence that they reproduce.
+#
+#   conda env create -f environment.yml
+#   conda activate popgmm
+#   python -m ipykernel install --user --name popgmm --display-name popgmm
+
+name: popgmm
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12.6
+  - numpy=2.4.2
+  - pandas=2.2.3
+  - scikit-learn=1.8.0
+  - scipy=1.17.0
+  - matplotlib-base=3.9.2
+  - seaborn=0.13.2
+  - joblib=1.5.3
+  - pillow=10.4.0
+  - ipykernel=6.29.5
+  - nbconvert=7.16.4
+  - pip
+  - pip:
+      # Not on conda-forge at this pin. REQUIRED, not optional: without it
+      # scripts/hdbscan_filtering.py silently falls back to
+      # sklearn.cluster.HDBSCAN, which produces a different noise set.
+      - hdbscan==0.8.42
