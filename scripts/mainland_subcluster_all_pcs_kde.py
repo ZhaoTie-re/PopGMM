@@ -16,17 +16,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.stats import mannwhitneyu, ttest_ind
 
-from scripts.cluster_all_pcs_kde import (
-    _PLOT_STYLE_RC,
-    _bh_fdr_adjust,
-    _format_template,
-    _resolve_all_pc_columns,
-    _safe_stats,
-    _setup_file_logger,
+from scripts.common import (
+    PLOT_STYLE_RC as _PLOT_STYLE_RC,
+    bh_fdr_adjust as _bh_fdr_adjust,
+    format_template as _format_template,
+    resolve_all_pc_columns as _resolve_all_pc_columns,
+    safe_stats as _safe_stats,
+    setup_file_logger as _setup_file_logger,
 )
-
+from scipy.stats import mannwhitneyu, ttest_ind
 
 class MainlandSubclusterAllPCsKDEOutput(NamedTuple):
     output_dir: Path

@@ -12,6 +12,17 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from scripts.common import pc_sort_key as _pc_sort_key
+from scripts.common import resolve_pc_columns as _shared_resolve_pc_columns
+
+
+def _resolve_pc_columns(df: pd.DataFrame) -> list[str]:
+    """First two PC columns only; this module plots a 2-D scatter."""
+    pc_cols = _shared_resolve_pc_columns(df)
+    if len(pc_cols) < 2:
+        raise ValueError("Need at least 2 PC columns in df_results_step5 (e.g., PC1_AVG, PC2_AVG).")
+    return pc_cols[:2]
+
 
 class MainlandSubclusterOnlyOutput(NamedTuple):
     df_mainland_subcluster: pd.DataFrame
@@ -43,19 +54,6 @@ class MainlandSubclusterOnlyConfig:
     save_plot: bool = True
     show_plot: bool = False
     verbose: bool = True
-
-
-def _pc_sort_key(col: str) -> int:
-    m = re.match(r"^PC(\d+)(?:_AVG)?$", str(col))
-    return int(m.group(1)) if m else 10**9
-
-
-def _resolve_pc_columns(df: pd.DataFrame) -> list[str]:
-    pc_cols = [c for c in df.columns if re.match(r"^PC\d+(?:_AVG)?$", str(c))]
-    pc_cols = sorted(pc_cols, key=_pc_sort_key)
-    if len(pc_cols) < 2:
-        raise ValueError("Need at least 2 PC columns in df_results_step5 (e.g., PC1_AVG, PC2_AVG).")
-    return pc_cols[:2]
 
 
 def _resolve_assigned_group_col(df: pd.DataFrame, preferred: str) -> str:

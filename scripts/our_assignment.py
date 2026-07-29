@@ -36,6 +36,11 @@ from matplotlib.lines import Line2D
 from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
+from scripts.common import (
+    PLOT_STYLE_RC as _PLOT_STYLE_RC,
+    build_distinct_palette as _build_distinct_palette,
+)
+
 
 class OURAssignmentOutput(NamedTuple):
     """Container for OUR assignment outputs."""
@@ -113,203 +118,6 @@ class OURAssignmentConfig:
     verbose: bool = True
 
 
-@dataclass(frozen=True)
-class OURAssignmentConfidenceQCConfig:
-    """Configuration for STEP4 assignment confidence QC.
-
-    Parameters
-    ----------
-    output_dir : str | None
-        Output directory for QC figure. If None, uses STEP4 output_dir.
-    figure_file : str
-        Filename for QC figure.
-    thresholds : tuple[float, ...]
-        Confidence thresholds to annotate on the CDF plot.
-    save_plot : bool
-        Save QC figure.
-    show_plot : bool
-        Show QC figure.
-    verbose : bool
-        Print summary stats and counts.
-    """
-
-    output_dir: str | None = None
-    figure_file: str = "step4_assignment_confidence_distribution.png"
-    thresholds: tuple[float, ...] = (0.80, 0.90, 0.95)
-    save_plot: bool = True
-    show_plot: bool = False
-    verbose: bool = True
-
-
-_PLOT_STYLE_RC = {
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-    "font.size": 22,
-    "axes.titlesize": 30,
-    "axes.labelsize": 26,
-    "xtick.labelsize": 22,
-    "ytick.labelsize": 22,
-    "legend.title_fontsize": 24,
-    "legend.fontsize": 22,
-    "figure.titlesize": 40,
-    "figure.dpi": 400,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "axes.linewidth": 2.0,
-    "xtick.major.width": 2.0,
-    "ytick.major.width": 2.0,
-}
-
-
-def run_step4_assignment_confidence_qc(
-    *,
-    df_results: pd.DataFrame | None = None,
-    step4_config: OURAssignmentConfig | None = None,
-    qc_config: OURAssignmentConfidenceQCConfig | None = None,
-) -> OURAssignmentConfidenceQCOutput:
-    """Generate a STEP4 QC figure for assignment confidence (KDE + CDF) and print summary stats.
-
-    This mirrors the demo.ipynb confidence-distribution analysis, but is adapted
-    to PopGMM STEP4 outputs.
-    """
-
-    step4_config = step4_config or OURAssignmentConfig()
-    qc_config = qc_config or OURAssignmentConfidenceQCConfig()
-
-    # Resolve df_results.
-    if df_results is None:
-        out_dir_step4 = Path(str(step4_config.output_dir))
-        input_path = out_dir_step4 / str(step4_config.output_file)
-        if not input_path.exists():
-            raise FileNotFoundError(
-                "df_results is None and STEP4 output TSV does not exist:\n"
-                f"{input_path}\n"
-                "Please run STEP4 first or pass df_results."
-            )
-        df_results = pd.read_csv(input_path, sep="\t")
-
-    if "Assignment_Confidence" not in df_results.columns:
-        raise KeyError("df_results must contain 'Assignment_Confidence'.")
-
-    confidence_scores = pd.to_numeric(df_results["Assignment_Confidence"], errors="coerce").dropna()
-    if confidence_scores.empty:
-        raise ValueError("No valid Assignment_Confidence values found.")
-
-    out_dir = Path(str(qc_config.output_dir or step4_config.output_dir))
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    figure_path = out_dir / str(qc_config.figure_file) if bool(qc_config.save_plot) else None
-
-    if bool(qc_config.save_plot) or bool(qc_config.show_plot):
-        plt.style.use("seaborn-v0_8-whitegrid")
-        sns.set_context("poster", font_scale=1.2)
-        plt.rcParams.update(
-            {
-                "font.family": "sans-serif",
-                "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-                "font.size": 22,
-                "axes.titlesize": 28,
-                "axes.labelsize": 26,
-                "xtick.labelsize": 22,
-                "ytick.labelsize": 22,
-                "legend.title_fontsize": 22,
-                "legend.fontsize": 20,
-                "figure.titlesize": 34,
-                "axes.spines.top": False,
-                "axes.spines.right": False,
-            }
-        )
-
-        fig, axes = plt.subplots(1, 2, figsize=(28, 12))
-        fig.subplots_adjust(wspace=0.25, left=0.08, right=0.95, top=0.84, bottom=0.15)
-
-        # A: KDE
-        ax1 = axes[0]
-        sns.kdeplot(x=confidence_scores.to_numpy(), color="#4C72B0", fill=True, alpha=0.5, linewidth=4, ax=ax1)
-        ax1.set_title("A. Distribution of Confidence", loc="left", pad=30, fontweight="bold")
-        ax1.set_xlabel("Max Posterior Probability (Confidence)", labelpad=20)
-        ax1.set_ylabel("Density", labelpad=20)
-        ax1.grid(True, linestyle="--", alpha=0.4, color="#bbbbbb", linewidth=1.5)
-
-        # B: CDF
-        ax2 = axes[1]
-        sns.ecdfplot(x=confidence_scores.to_numpy(), color="#8172B2", linewidth=6, ax=ax2)
-        ax2.set_title("B. Cumulative Distribution (CDF)", loc="left", pad=30, fontweight="bold")
-        ax2.set_xlabel("Max Posterior Probability (Confidence)", labelpad=20)
-        ax2.set_ylabel("Cumulative Proportion", labelpad=20)
-        ax2.grid(True, linestyle="--", alpha=0.4, color="#bbbbbb", linewidth=1.5)
-
-        thresholds = tuple(float(t) for t in qc_config.thresholds)
-        if len(thresholds) <= 3:
-            colors = ["#CCB974", "#64B5CD", "#C44E52"][: len(thresholds)]
-        else:
-            colors = sns.color_palette("tab10", n_colors=len(thresholds)).as_hex()
-
-        for i, thresh in enumerate(thresholds):
-            prop_below = float((confidence_scores < thresh).mean())
-            prop_above = 1.0 - prop_below
-            ax2.axvline(thresh, color=colors[i], linestyle=":", linewidth=3, alpha=0.8)
-            ax2.axhline(prop_below, color=colors[i], linestyle=":", linewidth=3, alpha=0.8)
-            ax2.annotate(
-                f"≥{thresh:.2f}: {prop_above:.1%}",
-                xy=(thresh, prop_below),
-                xytext=(thresh - 0.15, min(1.0, prop_below + (0.07 * (i + 1)))),
-                arrowprops=dict(arrowstyle="->", color=colors[i], lw=3),
-                fontsize=22,
-                color=colors[i],
-                fontweight="bold",
-                bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=colors[i], alpha=0.95, lw=2),
-            )
-
-        fig.suptitle(
-            "Assignment Quality Metrics",
-            fontsize=34,
-            fontweight="bold",
-            y=0.96,
-            ha="center",
-        )
-
-        if figure_path is not None:
-            fig.savefig(figure_path, bbox_inches="tight", dpi=400)
-
-        if bool(qc_config.show_plot):
-            plt.show()
-        else:
-            plt.close(fig)
-
-    summary = confidence_scores.describe()
-
-    report_thresholds = tuple(sorted(set([*qc_config.thresholds, 0.99])))
-    high_conf_counts = {float(t): int((confidence_scores >= float(t)).sum()) for t in report_thresholds}
-
-    if bool(qc_config.verbose):
-        print("\n" + "=" * 80)
-        print("STEP4 QC: CONFIDENCE STATISTICS SUMMARY".center(80))
-        print("=" * 80)
-        n_total = int(len(confidence_scores))
-        keys = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
-        for k in keys:
-            if k == "count":
-                print(f"{k:<6}{n_total:>12d}")
-            else:
-                print(f"{k:<6}{float(summary[k]):>12.6f}")
-        print("-" * 80)
-        print("High Confidence Sample Counts:")
-        for t in report_thresholds:
-            count = int(high_conf_counts[float(t)])
-            pct = (count / n_total) * 100.0 if n_total else 0.0
-            print(f"  • >= {float(t):.2f} : {count:5d} samples ({pct:.1f}%)")
-        print("=" * 80)
-
-    return OURAssignmentConfidenceQCOutput(
-        confidence_scores=confidence_scores,
-        summary=summary,
-        high_conf_counts=high_conf_counts,
-        output_dir=out_dir,
-        figure_path=figure_path,
-    )
-
-
 def _resolve_pc_columns_for_projection(
     *,
     our_samples: pd.DataFrame,
@@ -365,26 +173,6 @@ def _build_merged_cluster_palette(
         merged_cluster_palette.setdefault(int(i), str(fallback_hex[int(i)]))
 
     return merged_cluster_palette
-
-
-def _build_distinct_palette(n_colors: int) -> list[tuple[float, float, float, float]]:
-    """Match STEP2 categorical palette construction for many clusters."""
-    if n_colors <= 0:
-        return []
-
-    palette: list[tuple[float, float, float, float]] = []
-    for cmap_name in ("tab20", "tab20b", "tab20c"):
-        cmap = plt.get_cmap(cmap_name)
-        for i in range(cmap.N):
-            palette.append(cmap(i))
-
-    if n_colors > len(palette):
-        extra = n_colors - len(palette)
-        hsv = plt.get_cmap("hsv")
-        for i in range(extra):
-            palette.append(hsv((i / max(1, extra)) % 1.0))
-
-    return palette[:n_colors]
 
 
 def _build_premerge_component_palette(
