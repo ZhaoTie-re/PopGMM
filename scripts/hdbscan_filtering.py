@@ -1,25 +1,25 @@
-from __future__ import annotations
+"""Denoise the reference panel in PC space before mixture modelling.
 
-"""
-HDBSCAN-based BBJ population denoising utilities.
+HDBSCAN separates dense population structure from sparse outliers, and only the
+non-noise samples go downstream. This matters because a Gaussian mixture will
+otherwise spend components describing scatter.
 
-Author: ZHAO TIE
+Pinned to python-hdbscan and errors if it is unavailable: the alternative
+implementation disagrees on the noise set, and silently substituting it would
+change the cohort while the summary file still reported the requested
+parameters. Every configured parameter is verified against the constructed
+estimator for the same reason.
 
-Purpose
+Inputs
+------
+Reference panel samples with PC columns; eigenvalues for axis labels.
+
+Outputs
 -------
-This module applies HDBSCAN to principal-component (PC) embeddings of BBJ
-samples to separate dense population structure from sparse outliers/noise.
-The workflow is designed for large cohort data and prioritizes:
-1) robust population-aware denoising,
-2) compact outputs for downstream analysis,
-3) practical parameterization with explicit configuration.
-
-Main outputs
-------------
-- Non-noise BBJ samples with assigned cluster labels.
-- Structured JSON summary for reproducibility.
-- One overview plot for quality control (visual section intentionally brief).
+Denoised sample table, run summary JSON, and a three-panel QC figure.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,9 +48,9 @@ class HDBSCANDenoiseOutput(NamedTuple):
     """Container for HDBSCAN denoising outputs."""
 
     # Lightweight table for plotting/auditing only (PCs + labels + noise flag).
-    bbj_samples_hdbscan: pd.DataFrame
+    reference_samples_hdbscan: pd.DataFrame
     # Main output used downstream: non-noise BBJ samples with cluster label.
-    bbj_samples_filtered: pd.DataFrame
+    reference_samples_filtered: pd.DataFrame
     labels: np.ndarray
     probabilities: np.ndarray
     selected_pc_cols: list[str]
@@ -117,7 +117,7 @@ class HDBSCANConfig:
     algorithm: str = "best"
     approx_min_span_tree: bool = True
     gen_min_span_tree: bool = False
-    output_dir: str = "results/01_hdbscan_filtering"
+    output_dir: str = "results/01_reference_model/denoising"
     save_plot: bool = True
     save_tables: bool = True
     save_full_table: bool = False
@@ -213,7 +213,7 @@ def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any]
 
 
 def _plot_hdbscan_overview(
-    bbj_samples_hdbscan: pd.DataFrame,
+    reference_samples_hdbscan: pd.DataFrame,
     selected_pc_cols: list[str],
     output_path: Path,
     eigenval: pd.DataFrame | None = None,
@@ -227,7 +227,7 @@ def _plot_hdbscan_overview(
     if len(selected_pc_cols) < 2:
         return
 
-    plot_df = bbj_samples_hdbscan
+    plot_df = reference_samples_hdbscan
 
     pc1_col, pc2_col = selected_pc_cols[0], selected_pc_cols[1]
     pc1_label = _format_pc_axis_label(pc1_col, eigenval)
@@ -402,8 +402,8 @@ def _plot_hdbscan_overview(
     plt.close(fig)
 
 
-def run_hdbscan_denoise_bbj(
-    bbj_samples: pd.DataFrame,
+def run_hdbscan_denoise(
+    reference_samples: pd.DataFrame,
     eigenval: pd.DataFrame | None = None,
     config: HDBSCANConfig | None = None,
 ) -> HDBSCANDenoiseOutput:
@@ -419,17 +419,17 @@ def run_hdbscan_denoise_bbj(
 
     config = config or HDBSCANConfig()
 
-    if bbj_samples.empty:
+    if reference_samples.empty:
         raise ValueError("bbj_samples is empty; cannot run HDBSCAN denoising.")
 
-    pc_cols = _resolve_pc_columns(bbj_samples)
+    pc_cols = _resolve_pc_columns(reference_samples)
     if not pc_cols:
         raise ValueError("No PC columns were found in bbj_samples.")
 
     n_pcs = min(config.n_pcs_hdbscan, len(pc_cols))
     selected_pc_cols = pc_cols[:n_pcs]
 
-    x = bbj_samples[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
+    x = reference_samples[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
     if config.use_zscale_hdbscan:
         _standardize_inplace(x)
 
@@ -456,13 +456,13 @@ def run_hdbscan_denoise_bbj(
 
     # Keep only plotting-required columns to avoid copying the full table in memory.
     viz_cols = list(selected_pc_cols)
-    bbj_samples_hdbscan = bbj_samples.loc[:, viz_cols].copy()
-    bbj_samples_hdbscan["HDBSCAN_Label"] = labels
-    bbj_samples_hdbscan["HDBSCAN_IsNoise"] = noise_mask
+    reference_samples_hdbscan = reference_samples.loc[:, viz_cols].copy()
+    reference_samples_hdbscan["HDBSCAN_Label"] = labels
+    reference_samples_hdbscan["HDBSCAN_IsNoise"] = noise_mask
 
     # Main output: retain full original columns for non-noise BBJ samples.
-    bbj_samples_filtered = bbj_samples.loc[keep_mask].copy()
-    bbj_samples_filtered["HDBSCAN_Label"] = labels[keep_mask]
+    reference_samples_filtered = reference_samples.loc[keep_mask].copy()
+    reference_samples_filtered["HDBSCAN_Label"] = labels[keep_mask]
 
     n_total = int(labels.shape[0])
     n_noise = int(noise_mask.sum())
@@ -470,7 +470,7 @@ def run_hdbscan_denoise_bbj(
 
     summary: dict[str, Any] = {
         "input_rows": n_total,
-        "output_rows": int(bbj_samples_filtered.shape[0]),
+        "output_rows": int(reference_samples_filtered.shape[0]),
         "noise_rows": n_noise,
         "noise_ratio": (n_noise / n_total) if n_total > 0 else 0.0,
         "clusters_found": int(unique_clusters.shape[0]),
@@ -495,21 +495,21 @@ def run_hdbscan_denoise_bbj(
 
     if config.save_plot:
         _plot_hdbscan_overview(
-            bbj_samples_hdbscan=bbj_samples_hdbscan,
+            reference_samples_hdbscan=reference_samples_hdbscan,
             selected_pc_cols=selected_pc_cols,
-            output_path=output_dir / "hdbscan_filtering_overview.png",
+            output_path=output_dir / "denoising_overview.png",
             eigenval=eigenval,
         )
 
     if config.save_tables:
         # Only write the non-noise table with cluster label.
-        bbj_samples_filtered.to_csv(output_dir / "bbj_samples_non_noise_with_cluster.tsv", sep="\t", index=False)
-        with (output_dir / "hdbscan_summary.json").open("w", encoding="utf-8") as f:
+        reference_samples_filtered.to_csv(output_dir / "reference_samples_denoised.tsv", sep="\t", index=False)
+        with (output_dir / "denoising_summary.json").open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
     if config.verbose:
         print("\n" + "=" * 80)
-        print("STEP1: HDBSCAN DENOISING (BBJ)".center(80))
+        print("HDBSCAN DENOISING (REFERENCE PANEL)".center(80))
         print("=" * 80)
         print("\n[CONFIGURATION]")
         print("-" * 80)
@@ -539,8 +539,8 @@ def run_hdbscan_denoise_bbj(
         print("=" * 80)
 
     return HDBSCANDenoiseOutput(
-        bbj_samples_hdbscan=bbj_samples_hdbscan,
-        bbj_samples_filtered=bbj_samples_filtered,
+        reference_samples_hdbscan=reference_samples_hdbscan,
+        reference_samples_filtered=reference_samples_filtered,
         labels=labels,
         probabilities=probabilities,
         selected_pc_cols=selected_pc_cols,

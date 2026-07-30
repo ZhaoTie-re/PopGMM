@@ -1,634 +1,6 @@
 {
   "files": {
-    "01_hdbscan_filtering/bbj_samples_non_noise_with_cluster.tsv": {
-      "bytes": 47814277,
-      "columns": [
-        "FID",
-        "IID",
-        "PC1_AVG",
-        "PC2_AVG",
-        "PC3_AVG",
-        "PC4_AVG",
-        "PC5_AVG",
-        "PC6_AVG",
-        "PC7_AVG",
-        "PC8_AVG",
-        "PC9_AVG",
-        "PC10_AVG",
-        "PC11_AVG",
-        "PC12_AVG",
-        "PC13_AVG",
-        "PC14_AVG",
-        "PC15_AVG",
-        "PC16_AVG",
-        "PC17_AVG",
-        "PC18_AVG",
-        "PC19_AVG",
-        "PC20_AVG",
-        "HDBSCAN_Label"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "HDBSCAN_Label": [
-          0.0,
-          6.0,
-          737802.0,
-          4.057982014685257
-        ],
-        "PC10_AVG": [
-          -0.0780597,
-          0.0314552,
-          7.835679552661399,
-          4.3096991736993094e-05
-        ],
-        "PC11_AVG": [
-          -0.0802,
-          0.0915036,
-          0.17543796632869957,
-          9.649257010076153e-07
-        ],
-        "PC12_AVG": [
-          -0.0522766,
-          0.0643176,
-          0.5430611932837,
-          2.986888833614938e-06
-        ],
-        "PC13_AVG": [
-          -0.0265687,
-          0.0315898,
-          0.9296903843924,
-          5.113386598423672e-06
-        ],
-        "PC14_AVG": [
-          -0.0316416,
-          0.0325337,
-          0.7725592703036,
-          4.24915034680087e-06
-        ],
-        "PC15_AVG": [
-          -0.0609815,
-          0.0280734,
-          1.3330083096510297,
-          7.331674007375792e-06
-        ],
-        "PC16_AVG": [
-          -0.0780489,
-          0.0175217,
-          0.9425040364276203,
-          5.183862917952975e-06
-        ],
-        "PC17_AVG": [
-          -0.0290361,
-          0.0294329,
-          2.7109003597338,
-          1.4910212907261778e-05
-        ],
-        "PC18_AVG": [
-          -0.0333007,
-          0.063302,
-          1.542768885406,
-          8.485377363836867e-06
-        ],
-        "PC19_AVG": [
-          -0.0328667,
-          0.0262346,
-          -0.2742536421387,
-          -1.50842142913786e-06
-        ],
-        "PC1_AVG": [
-          -0.0908531,
-          0.0445105,
-          37.2735289928584,
-          0.00020500799710067047
-        ],
-        "PC20_AVG": [
-          -0.0432135,
-          0.0272528,
-          1.2150836196271995,
-          6.683076861794678e-06
-        ],
-        "PC2_AVG": [
-          -0.0387081,
-          0.0681115,
-          -7.709812960941301,
-          -4.240471336766109e-05
-        ],
-        "PC3_AVG": [
-          -0.121193,
-          0.0493326,
-          11.3239271391725,
-          6.228268921250998e-05
-        ],
-        "PC4_AVG": [
-          -0.0980644,
-          0.123369,
-          -0.30301968864740014,
-          -1.6666374537161408e-06
-        ],
-        "PC5_AVG": [
-          -0.0220031,
-          0.127786,
-          -0.10700390076310085,
-          -5.88531753502741e-07
-        ],
-        "PC6_AVG": [
-          -0.052844,
-          0.129607,
-          7.035691483736099,
-          3.86969803577048e-05
-        ],
-        "PC7_AVG": [
-          -0.0196241,
-          0.0684286,
-          -13.162265032990831,
-          -7.239372457162958e-05
-        ],
-        "PC8_AVG": [
-          -0.0281383,
-          0.0526716,
-          2.3794701033771,
-          1.3087314596579492e-05
-        ],
-        "PC9_AVG": [
-          -0.0713353,
-          0.0152772,
-          8.0126210886583,
-          4.407018721589692e-05
-        ]
-      },
-      "sha256": "73124562ac924d72a2f07b63b78f77c386da203e877449d08de48c31e0ed58d6",
-      "shape": [
-        181815,
-        23
-      ]
-    },
-    "01_hdbscan_filtering/hdbscan_filtering_overview.png": {
-      "bytes": 2470604,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 247.76092249208625,
-      "sha256": "0cf78602cc18b1579e312854616d821aff313ac20be74a2933a1692ca0bb8c09",
-      "size": [
-        8973,
-        2792
-      ]
-    },
-    "01_hdbscan_filtering/hdbscan_summary.json": {
-      "bytes": 541,
-      "kind": "json",
-      "sha256": "264cf63f46c80bd1041b6bf07b5d45bb431c2b228f85afa8a1d7653800187db3"
-    },
-    "02_gmm_clustering/bbj_samples_gmm_clustered.tsv": {
-      "bytes": 47909970,
-      "columns": [
-        "FID",
-        "IID",
-        "PC1_AVG",
-        "PC2_AVG",
-        "PC3_AVG",
-        "PC4_AVG",
-        "PC5_AVG",
-        "PC6_AVG",
-        "PC7_AVG",
-        "PC8_AVG",
-        "PC9_AVG",
-        "PC10_AVG",
-        "PC11_AVG",
-        "PC12_AVG",
-        "PC13_AVG",
-        "PC14_AVG",
-        "PC15_AVG",
-        "PC16_AVG",
-        "PC17_AVG",
-        "PC18_AVG",
-        "PC19_AVG",
-        "PC20_AVG",
-        "GMM_Cluster"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "GMM_Cluster": [
-          0.0,
-          25.0,
-          1737792.0,
-          9.558023265407144
-        ],
-        "PC10_AVG": [
-          -0.0780597,
-          0.0314552,
-          7.835679552661399,
-          4.3096991736993094e-05
-        ],
-        "PC11_AVG": [
-          -0.0802,
-          0.0915036,
-          0.17543796632869957,
-          9.649257010076153e-07
-        ],
-        "PC12_AVG": [
-          -0.0522766,
-          0.0643176,
-          0.5430611932837,
-          2.986888833614938e-06
-        ],
-        "PC13_AVG": [
-          -0.0265687,
-          0.0315898,
-          0.9296903843924,
-          5.113386598423672e-06
-        ],
-        "PC14_AVG": [
-          -0.0316416,
-          0.0325337,
-          0.7725592703036,
-          4.24915034680087e-06
-        ],
-        "PC15_AVG": [
-          -0.0609815,
-          0.0280734,
-          1.3330083096510297,
-          7.331674007375792e-06
-        ],
-        "PC16_AVG": [
-          -0.0780489,
-          0.0175217,
-          0.9425040364276203,
-          5.183862917952975e-06
-        ],
-        "PC17_AVG": [
-          -0.0290361,
-          0.0294329,
-          2.7109003597338,
-          1.4910212907261778e-05
-        ],
-        "PC18_AVG": [
-          -0.0333007,
-          0.063302,
-          1.542768885406,
-          8.485377363836867e-06
-        ],
-        "PC19_AVG": [
-          -0.0328667,
-          0.0262346,
-          -0.2742536421387,
-          -1.50842142913786e-06
-        ],
-        "PC1_AVG": [
-          -0.0908531,
-          0.0445105,
-          37.2735289928584,
-          0.00020500799710067047
-        ],
-        "PC20_AVG": [
-          -0.0432135,
-          0.0272528,
-          1.2150836196271995,
-          6.683076861794678e-06
-        ],
-        "PC2_AVG": [
-          -0.0387081,
-          0.0681115,
-          -7.709812960941301,
-          -4.240471336766109e-05
-        ],
-        "PC3_AVG": [
-          -0.121193,
-          0.0493326,
-          11.3239271391725,
-          6.228268921250998e-05
-        ],
-        "PC4_AVG": [
-          -0.0980644,
-          0.123369,
-          -0.30301968864740014,
-          -1.6666374537161408e-06
-        ],
-        "PC5_AVG": [
-          -0.0220031,
-          0.127786,
-          -0.10700390076310085,
-          -5.88531753502741e-07
-        ],
-        "PC6_AVG": [
-          -0.052844,
-          0.129607,
-          7.035691483736099,
-          3.86969803577048e-05
-        ],
-        "PC7_AVG": [
-          -0.0196241,
-          0.0684286,
-          -13.162265032990831,
-          -7.239372457162958e-05
-        ],
-        "PC8_AVG": [
-          -0.0281383,
-          0.0526716,
-          2.3794701033771,
-          1.3087314596579492e-05
-        ],
-        "PC9_AVG": [
-          -0.0713353,
-          0.0152772,
-          8.0126210886583,
-          4.407018721589692e-05
-        ]
-      },
-      "sha256": "2eb088140fc4e190b1856c9c3f28a5032aec8f339a2882aa20127c759edc4bf9",
-      "shape": [
-        181815,
-        23
-      ]
-    },
-    "02_gmm_clustering/gmm_bic_search.tsv": {
-      "bytes": 5284,
-      "columns": [
-        "n_components",
-        "n_pcs",
-        "bic",
-        "aic",
-        "has_empty_clusters",
-        "n_non_empty_clusters"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "aic": [
-          -2684358.678334495,
-          -2595661.2110878676,
-          -265458248.32936263,
-          -2681396.4477713397
-        ],
-        "bic": [
-          -2682560.0780631886,
-          -2595549.9928932465,
-          -265152954.38512713,
-          -2678312.6705568396
-        ],
-        "n_components": [
-          2.0,
-          100.0,
-          5049.0,
-          51.0
-        ],
-        "n_non_empty_clusters": [
-          2.0,
-          100.0,
-          5049.0,
-          51.0
-        ],
-        "n_pcs": [
-          2.0,
-          2.0,
-          198.0,
-          2.0
-        ]
-      },
-      "sha256": "88a2cd34cec6ec532b9dd7cc21a1b9f0dd4eeb8061534cdd051d5a49a8b0d14b",
-      "shape": [
-        99,
-        6
-      ]
-    },
-    "02_gmm_clustering/gmm_cluster_summary.tsv": {
-      "bytes": 709,
-      "columns": [
-        "GMM_Cluster",
-        "Samples",
-        "Share(%)"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "GMM_Cluster": [
-          0.0,
-          25.0,
-          325.0,
-          12.5
-        ],
-        "Samples": [
-          51.0,
-          40780.0,
-          181815.0,
-          6992.884615384615
-        ],
-        "Share(%)": [
-          0.0280504908835904,
-          22.429392514369,
-          100.0,
-          3.8461538461538463
-        ]
-      },
-      "sha256": "09a9c7e14a5070e83a10bb70da6259791d2a4cbd82a2b878467c9ea923ab7714",
-      "shape": [
-        26,
-        3
-      ]
-    },
-    "02_gmm_clustering/gmm_fixed_pcs_overview.png": {
-      "bytes": 3416302,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 247.81519522490467,
-      "sha256": "009d5e3416c99533d47803472df6ec8dd94c2a833c6005a0ce7bcc6efc53c427",
-      "size": [
-        8597,
-        6591
-      ]
-    },
-    "02_gmm_clustering/gmm_summary.json": {
-      "bytes": 497,
-      "kind": "json",
-      "sha256": "133120f9518f2e9ead2acecefa7a3ecade78333c88b2e3e882b351d767dd3127"
-    },
-    "02_gmm_clustering/tmp/gmm_best_k_components_log.json": {
-      "bytes": 11993,
-      "kind": "json_volatile",
-      "sha256": "7adc42d2f4e9639477acec99e4b054c1623eeea4d0e2f6c6251e4083beaecc68"
-    },
-    "02_gmm_clustering/tmp/gmm_search_bic_log.jsonl": {
-      "bytes": 41502,
-      "kind": "jsonl_volatile",
-      "sha256": "0e996b088b2cd4ecb30afc245c2894eadcf590fa8b2ebe9c7f030f301c2de85b"
-    },
-    "02_gmm_clustering/tmp/gmm_search_convergence_log.jsonl": {
-      "bytes": 53075,
-      "kind": "jsonl_volatile",
-      "sha256": "6fecf565a60f83046eac9b742a96044b0a6db57fa56c554fa9a03fd7bf0e887a"
-    },
-    "02_gmm_clustering/tmp/gmm_search_professional_report.md": {
-      "bytes": 20562,
-      "kind": "md_volatile",
-      "sha256": "f38cc1b3337ba91af7f2f81f0d86a62bddc4c3424b60f444357eff54c245180f"
-    },
-    "03_gmm_component_merging/STEP3_tmp/bbj_samples_gmm_clustered_merged.tsv": {
-      "bytes": 48274231,
-      "columns": [
-        "FID",
-        "IID",
-        "PC1_AVG",
-        "PC2_AVG",
-        "PC3_AVG",
-        "PC4_AVG",
-        "PC5_AVG",
-        "PC6_AVG",
-        "PC7_AVG",
-        "PC8_AVG",
-        "PC9_AVG",
-        "PC10_AVG",
-        "PC11_AVG",
-        "PC12_AVG",
-        "PC13_AVG",
-        "PC14_AVG",
-        "PC15_AVG",
-        "PC16_AVG",
-        "PC17_AVG",
-        "PC18_AVG",
-        "PC19_AVG",
-        "PC20_AVG",
-        "GMM_Cluster",
-        "GMM_Cluster_Merged"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "GMM_Cluster": [
-          0.0,
-          25.0,
-          1737792.0,
-          9.558023265407144
-        ],
-        "GMM_Cluster_Merged": [
-          0.0,
-          11.0,
-          1072675.0,
-          5.899815746775569
-        ],
-        "PC10_AVG": [
-          -0.0780597,
-          0.0314552,
-          7.835679552661399,
-          4.3096991736993094e-05
-        ],
-        "PC11_AVG": [
-          -0.0802,
-          0.0915036,
-          0.17543796632869957,
-          9.649257010076153e-07
-        ],
-        "PC12_AVG": [
-          -0.0522766,
-          0.0643176,
-          0.5430611932837,
-          2.986888833614938e-06
-        ],
-        "PC13_AVG": [
-          -0.0265687,
-          0.0315898,
-          0.9296903843924,
-          5.113386598423672e-06
-        ],
-        "PC14_AVG": [
-          -0.0316416,
-          0.0325337,
-          0.7725592703036,
-          4.24915034680087e-06
-        ],
-        "PC15_AVG": [
-          -0.0609815,
-          0.0280734,
-          1.3330083096510297,
-          7.331674007375792e-06
-        ],
-        "PC16_AVG": [
-          -0.0780489,
-          0.0175217,
-          0.9425040364276203,
-          5.183862917952975e-06
-        ],
-        "PC17_AVG": [
-          -0.0290361,
-          0.0294329,
-          2.7109003597338,
-          1.4910212907261778e-05
-        ],
-        "PC18_AVG": [
-          -0.0333007,
-          0.063302,
-          1.542768885406,
-          8.485377363836867e-06
-        ],
-        "PC19_AVG": [
-          -0.0328667,
-          0.0262346,
-          -0.2742536421387,
-          -1.50842142913786e-06
-        ],
-        "PC1_AVG": [
-          -0.0908531,
-          0.0445105,
-          37.2735289928584,
-          0.00020500799710067047
-        ],
-        "PC20_AVG": [
-          -0.0432135,
-          0.0272528,
-          1.2150836196271995,
-          6.683076861794678e-06
-        ],
-        "PC2_AVG": [
-          -0.0387081,
-          0.0681115,
-          -7.709812960941301,
-          -4.240471336766109e-05
-        ],
-        "PC3_AVG": [
-          -0.121193,
-          0.0493326,
-          11.3239271391725,
-          6.228268921250998e-05
-        ],
-        "PC4_AVG": [
-          -0.0980644,
-          0.123369,
-          -0.30301968864740014,
-          -1.6666374537161408e-06
-        ],
-        "PC5_AVG": [
-          -0.0220031,
-          0.127786,
-          -0.10700390076310085,
-          -5.88531753502741e-07
-        ],
-        "PC6_AVG": [
-          -0.052844,
-          0.129607,
-          7.035691483736099,
-          3.86969803577048e-05
-        ],
-        "PC7_AVG": [
-          -0.0196241,
-          0.0684286,
-          -13.162265032990831,
-          -7.239372457162958e-05
-        ],
-        "PC8_AVG": [
-          -0.0281383,
-          0.0526716,
-          2.3794701033771,
-          1.3087314596579492e-05
-        ],
-        "PC9_AVG": [
-          -0.0713353,
-          0.0152772,
-          8.0126210886583,
-          4.407018721589692e-05
-        ]
-      },
-      "sha256": "af9504f9b27be56c49edd918603354bf02ee49556f1c4f6b751e09e8436e703e",
-      "shape": [
-        181815,
-        24
-      ]
-    },
-    "03_gmm_component_merging/STEP3_tmp/gmm_component_mahalanobis_dist.tsv": {
+    "01_reference_model/component_merging/component_mahalanobis_distance.tsv": {
       "bytes": 12195,
       "columns": [
         "Unnamed: 0",
@@ -830,8 +202,8 @@
         27
       ]
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_component_merge_map.tsv": {
-      "bytes": 556,
+    "01_reference_model/component_merging/component_merge_map.tsv": {
+      "bytes": 545,
       "columns": [
         "GMM_Component",
         "Merged_Cluster",
@@ -848,35 +220,35 @@
         ],
         "Merged_Cluster": [
           0.0,
-          11.0,
-          134.0,
-          5.153846153846154
+          5.0,
+          64.0,
+          2.4615384615384617
         ]
       },
-      "sha256": "3a09590c59cd946ffcc340378802b9be247bc0d4acfdc416e41993696585916c",
+      "sha256": "dbcfaa56ae191717ce1c560f1fb729b6352006630e1f2c7cf2c256e9aba76721",
       "shape": [
         26,
         4
       ]
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_component_merging_overview.png": {
-      "bytes": 1825795,
+    "01_reference_model/component_merging/component_merging_overview.png": {
+      "bytes": 1711960,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.11975106795262,
-      "sha256": "94b9400c54ce3b27a7159c15ca1430d2a6e5adaf0fa62441b31b9bfcc1bf56ab",
+      "pixel_mean": 239.79096543822973,
+      "sha256": "5a9d7aede1c0edd19935a2cbbaa2c89741556b56be70ab010e362801e52579ef",
       "size": [
         5046,
         4590
       ]
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_mainland_cluster_reference.json": {
-      "bytes": 406,
+    "01_reference_model/component_merging/major_cluster_reference.json": {
+      "bytes": 474,
       "kind": "json",
-      "sha256": "e008d42bb9ed1b64c630c9bc34b8d0169d303202c293f7d0e1cfe7409ebc9a24"
+      "sha256": "a079713d5f295f3aadf79b49ea64d8673171b6d01479151570983824ce2e6827"
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_mainland_cluster_reference.tsv": {
-      "bytes": 143,
+    "01_reference_model/component_merging/major_cluster_reference.tsv": {
+      "bytes": 166,
       "columns": [
         "Mainland_Merged_Cluster",
         "Mainland_Premerge_Cluster_Default",
@@ -886,37 +258,37 @@
       "kind": "tsv",
       "numeric": {
         "Mainland_Merged_Cluster": [
-          7.0,
-          7.0,
-          7.0,
-          7.0
+          3.0,
+          3.0,
+          3.0,
+          3.0
         ],
         "Mainland_Merged_Component_Count": [
-          7.0,
-          7.0,
-          7.0,
-          7.0
+          16.0,
+          16.0,
+          16.0,
+          16.0
         ],
         "Mainland_Premerge_Cluster_Default": [
-          2.0,
-          2.0,
-          2.0,
-          2.0
+          0.0,
+          0.0,
+          0.0,
+          0.0
         ]
       },
-      "sha256": "16e8f94f50d7ce2cc23d6daf2336dbde18f96f8cda4108882248e4a92dd9eef2",
+      "sha256": "c38705bd18479b787cdac99201b264a1f9418bcf3232b4f2c781651c21e3dabe",
       "shape": [
         1,
         4
       ]
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_merge_summary.json": {
-      "bytes": 757,
+    "01_reference_model/component_merging/merge_summary.json": {
+      "bytes": 823,
       "kind": "json",
-      "sha256": "1407685f2d3cb36a37c03cfc9d440dd7abf45e588d6df9a61324c9ba795cd448"
+      "sha256": "313f978bf4c6a9f996e070383b5f1ea6d84c833b7dcbbac7c912930b351432f6"
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_merged_cluster_summary.tsv": {
-      "bytes": 350,
+    "01_reference_model/component_merging/merged_cluster_summary.tsv": {
+      "bytes": 193,
       "columns": [
         "GMM_Cluster_Merged",
         "Samples",
@@ -926,42 +298,42 @@
       "numeric": {
         "GMM_Cluster_Merged": [
           0.0,
-          11.0,
-          66.0,
-          5.5
+          5.0,
+          15.0,
+          2.5
         ],
         "Samples": [
           51.0,
-          94997.0,
+          167694.0,
           181815.0,
-          15151.25
+          30302.5
         ],
         "Share(%)": [
           0.0280504908835904,
-          52.24926436212633,
+          92.23331408299646,
           100.0,
-          8.333333333333334
+          16.666666666666668
         ]
       },
-      "sha256": "8cebc1300a6bf1b092b50855a93b97dd48a77a257b6a77fd3d77856b7494bce1",
+      "sha256": "f23631ce41fc7873ee032b2d53d1d4d9f33cf29da5ca2629fc3681b4d4537450",
       "shape": [
-        12,
+        6,
         3
       ]
     },
-    "03_gmm_component_merging/STEP3_tmp/gmm_merged_posterior_probabilities.npy": {
-      "argmax_sha256": "8da325caa2bac8dd317347bdd7f4d16adf5e2b87e6c88d03376e98387cba1b9d",
-      "bytes": 17454368,
+    "01_reference_model/component_merging/merged_posterior_probabilities.npy": {
+      "argmax_sha256": "bb9b5301418bfd2f0c5f1b3805226fa6bfca308e6a0b58973bc555168ea984d4",
+      "bytes": 8727248,
       "dtype": "float64",
       "kind": "npy",
-      "sha256": "c183422b36aff7899559e2eb9429118d39ff82bce4527d81a56cbc82d1a9d44e",
+      "sha256": "997c3aa19565c2baae6d6fe12834d572b94da68a54ab11d044a08634cd6bd395",
       "shape": [
         181815,
-        12
+        6
       ],
       "sum": 181815.0
     },
-    "03_gmm_component_merging/bbj_samples_gmm_clustered_merged.tsv": {
+    "01_reference_model/component_merging/reference_samples_merged.tsv": {
       "bytes": 48273619,
       "columns": [
         "FID",
@@ -1130,7 +502,72 @@
         24
       ]
     },
-    "03_gmm_component_merging/gmm_component_mahalanobis_dist.tsv": {
+    "01_reference_model/component_merging/threshold_robustness/major_cluster_robustness.tsv": {
+      "bytes": 550,
+      "columns": [
+        "merge_threshold",
+        "is_main_analysis",
+        "n_merged_clusters",
+        "major_cluster_id",
+        "n_components",
+        "n_samples",
+        "sample_share",
+        "is_subset_of_main",
+        "jaccard_vs_main",
+        "components"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "jaccard_vs_main": [
+          0.4375,
+          1.0,
+          3.4375,
+          0.6875
+        ],
+        "major_cluster_id": [
+          2.0,
+          7.0,
+          18.0,
+          3.6
+        ],
+        "merge_threshold": [
+          2.5,
+          8.0,
+          24.5,
+          4.9
+        ],
+        "n_components": [
+          7.0,
+          16.0,
+          55.0,
+          11.0
+        ],
+        "n_merged_clusters": [
+          5.0,
+          12.0,
+          40.0,
+          8.0
+        ],
+        "n_samples": [
+          69419.0,
+          167694.0,
+          569223.0,
+          113844.6
+        ],
+        "sample_share": [
+          0.3818111816956797,
+          0.9223331408299644,
+          3.1307812886725515,
+          0.6261562577345103
+        ]
+      },
+      "sha256": "218e0ea4c3a4937e1fe8d4770cc0b835144f506e9a7ee1f4e1c832657835068a",
+      "shape": [
+        5,
+        10
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/component_mahalanobis_distance.tsv": {
       "bytes": 12195,
       "columns": [
         "Unnamed: 0",
@@ -1332,7 +769,1513 @@
         27
       ]
     },
-    "03_gmm_component_merging/gmm_component_merge_map.tsv": {
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/component_merge_map.tsv": {
+      "bytes": 556,
+      "columns": [
+        "GMM_Component",
+        "Merged_Cluster",
+        "Is_Mainland_Merged_Cluster",
+        "Merged_Cluster_Color"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Component": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ],
+        "Merged_Cluster": [
+          0.0,
+          11.0,
+          134.0,
+          5.153846153846154
+        ]
+      },
+      "sha256": "3a09590c59cd946ffcc340378802b9be247bc0d4acfdc416e41993696585916c",
+      "shape": [
+        26,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/component_merging_overview.png": {
+      "bytes": 1825795,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.11975106795262,
+      "sha256": "94b9400c54ce3b27a7159c15ca1430d2a6e5adaf0fa62441b31b9bfcc1bf56ab",
+      "size": [
+        5046,
+        4590
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/major_cluster_reference.json": {
+      "bytes": 406,
+      "kind": "json",
+      "sha256": "e008d42bb9ed1b64c630c9bc34b8d0169d303202c293f7d0e1cfe7409ebc9a24"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/major_cluster_reference.tsv": {
+      "bytes": 143,
+      "columns": [
+        "Mainland_Merged_Cluster",
+        "Mainland_Premerge_Cluster_Default",
+        "Mainland_Premerge_Clusters",
+        "Mainland_Merged_Component_Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Mainland_Merged_Cluster": [
+          7.0,
+          7.0,
+          7.0,
+          7.0
+        ],
+        "Mainland_Merged_Component_Count": [
+          7.0,
+          7.0,
+          7.0,
+          7.0
+        ],
+        "Mainland_Premerge_Cluster_Default": [
+          2.0,
+          2.0,
+          2.0,
+          2.0
+        ]
+      },
+      "sha256": "16e8f94f50d7ce2cc23d6daf2336dbde18f96f8cda4108882248e4a92dd9eef2",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/merge_summary.json": {
+      "bytes": 757,
+      "kind": "json",
+      "sha256": "1407685f2d3cb36a37c03cfc9d440dd7abf45e588d6df9a61324c9ba795cd448"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/merged_cluster_summary.tsv": {
+      "bytes": 350,
+      "columns": [
+        "GMM_Cluster_Merged",
+        "Samples",
+        "Share(%)"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster_Merged": [
+          0.0,
+          11.0,
+          66.0,
+          5.5
+        ],
+        "Samples": [
+          51.0,
+          94997.0,
+          181815.0,
+          15151.25
+        ],
+        "Share(%)": [
+          0.0280504908835904,
+          52.24926436212633,
+          100.0,
+          8.333333333333334
+        ]
+      },
+      "sha256": "8cebc1300a6bf1b092b50855a93b97dd48a77a257b6a77fd3d77856b7494bce1",
+      "shape": [
+        12,
+        3
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/merged_posterior_probabilities.npy": {
+      "argmax_sha256": "8da325caa2bac8dd317347bdd7f4d16adf5e2b87e6c88d03376e98387cba1b9d",
+      "bytes": 17454368,
+      "dtype": "float64",
+      "kind": "npy",
+      "sha256": "c183422b36aff7899559e2eb9429118d39ff82bce4527d81a56cbc82d1a9d44e",
+      "shape": [
+        181815,
+        12
+      ],
+      "sum": 181815.0
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_2p5/reference_samples_merged.tsv": {
+      "bytes": 48274231,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "GMM_Cluster",
+        "GMM_Cluster_Merged"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster": [
+          0.0,
+          25.0,
+          1737792.0,
+          9.558023265407144
+        ],
+        "GMM_Cluster_Merged": [
+          0.0,
+          11.0,
+          1072675.0,
+          5.899815746775569
+        ],
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
+        ],
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
+        ],
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
+        ]
+      },
+      "sha256": "af9504f9b27be56c49edd918603354bf02ee49556f1c4f6b751e09e8436e703e",
+      "shape": [
+        181815,
+        24
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/component_mahalanobis_distance.tsv": {
+      "bytes": 12195,
+      "columns": [
+        "Unnamed: 0",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "0": [
+          0.0,
+          22.401549724484024,
+          196.7901453841609,
+          7.56885174554465
+        ],
+        "1": [
+          0.0,
+          31.494924812648637,
+          421.4333052051551,
+          16.20897327712135
+        ],
+        "10": [
+          0.0,
+          23.02371551351972,
+          236.19893750160884,
+          9.084574519292648
+        ],
+        "11": [
+          0.0,
+          24.89370945439324,
+          217.09252052474318,
+          8.349712327874737
+        ],
+        "12": [
+          0.0,
+          21.09319090704974,
+          207.2298738591165,
+          7.970379763812174
+        ],
+        "13": [
+          0.0,
+          23.73971089313736,
+          207.21884734733138,
+          7.969955667205053
+        ],
+        "14": [
+          0.0,
+          31.95883869498405,
+          417.6096761456722,
+          16.061910620987394
+        ],
+        "15": [
+          0.0,
+          23.690964017439494,
+          242.30680981284408,
+          9.319492685109388
+        ],
+        "16": [
+          0.0,
+          24.017156694626625,
+          214.47387992688192,
+          8.248995381803152
+        ],
+        "17": [
+          0.0,
+          33.02374067839771,
+          445.95243793352796,
+          17.15201684359723
+        ],
+        "18": [
+          0.0,
+          21.89665044465384,
+          222.14549625179203,
+          8.544057548145847
+        ],
+        "19": [
+          0.0,
+          24.059547072995773,
+          204.96368840575735,
+          7.883218784836822
+        ],
+        "2": [
+          0.0,
+          25.34568997369045,
+          216.41543706888478,
+          8.323670656495569
+        ],
+        "20": [
+          0.0,
+          25.43126334593961,
+          225.3433989958671,
+          8.66705380753335
+        ],
+        "21": [
+          0.0,
+          24.64327347133342,
+          226.32163374439574,
+          8.704678220938298
+        ],
+        "22": [
+          0.0,
+          20.672744097464687,
+          201.74825427542442,
+          7.759548241362477
+        ],
+        "23": [
+          0.0,
+          27.497855058105692,
+          332.43864064282,
+          12.786101563185385
+        ],
+        "24": [
+          0.0,
+          22.926773587487528,
+          279.1815664503034,
+          10.7377525557809
+        ],
+        "25": [
+          0.0,
+          25.799188710137347,
+          278.7191754890149,
+          10.719968288039034
+        ],
+        "3": [
+          0.0,
+          32.95463228729708,
+          575.3296954658283,
+          22.128065210224165
+        ],
+        "4": [
+          0.0,
+          22.61058950314821,
+          219.7191675720731,
+          8.450737214310504
+        ],
+        "5": [
+          0.0,
+          22.05618280546591,
+          207.07795117277826,
+          7.964536583568394
+        ],
+        "6": [
+          0.0,
+          22.99203347382647,
+          236.57489540840868,
+          9.09903443878495
+        ],
+        "7": [
+          0.0,
+          33.02374067839771,
+          475.4748258469752,
+          18.287493301806737
+        ],
+        "8": [
+          0.0,
+          20.635145134812124,
+          194.72607718230068,
+          7.489464507011565
+        ],
+        "9": [
+          0.0,
+          30.19408763849458,
+          408.03563709378795,
+          15.693678349761075
+        ],
+        "Unnamed: 0": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ]
+      },
+      "sha256": "bd37992366f025ddbf149f5d2daf27544f2b383e316b2a6274718807d23b9716",
+      "shape": [
+        26,
+        27
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/component_merge_map.tsv": {
+      "bytes": 553,
+      "columns": [
+        "GMM_Component",
+        "Merged_Cluster",
+        "Is_Mainland_Merged_Cluster",
+        "Merged_Cluster_Color"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Component": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ],
+        "Merged_Cluster": [
+          0.0,
+          8.0,
+          81.0,
+          3.1153846153846154
+        ]
+      },
+      "sha256": "5bbae1aa4f80df4de0b96d9a72a49641e364450b15614d2b7242420a05530bef",
+      "shape": [
+        26,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/component_merging_overview.png": {
+      "bytes": 1790000,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.40007511504183,
+      "sha256": "1927dc4b42a8a24f59897e81bbb41daaa53b55912c3fbb6d5ed3846de6024e50",
+      "size": [
+        5046,
+        4590
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/major_cluster_reference.json": {
+      "bytes": 411,
+      "kind": "json",
+      "sha256": "d0c3c11e8bb6144ea8b372f32019f62c1f208c8a13940e5dda99f0626a902845"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/major_cluster_reference.tsv": {
+      "bytes": 143,
+      "columns": [
+        "Mainland_Merged_Cluster",
+        "Mainland_Premerge_Cluster_Default",
+        "Mainland_Premerge_Clusters",
+        "Mainland_Merged_Component_Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Mainland_Merged_Cluster": [
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ],
+        "Mainland_Merged_Component_Count": [
+          8.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "Mainland_Premerge_Cluster_Default": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "sha256": "076d5fa9966bd7fd341f33630171a1c65ad0ce2a10ab7d8e404f481a0b9ceaf1",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/merge_summary.json": {
+      "bytes": 761,
+      "kind": "json",
+      "sha256": "e80e75ecfd6c9749b5a5e53be8289b377f6355719d515d143d85cba56c73cae3"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/merged_cluster_summary.tsv": {
+      "bytes": 271,
+      "columns": [
+        "GMM_Cluster_Merged",
+        "Samples",
+        "Share(%)"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster_Merged": [
+          0.0,
+          8.0,
+          36.0,
+          4.0
+        ],
+        "Samples": [
+          51.0,
+          94997.0,
+          181815.0,
+          20201.666666666668
+        ],
+        "Share(%)": [
+          0.0280504908835904,
+          52.24926436212633,
+          100.0,
+          11.11111111111111
+        ]
+      },
+      "sha256": "92d9509681d0a9ded748c7d84c82e8cb74a3e5d18ab19924dbf674b8f52cd505",
+      "shape": [
+        9,
+        3
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/merged_posterior_probabilities.npy": {
+      "argmax_sha256": "18beb5ec8641a1cde62c4b90982d1e1a65a300724d68c5d405c8d5a33ef8acf1",
+      "bytes": 13090808,
+      "dtype": "float64",
+      "kind": "npy",
+      "sha256": "dc54a9eba2a2e6124734d2e63bdd253979814fbcd096e52945410e7dd290321f",
+      "shape": [
+        181815,
+        9
+      ],
+      "sum": 181815.0
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_3p5/reference_samples_merged.tsv": {
+      "bytes": 48273619,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "GMM_Cluster",
+        "GMM_Cluster_Merged"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster": [
+          0.0,
+          25.0,
+          1737792.0,
+          9.558023265407144
+        ],
+        "GMM_Cluster_Merged": [
+          0.0,
+          8.0,
+          613932.0,
+          3.37668509198911
+        ],
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
+        ],
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
+        ],
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
+        ]
+      },
+      "sha256": "684b133bd25a639dd288f0ac65f31a8f3bc6c7a14c8f94fbb5cf5f394ab9231b",
+      "shape": [
+        181815,
+        24
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/component_mahalanobis_distance.tsv": {
+      "bytes": 12195,
+      "columns": [
+        "Unnamed: 0",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "0": [
+          0.0,
+          22.401549724484024,
+          196.7901453841609,
+          7.56885174554465
+        ],
+        "1": [
+          0.0,
+          31.494924812648637,
+          421.4333052051551,
+          16.20897327712135
+        ],
+        "10": [
+          0.0,
+          23.02371551351972,
+          236.19893750160884,
+          9.084574519292648
+        ],
+        "11": [
+          0.0,
+          24.89370945439324,
+          217.09252052474318,
+          8.349712327874737
+        ],
+        "12": [
+          0.0,
+          21.09319090704974,
+          207.2298738591165,
+          7.970379763812174
+        ],
+        "13": [
+          0.0,
+          23.73971089313736,
+          207.21884734733138,
+          7.969955667205053
+        ],
+        "14": [
+          0.0,
+          31.95883869498405,
+          417.6096761456722,
+          16.061910620987394
+        ],
+        "15": [
+          0.0,
+          23.690964017439494,
+          242.30680981284408,
+          9.319492685109388
+        ],
+        "16": [
+          0.0,
+          24.017156694626625,
+          214.47387992688192,
+          8.248995381803152
+        ],
+        "17": [
+          0.0,
+          33.02374067839771,
+          445.95243793352796,
+          17.15201684359723
+        ],
+        "18": [
+          0.0,
+          21.89665044465384,
+          222.14549625179203,
+          8.544057548145847
+        ],
+        "19": [
+          0.0,
+          24.059547072995773,
+          204.96368840575735,
+          7.883218784836822
+        ],
+        "2": [
+          0.0,
+          25.34568997369045,
+          216.41543706888478,
+          8.323670656495569
+        ],
+        "20": [
+          0.0,
+          25.43126334593961,
+          225.3433989958671,
+          8.66705380753335
+        ],
+        "21": [
+          0.0,
+          24.64327347133342,
+          226.32163374439574,
+          8.704678220938298
+        ],
+        "22": [
+          0.0,
+          20.672744097464687,
+          201.74825427542442,
+          7.759548241362477
+        ],
+        "23": [
+          0.0,
+          27.497855058105692,
+          332.43864064282,
+          12.786101563185385
+        ],
+        "24": [
+          0.0,
+          22.926773587487528,
+          279.1815664503034,
+          10.7377525557809
+        ],
+        "25": [
+          0.0,
+          25.799188710137347,
+          278.7191754890149,
+          10.719968288039034
+        ],
+        "3": [
+          0.0,
+          32.95463228729708,
+          575.3296954658283,
+          22.128065210224165
+        ],
+        "4": [
+          0.0,
+          22.61058950314821,
+          219.7191675720731,
+          8.450737214310504
+        ],
+        "5": [
+          0.0,
+          22.05618280546591,
+          207.07795117277826,
+          7.964536583568394
+        ],
+        "6": [
+          0.0,
+          22.99203347382647,
+          236.57489540840868,
+          9.09903443878495
+        ],
+        "7": [
+          0.0,
+          33.02374067839771,
+          475.4748258469752,
+          18.287493301806737
+        ],
+        "8": [
+          0.0,
+          20.635145134812124,
+          194.72607718230068,
+          7.489464507011565
+        ],
+        "9": [
+          0.0,
+          30.19408763849458,
+          408.03563709378795,
+          15.693678349761075
+        ],
+        "Unnamed: 0": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ]
+      },
+      "sha256": "bd37992366f025ddbf149f5d2daf27544f2b383e316b2a6274718807d23b9716",
+      "shape": [
+        26,
+        27
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/component_merge_map.tsv": {
+      "bytes": 553,
+      "columns": [
+        "GMM_Component",
+        "Merged_Cluster",
+        "Is_Mainland_Merged_Cluster",
+        "Merged_Cluster_Color"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Component": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ],
+        "Merged_Cluster": [
+          0.0,
+          7.0,
+          77.0,
+          2.9615384615384617
+        ]
+      },
+      "sha256": "50b31578ac353e733c574fc366cdeb6446c07b93ef497a28f8dd1e81d3fa9187",
+      "shape": [
+        26,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/component_merging_overview.png": {
+      "bytes": 1759375,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.53829891361133,
+      "sha256": "6d7cc7f34dd7e65779938712abeac209be763e1d53c76ef805da0f9dfdaca236",
+      "size": [
+        5046,
+        4590
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/major_cluster_reference.json": {
+      "bytes": 411,
+      "kind": "json",
+      "sha256": "d0c3c11e8bb6144ea8b372f32019f62c1f208c8a13940e5dda99f0626a902845"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/major_cluster_reference.tsv": {
+      "bytes": 143,
+      "columns": [
+        "Mainland_Merged_Cluster",
+        "Mainland_Premerge_Cluster_Default",
+        "Mainland_Premerge_Clusters",
+        "Mainland_Merged_Component_Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Mainland_Merged_Cluster": [
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ],
+        "Mainland_Merged_Component_Count": [
+          8.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "Mainland_Premerge_Cluster_Default": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "sha256": "076d5fa9966bd7fd341f33630171a1c65ad0ce2a10ab7d8e404f481a0b9ceaf1",
+      "shape": [
+        1,
+        4
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/merge_summary.json": {
+      "bytes": 761,
+      "kind": "json",
+      "sha256": "4db09791e5829fa4b372d5e6612d5a65046724fbeef05d72ac2ce476b110162c"
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/merged_cluster_summary.tsv": {
+      "bytes": 245,
+      "columns": [
+        "GMM_Cluster_Merged",
+        "Samples",
+        "Share(%)"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster_Merged": [
+          0.0,
+          7.0,
+          28.0,
+          3.5
+        ],
+        "Samples": [
+          51.0,
+          98275.0,
+          181815.0,
+          22726.875
+        ],
+        "Share(%)": [
+          0.0280504908835904,
+          54.05219591342848,
+          100.0,
+          12.5
+        ]
+      },
+      "sha256": "7d22e75dc08669456fcb3b12db17f0b151e6a33c5144ceda7b51c2a96e24802c",
+      "shape": [
+        8,
+        3
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/merged_posterior_probabilities.npy": {
+      "argmax_sha256": "63205d34276513736c4a00e29a297b024cfaef92ce7c6153b5d42cafda9756f1",
+      "bytes": 11636288,
+      "dtype": "float64",
+      "kind": "npy",
+      "sha256": "b5510affe9db1dc966e072a710bf8bc08537e4b6d66351e810c0ca52fd82e665",
+      "shape": [
+        181815,
+        8
+      ],
+      "sum": 181815.0
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_4p5/reference_samples_merged.tsv": {
+      "bytes": 48273619,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "GMM_Cluster",
+        "GMM_Cluster_Merged"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster": [
+          0.0,
+          25.0,
+          1737792.0,
+          9.558023265407144
+        ],
+        "GMM_Cluster_Merged": [
+          0.0,
+          7.0,
+          609326.0,
+          3.3513516486538513
+        ],
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
+        ],
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
+        ],
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
+        ]
+      },
+      "sha256": "b412b037f494921c8342ecd6ed1b823319e816970b7bf8c530cf639b3438c1f7",
+      "shape": [
+        181815,
+        24
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/component_mahalanobis_distance.tsv": {
+      "bytes": 12195,
+      "columns": [
+        "Unnamed: 0",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "0": [
+          0.0,
+          22.401549724484024,
+          196.7901453841609,
+          7.56885174554465
+        ],
+        "1": [
+          0.0,
+          31.494924812648637,
+          421.4333052051551,
+          16.20897327712135
+        ],
+        "10": [
+          0.0,
+          23.02371551351972,
+          236.19893750160884,
+          9.084574519292648
+        ],
+        "11": [
+          0.0,
+          24.89370945439324,
+          217.09252052474318,
+          8.349712327874737
+        ],
+        "12": [
+          0.0,
+          21.09319090704974,
+          207.2298738591165,
+          7.970379763812174
+        ],
+        "13": [
+          0.0,
+          23.73971089313736,
+          207.21884734733138,
+          7.969955667205053
+        ],
+        "14": [
+          0.0,
+          31.95883869498405,
+          417.6096761456722,
+          16.061910620987394
+        ],
+        "15": [
+          0.0,
+          23.690964017439494,
+          242.30680981284408,
+          9.319492685109388
+        ],
+        "16": [
+          0.0,
+          24.017156694626625,
+          214.47387992688192,
+          8.248995381803152
+        ],
+        "17": [
+          0.0,
+          33.02374067839771,
+          445.95243793352796,
+          17.15201684359723
+        ],
+        "18": [
+          0.0,
+          21.89665044465384,
+          222.14549625179203,
+          8.544057548145847
+        ],
+        "19": [
+          0.0,
+          24.059547072995773,
+          204.96368840575735,
+          7.883218784836822
+        ],
+        "2": [
+          0.0,
+          25.34568997369045,
+          216.41543706888478,
+          8.323670656495569
+        ],
+        "20": [
+          0.0,
+          25.43126334593961,
+          225.3433989958671,
+          8.66705380753335
+        ],
+        "21": [
+          0.0,
+          24.64327347133342,
+          226.32163374439574,
+          8.704678220938298
+        ],
+        "22": [
+          0.0,
+          20.672744097464687,
+          201.74825427542442,
+          7.759548241362477
+        ],
+        "23": [
+          0.0,
+          27.497855058105692,
+          332.43864064282,
+          12.786101563185385
+        ],
+        "24": [
+          0.0,
+          22.926773587487528,
+          279.1815664503034,
+          10.7377525557809
+        ],
+        "25": [
+          0.0,
+          25.799188710137347,
+          278.7191754890149,
+          10.719968288039034
+        ],
+        "3": [
+          0.0,
+          32.95463228729708,
+          575.3296954658283,
+          22.128065210224165
+        ],
+        "4": [
+          0.0,
+          22.61058950314821,
+          219.7191675720731,
+          8.450737214310504
+        ],
+        "5": [
+          0.0,
+          22.05618280546591,
+          207.07795117277826,
+          7.964536583568394
+        ],
+        "6": [
+          0.0,
+          22.99203347382647,
+          236.57489540840868,
+          9.09903443878495
+        ],
+        "7": [
+          0.0,
+          33.02374067839771,
+          475.4748258469752,
+          18.287493301806737
+        ],
+        "8": [
+          0.0,
+          20.635145134812124,
+          194.72607718230068,
+          7.489464507011565
+        ],
+        "9": [
+          0.0,
+          30.19408763849458,
+          408.03563709378795,
+          15.693678349761075
+        ],
+        "Unnamed: 0": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
+        ]
+      },
+      "sha256": "bd37992366f025ddbf149f5d2daf27544f2b383e316b2a6274718807d23b9716",
+      "shape": [
+        26,
+        27
+      ]
+    },
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/component_merge_map.tsv": {
       "bytes": 545,
       "columns": [
         "GMM_Component",
@@ -1350,34 +2293,34 @@
         ],
         "Merged_Cluster": [
           0.0,
-          5.0,
-          64.0,
-          2.4615384615384617
+          4.0,
+          43.0,
+          1.6538461538461537
         ]
       },
-      "sha256": "dbcfaa56ae191717ce1c560f1fb729b6352006630e1f2c7cf2c256e9aba76721",
+      "sha256": "0cd684cdef496036b753ca44b7a9a8377496f2a67d0a1fe76e48fe34d9bdd927",
       "shape": [
         26,
         4
       ]
     },
-    "03_gmm_component_merging/gmm_component_merging_overview.png": {
-      "bytes": 1711960,
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/component_merging_overview.png": {
+      "bytes": 1713144,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.79096543822973,
-      "sha256": "5a9d7aede1c0edd19935a2cbbaa2c89741556b56be70ab010e362801e52579ef",
+      "pixel_mean": 239.77848063609994,
+      "sha256": "cf5d0dcc99648a5e7d81178d5348e3e4bc1a8c0454e97e46eb49449f11a496f8",
       "size": [
         5046,
         4590
       ]
     },
-    "03_gmm_component_merging/gmm_mainland_cluster_reference.json": {
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/major_cluster_reference.json": {
       "bytes": 474,
       "kind": "json",
-      "sha256": "a079713d5f295f3aadf79b49ea64d8673171b6d01479151570983824ce2e6827"
+      "sha256": "fd52e9d51b70103d073b92069db63fbd69ed797f8baf48b9c621bc2b8a4cf2d2"
     },
-    "03_gmm_component_merging/gmm_mainland_cluster_reference.tsv": {
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/major_cluster_reference.tsv": {
       "bytes": 166,
       "columns": [
         "Mainland_Merged_Cluster",
@@ -1388,10 +2331,10 @@
       "kind": "tsv",
       "numeric": {
         "Mainland_Merged_Cluster": [
-          3.0,
-          3.0,
-          3.0,
-          3.0
+          2.0,
+          2.0,
+          2.0,
+          2.0
         ],
         "Mainland_Merged_Component_Count": [
           16.0,
@@ -1406,19 +2349,19 @@
           0.0
         ]
       },
-      "sha256": "c38705bd18479b787cdac99201b264a1f9418bcf3232b4f2c781651c21e3dabe",
+      "sha256": "311d4797a01935903921c6ac21d52e69d6cca7e41c525938eff0329fbc07067b",
       "shape": [
         1,
         4
       ]
     },
-    "03_gmm_component_merging/gmm_merge_summary.json": {
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/merge_summary.json": {
       "bytes": 823,
       "kind": "json",
-      "sha256": "313f978bf4c6a9f996e070383b5f1ea6d84c833b7dcbbac7c912930b351432f6"
+      "sha256": "34fa8d7b826ba87ce601a2cca3e3d00c93e1ccb82b9197db4d929c5d91cf88ab"
     },
-    "03_gmm_component_merging/gmm_merged_cluster_summary.tsv": {
-      "bytes": 193,
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/merged_cluster_summary.tsv": {
+      "bytes": 167,
       "columns": [
         "GMM_Cluster_Merged",
         "Samples",
@@ -1428,378 +2371,681 @@
       "numeric": {
         "GMM_Cluster_Merged": [
           0.0,
-          5.0,
-          15.0,
-          2.5
+          4.0,
+          10.0,
+          2.0
         ],
         "Samples": [
           51.0,
           167694.0,
           181815.0,
-          30302.5
+          36363.0
         ],
         "Share(%)": [
           0.0280504908835904,
           92.23331408299646,
           100.0,
-          16.666666666666668
+          20.0
         ]
       },
-      "sha256": "f23631ce41fc7873ee032b2d53d1d4d9f33cf29da5ca2629fc3681b4d4537450",
+      "sha256": "cb78b7c460a38afcf36a5704d79a537eca6337da8c5c4d7233337881ea781c69",
       "shape": [
-        6,
+        5,
         3
       ]
     },
-    "03_gmm_component_merging/gmm_merged_posterior_probabilities.npy": {
-      "argmax_sha256": "bb9b5301418bfd2f0c5f1b3805226fa6bfca308e6a0b58973bc555168ea984d4",
-      "bytes": 8727248,
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/merged_posterior_probabilities.npy": {
+      "argmax_sha256": "5bdcf6c20b0323472d78a7d35d7bf8d238e8132e9108c5ac89727576d7d765e4",
+      "bytes": 7272728,
       "dtype": "float64",
       "kind": "npy",
-      "sha256": "997c3aa19565c2baae6d6fe12834d572b94da68a54ab11d044a08634cd6bd395",
+      "sha256": "fca92f2f92ac7a338190e9af3d6f2ea4c3198629d9245108d2dea7b4b45a9a5c",
       "shape": [
         181815,
-        6
+        5
       ],
       "sum": 181815.0
     },
-    "04_our_assignment/STEP4_tmp/mainland_cluster_rank_table.tsv": {
-      "bytes": 603,
+    "01_reference_model/component_merging/threshold_robustness/threshold_8p0/reference_samples_merged.tsv": {
+      "bytes": 48273619,
       "columns": [
-        "Rank",
-        "Cluster",
-        "CTEPH_Count_MAP",
-        "AGP3K_Count_MAP",
-        "Total_Count_MAP",
-        "Case_Ctrl_Ratio"
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "GMM_Cluster",
+        "GMM_Cluster_Merged"
       ],
       "kind": "tsv",
       "numeric": {
-        "AGP3K_Count_MAP": [
-          37.0,
-          417.0,
-          2665.0,
-          166.5625
-        ],
-        "CTEPH_Count_MAP": [
+        "GMM_Cluster": [
           0.0,
-          87.0,
-          434.0,
-          27.125
+          25.0,
+          1737792.0,
+          9.558023265407144
         ],
-        "Case_Ctrl_Ratio": [
+        "GMM_Cluster_Merged": [
           0.0,
-          0.6170212765957447,
-          2.4308155615757454,
-          0.1519259725984841
+          4.0,
+          339604.0,
+          1.8678546874570305
         ],
-        "Cluster": [
-          0.0,
-          22.0,
-          187.0,
-          11.6875
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
         ],
-        "Rank": [
-          1.0,
-          16.0,
-          136.0,
-          8.5
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
         ],
-        "Total_Count_MAP": [
-          38.0,
-          476.0,
-          3099.0,
-          193.6875
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
         ]
       },
-      "sha256": "301a78832aba1bd68f55e7d0ef2a55dc76fd71a7c882e5fdadf35d8bdd4a604a",
+      "sha256": "ae9939840b1f075513cb8d4255b3b292f82b5a6a1e58a6d687e0c97ad79d8dec",
       "shape": [
-        16,
+        181815,
+        24
+      ]
+    },
+    "01_reference_model/denoising/denoising_overview.png": {
+      "bytes": 2470604,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 247.76092249208625,
+      "sha256": "0cf78602cc18b1579e312854616d821aff313ac20be74a2933a1692ca0bb8c09",
+      "size": [
+        8973,
+        2792
+      ]
+    },
+    "01_reference_model/denoising/denoising_summary.json": {
+      "bytes": 541,
+      "kind": "json",
+      "sha256": "264cf63f46c80bd1041b6bf07b5d45bb431c2b228f85afa8a1d7653800187db3"
+    },
+    "01_reference_model/denoising/reference_samples_denoised.tsv": {
+      "bytes": 47814277,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "HDBSCAN_Label"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "HDBSCAN_Label": [
+          0.0,
+          6.0,
+          737802.0,
+          4.057982014685257
+        ],
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
+        ],
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
+        ],
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
+        ]
+      },
+      "sha256": "73124562ac924d72a2f07b63b78f77c386da203e877449d08de48c31e0ed58d6",
+      "shape": [
+        181815,
+        23
+      ]
+    },
+    "01_reference_model/mixture_model/bic_search.tsv": {
+      "bytes": 5284,
+      "columns": [
+        "n_components",
+        "n_pcs",
+        "bic",
+        "aic",
+        "has_empty_clusters",
+        "n_non_empty_clusters"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "aic": [
+          -2684358.678334495,
+          -2595661.2110878676,
+          -265458248.32936263,
+          -2681396.4477713397
+        ],
+        "bic": [
+          -2682560.0780631886,
+          -2595549.9928932465,
+          -265152954.38512713,
+          -2678312.6705568396
+        ],
+        "n_components": [
+          2.0,
+          100.0,
+          5049.0,
+          51.0
+        ],
+        "n_non_empty_clusters": [
+          2.0,
+          100.0,
+          5049.0,
+          51.0
+        ],
+        "n_pcs": [
+          2.0,
+          2.0,
+          198.0,
+          2.0
+        ]
+      },
+      "sha256": "88a2cd34cec6ec532b9dd7cc21a1b9f0dd4eeb8061534cdd051d5a49a8b0d14b",
+      "shape": [
+        99,
         6
       ]
     },
-    "04_our_assignment/STEP4_tmp/mainland_rank_cumulative_metrics.tsv": {
-      "bytes": 1737,
+    "01_reference_model/mixture_model/component_summary.tsv": {
+      "bytes": 709,
       "columns": [
-        "Included_Max_Rank",
-        "Included_Cluster_Count",
-        "Included_Clusters",
-        "CTEPH_Count",
-        "AGP3K_Count",
-        "Case_Control_Ratio",
-        "Total_Count",
-        "GWAS_Neff",
-        "PC12_AllSample_Heterogeneity"
+        "GMM_Cluster",
+        "Samples",
+        "Share(%)"
       ],
       "kind": "tsv",
       "numeric": {
-        "AGP3K_Count": [
-          141.0,
-          2665.0,
-          25770.0,
-          1610.625
+        "GMM_Cluster": [
+          0.0,
+          25.0,
+          325.0,
+          12.5
         ],
-        "CTEPH_Count": [
-          87.0,
-          434.0,
-          5770.0,
-          360.625
+        "Samples": [
+          51.0,
+          40780.0,
+          181815.0,
+          6992.884615384615
         ],
-        "Case_Control_Ratio": [
-          0.1628517823639775,
-          0.6170212765957447,
-          4.484527898926359,
-          0.28028299368289744
-        ],
-        "GWAS_Neff": [
-          215.21052631578948,
-          1492.881574701517,
-          18609.400947762257,
-          1163.087559235141
-        ],
-        "Included_Cluster_Count": [
-          1.0,
-          16.0,
-          136.0,
-          8.5
-        ],
-        "Included_Clusters": [
-          13.0,
-          13.0,
-          13.0,
-          13.0
-        ],
-        "Included_Max_Rank": [
-          1.0,
-          16.0,
-          136.0,
-          8.5
-        ],
-        "PC12_AllSample_Heterogeneity": [
-          0.001642358252515,
-          0.0069617509747398,
-          0.074539674466903,
-          0.004658729654181438
-        ],
-        "Total_Count": [
-          228.0,
-          3099.0,
-          31540.0,
-          1971.25
+        "Share(%)": [
+          0.0280504908835904,
+          22.429392514369,
+          100.0,
+          3.8461538461538463
         ]
       },
-      "sha256": "0672ce4c76979a681c439ea2a36745e90356c6d7ee5b452c53e630a3dacfcc3e",
+      "sha256": "09a9c7e14a5070e83a10bb70da6259791d2a4cbd82a2b878467c9ea923ab7714",
       "shape": [
-        16,
-        9
-      ]
-    },
-    "04_our_assignment/STEP4_tmp/mainland_rank_decision_table.tsv": {
-      "bytes": 4048,
-      "columns": [
-        "Included_Max_Rank",
-        "Included_Cluster_Count",
-        "Included_Clusters",
-        "CTEPH_Count",
-        "AGP3K_Count",
-        "Case_Control_Ratio",
-        "Total_Count",
-        "GWAS_Neff",
-        "PC12_AllSample_Heterogeneity",
-        "Delta_Neff",
-        "Delta_Heterogeneity",
-        "Neff_Gain_per_Heterogeneity",
-        "Neff_Norm",
-        "Heterogeneity_Norm",
-        "Utility_NeffMinusHet",
-        "Is_Pareto",
-        "Distance_To_Ideal",
-        "Is_Recommended"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "AGP3K_Count": [
-          141.0,
-          2665.0,
-          25770.0,
-          1610.625
-        ],
-        "CTEPH_Count": [
-          87.0,
-          434.0,
-          5770.0,
-          360.625
-        ],
-        "Case_Control_Ratio": [
-          0.1628517823639775,
-          0.6170212765957447,
-          4.484527898926359,
-          0.28028299368289744
-        ],
-        "Delta_Heterogeneity": [
-          9.779556044165696e-05,
-          0.0008625034424551,
-          0.005319392722224257,
-          0.00035462618148161714
-        ],
-        "Delta_Neff": [
-          5.262033535416094,
-          286.6796885020614,
-          1277.6710483857273,
-          85.17806989238183
-        ],
-        "Distance_To_Ideal": [
-          0.4923062932543376,
-          1.0,
-          11.597689128225163,
-          0.7248555705140727
-        ],
-        "GWAS_Neff": [
-          215.21052631578948,
-          1492.881574701517,
-          18609.400947762257,
-          1163.087559235141
-        ],
-        "Heterogeneity_Norm": [
-          0.0,
-          1.0,
-          9.072829352309553,
-          0.567051834519347
-        ],
-        "Included_Cluster_Count": [
-          1.0,
-          16.0,
-          136.0,
-          8.5
-        ],
-        "Included_Clusters": [
-          13.0,
-          13.0,
-          13.0,
-          13.0
-        ],
-        "Included_Max_Rank": [
-          1.0,
-          16.0,
-          136.0,
-          8.5
-        ],
-        "Neff_Gain_per_Heterogeneity": [
-          17433.16907355587,
-          796758.9602778261,
-          3686981.695522509,
-          245798.7797015006
-        ],
-        "Neff_Norm": [
-          0.0,
-          1.0,
-          11.870060408640501,
-          0.7418787755400313
-        ],
-        "PC12_AllSample_Heterogeneity": [
-          0.001642358252515,
-          0.0069617509747398,
-          0.074539674466903,
-          0.004658729654181438
-        ],
-        "Total_Count": [
-          228.0,
-          3099.0,
-          31540.0,
-          1971.25
-        ],
-        "Utility_NeffMinusHet": [
-          0.0,
-          0.3117680233437967,
-          2.797231056330948,
-          0.17482694102068425
-        ]
-      },
-      "sha256": "290d9d8e108821b9ba933fcafce0b069f8064f7c2153a8a7795db527f1105b50",
-      "shape": [
-        16,
-        18
-      ]
-    },
-    "04_our_assignment/STEP4_tmp/mainland_rank_progression_metrics.pdf": {
-      "bytes": 85278,
-      "kind": "pdf_volatile",
-      "sha256": "c82ca6ec2ab4afbfb5f873b8784ee781e419551f227af5d026ade0141cfeca6c"
-    },
-    "04_our_assignment/STEP4_tmp/mainland_rank_progression_metrics.png": {
-      "bytes": 1715272,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 251.03655528596218,
-      "sha256": "81a330fdc44c91a442b71cb38db99471f57cb1ab043e7f6a0f0a31f6d4f4babd",
-      "size": [
-        10544,
-        5400
-      ]
-    },
-    "04_our_assignment/mainland_all_pcs_kde.log": {
-      "bytes": 641,
-      "kind": "exact",
-      "normalized_sha256": "db5c2c06fb28e9ede95fed0062346fa16135786b8bf6671c7729ed076445e926",
-      "sha256": "e53b4a13c3831a7647e7d14be8a9ff2a5ad8eea67bf9d96d73260f4ce33b8f25"
-    },
-    "04_our_assignment/mainland_all_pcs_kde.png": {
-      "bytes": 1876136,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 240.2298954934345,
-      "sha256": "b4933c1e0682a3f4d441770e541123f2fdf2c3b9cffb3d9d7a68d556405b3bae",
-      "size": [
-        9004,
-        5506
-      ]
-    },
-    "04_our_assignment/mainland_samples.fid_iid.txt": {
-      "bytes": 58310,
-      "kind": "exact",
-      "normalized_sha256": "23eb61b389025a2e272c353d2923e6b5c11f98579ef8162c2e9694aff22d5c7b",
-      "sha256": "23eb61b389025a2e272c353d2923e6b5c11f98579ef8162c2e9694aff22d5c7b"
-    },
-    "04_our_assignment/mainland_samples_cluster_rank.tsv": {
-      "bytes": 69128,
-      "columns": [
-        "Sample_ID",
-        "Original_Cluster",
-        "Rank"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "Rank": [
-          1.0,
-          16.0,
-          22696.0,
-          7.323652791222975
-        ],
-        "Sample_ID": [
-          63134.0,
-          9999936379.0,
-          3137999686507.0,
-          4965189377.384494
-        ]
-      },
-      "sha256": "b769b8c81aca28dd3275c2c4bac7f5c77d010822756697beb25776e779e5ba18",
-      "shape": [
-        3099,
+        26,
         3
       ]
     },
-    "04_our_assignment/our_assignment_premerge.png": {
-      "bytes": 6772270,
+    "01_reference_model/mixture_model/mixture_model_overview.png": {
+      "bytes": 3416302,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.78363486919773,
-      "sha256": "0e0926b81bf6701ba3548bc5edfe70e1b73f7fb324ec7606c98aea134252ad93",
+      "pixel_mean": 247.81519522490467,
+      "sha256": "009d5e3416c99533d47803472df6ec8dd94c2a833c6005a0ce7bcc6efc53c427",
+      "size": [
+        8597,
+        6591
+      ]
+    },
+    "01_reference_model/mixture_model/mixture_model_summary.json": {
+      "bytes": 497,
+      "kind": "json",
+      "sha256": "133120f9518f2e9ead2acecefa7a3ecade78333c88b2e3e882b351d767dd3127"
+    },
+    "01_reference_model/mixture_model/reference_samples_clustered.tsv": {
+      "bytes": 47909970,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "PC3_AVG",
+        "PC4_AVG",
+        "PC5_AVG",
+        "PC6_AVG",
+        "PC7_AVG",
+        "PC8_AVG",
+        "PC9_AVG",
+        "PC10_AVG",
+        "PC11_AVG",
+        "PC12_AVG",
+        "PC13_AVG",
+        "PC14_AVG",
+        "PC15_AVG",
+        "PC16_AVG",
+        "PC17_AVG",
+        "PC18_AVG",
+        "PC19_AVG",
+        "PC20_AVG",
+        "GMM_Cluster"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "GMM_Cluster": [
+          0.0,
+          25.0,
+          1737792.0,
+          9.558023265407144
+        ],
+        "PC10_AVG": [
+          -0.0780597,
+          0.0314552,
+          7.835679552661399,
+          4.3096991736993094e-05
+        ],
+        "PC11_AVG": [
+          -0.0802,
+          0.0915036,
+          0.17543796632869957,
+          9.649257010076153e-07
+        ],
+        "PC12_AVG": [
+          -0.0522766,
+          0.0643176,
+          0.5430611932837,
+          2.986888833614938e-06
+        ],
+        "PC13_AVG": [
+          -0.0265687,
+          0.0315898,
+          0.9296903843924,
+          5.113386598423672e-06
+        ],
+        "PC14_AVG": [
+          -0.0316416,
+          0.0325337,
+          0.7725592703036,
+          4.24915034680087e-06
+        ],
+        "PC15_AVG": [
+          -0.0609815,
+          0.0280734,
+          1.3330083096510297,
+          7.331674007375792e-06
+        ],
+        "PC16_AVG": [
+          -0.0780489,
+          0.0175217,
+          0.9425040364276203,
+          5.183862917952975e-06
+        ],
+        "PC17_AVG": [
+          -0.0290361,
+          0.0294329,
+          2.7109003597338,
+          1.4910212907261778e-05
+        ],
+        "PC18_AVG": [
+          -0.0333007,
+          0.063302,
+          1.542768885406,
+          8.485377363836867e-06
+        ],
+        "PC19_AVG": [
+          -0.0328667,
+          0.0262346,
+          -0.2742536421387,
+          -1.50842142913786e-06
+        ],
+        "PC1_AVG": [
+          -0.0908531,
+          0.0445105,
+          37.2735289928584,
+          0.00020500799710067047
+        ],
+        "PC20_AVG": [
+          -0.0432135,
+          0.0272528,
+          1.2150836196271995,
+          6.683076861794678e-06
+        ],
+        "PC2_AVG": [
+          -0.0387081,
+          0.0681115,
+          -7.709812960941301,
+          -4.240471336766109e-05
+        ],
+        "PC3_AVG": [
+          -0.121193,
+          0.0493326,
+          11.3239271391725,
+          6.228268921250998e-05
+        ],
+        "PC4_AVG": [
+          -0.0980644,
+          0.123369,
+          -0.30301968864740014,
+          -1.6666374537161408e-06
+        ],
+        "PC5_AVG": [
+          -0.0220031,
+          0.127786,
+          -0.10700390076310085,
+          -5.88531753502741e-07
+        ],
+        "PC6_AVG": [
+          -0.052844,
+          0.129607,
+          7.035691483736099,
+          3.86969803577048e-05
+        ],
+        "PC7_AVG": [
+          -0.0196241,
+          0.0684286,
+          -13.162265032990831,
+          -7.239372457162958e-05
+        ],
+        "PC8_AVG": [
+          -0.0281383,
+          0.0526716,
+          2.3794701033771,
+          1.3087314596579492e-05
+        ],
+        "PC9_AVG": [
+          -0.0713353,
+          0.0152772,
+          8.0126210886583,
+          4.407018721589692e-05
+        ]
+      },
+      "sha256": "2eb088140fc4e190b1856c9c3f28a5032aec8f339a2882aa20127c759edc4bf9",
+      "shape": [
+        181815,
+        23
+      ]
+    },
+    "01_reference_model/mixture_model/tmp/search_bic_log.jsonl": {
+      "bytes": 41502,
+      "kind": "jsonl_volatile",
+      "sha256": "f9c72bb7f09f176e1a49189c3e6cd3f3bcdd2552f37ff4230201fa1e493bc10e"
+    },
+    "01_reference_model/mixture_model/tmp/search_convergence_log.jsonl": {
+      "bytes": 53081,
+      "kind": "jsonl_volatile",
+      "sha256": "6d6d1fb920bbd46a4df5ac877e9a147f0ec05d62476f4bec18125b3adbd9a6bc"
+    },
+    "01_reference_model/mixture_model/tmp/search_report.md": {
+      "bytes": 20529,
+      "kind": "md_volatile",
+      "sha256": "e154a04daff45a6a18546cf945086a1378071030de3085ec8570661b1b4cd2ed"
+    },
+    "01_reference_model/mixture_model/tmp/selected_model_components.json": {
+      "bytes": 11993,
+      "kind": "json_volatile",
+      "sha256": "e544a307775959ba94cfc625005aeef6e921f749cdf9c29d966777abdb5af119"
+    },
+    "02_cohort_assignment/cohort_assignment_overview.png": {
+      "bytes": 6769986,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 245.7863188276196,
+      "sha256": "5fd7beb96bb93fa039691b90a66b82dd18d1fb651d5717485bf2132187afb5c4",
       "size": [
         9360,
         9050
       ]
     },
-    "04_our_assignment/our_posterior_probabilities_premerge.tsv": {
+    "02_cohort_assignment/cohort_posterior_probabilities.tsv": {
       "bytes": 2250588,
       "columns": [
         "FID",
@@ -2036,12 +3282,548 @@
         32
       ]
     },
-    "05_customize_cluster_assignment/customize_cluster_summary.json": {
-      "bytes": 793,
-      "kind": "json",
-      "sha256": "d48780b42e59a3fa390cc057e9fbf39ceb75387c74bd36c9c69e70ee97023876"
+    "02_cohort_assignment/major_cluster_all_pcs_kde.log": {
+      "bytes": 644,
+      "kind": "exact",
+      "normalized_sha256": "a15f665f2af35314f7fe0801b4d08be768f7d949cf5234c0837523aad9aba3b9",
+      "sha256": "91020698dfd7436bcc19c76054dd5294fd260772cb0525ebab4470fd13ac05a9"
     },
-    "05_customize_cluster_assignment/our_assignment_customize_merged.png": {
+    "02_cohort_assignment/major_cluster_all_pcs_kde.png": {
+      "bytes": 1876136,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 240.2298954934345,
+      "sha256": "b4933c1e0682a3f4d441770e541123f2fdf2c3b9cffb3d9d7a68d556405b3bae",
+      "size": [
+        9004,
+        5506
+      ]
+    },
+    "02_cohort_assignment/major_cluster_component_ranks.tsv": {
+      "bytes": 69128,
+      "columns": [
+        "Sample_ID",
+        "Original_Cluster",
+        "Rank"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Rank": [
+          1.0,
+          16.0,
+          22696.0,
+          7.323652791222975
+        ],
+        "Sample_ID": [
+          63134.0,
+          9999936379.0,
+          3137999686507.0,
+          4965189377.384494
+        ]
+      },
+      "sha256": "b769b8c81aca28dd3275c2c4bac7f5c77d010822756697beb25776e779e5ba18",
+      "shape": [
+        3099,
+        3
+      ]
+    },
+    "03_rank_selection/component_rank_table.tsv": {
+      "bytes": 603,
+      "columns": [
+        "Rank",
+        "Cluster",
+        "CTEPH_Count_MAP",
+        "AGP3K_Count_MAP",
+        "Total_Count_MAP",
+        "Case_Ctrl_Ratio"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "AGP3K_Count_MAP": [
+          37.0,
+          417.0,
+          2665.0,
+          166.5625
+        ],
+        "CTEPH_Count_MAP": [
+          0.0,
+          87.0,
+          434.0,
+          27.125
+        ],
+        "Case_Ctrl_Ratio": [
+          0.0,
+          0.6170212765957447,
+          2.4308155615757454,
+          0.1519259725984841
+        ],
+        "Cluster": [
+          0.0,
+          22.0,
+          187.0,
+          11.6875
+        ],
+        "Rank": [
+          1.0,
+          16.0,
+          136.0,
+          8.5
+        ],
+        "Total_Count_MAP": [
+          38.0,
+          476.0,
+          3099.0,
+          193.6875
+        ]
+      },
+      "sha256": "301a78832aba1bd68f55e7d0ef2a55dc76fd71a7c882e5fdadf35d8bdd4a604a",
+      "shape": [
+        16,
+        6
+      ]
+    },
+    "03_rank_selection/rank_cumulative_metrics.tsv": {
+      "bytes": 1737,
+      "columns": [
+        "Included_Max_Rank",
+        "Included_Cluster_Count",
+        "Included_Clusters",
+        "CTEPH_Count",
+        "AGP3K_Count",
+        "Case_Control_Ratio",
+        "Total_Count",
+        "GWAS_Neff",
+        "PC12_AllSample_Heterogeneity"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "AGP3K_Count": [
+          141.0,
+          2665.0,
+          25770.0,
+          1610.625
+        ],
+        "CTEPH_Count": [
+          87.0,
+          434.0,
+          5770.0,
+          360.625
+        ],
+        "Case_Control_Ratio": [
+          0.1628517823639775,
+          0.6170212765957447,
+          4.484527898926359,
+          0.28028299368289744
+        ],
+        "GWAS_Neff": [
+          215.21052631578948,
+          1492.881574701517,
+          18609.400947762257,
+          1163.087559235141
+        ],
+        "Included_Cluster_Count": [
+          1.0,
+          16.0,
+          136.0,
+          8.5
+        ],
+        "Included_Clusters": [
+          13.0,
+          13.0,
+          13.0,
+          13.0
+        ],
+        "Included_Max_Rank": [
+          1.0,
+          16.0,
+          136.0,
+          8.5
+        ],
+        "PC12_AllSample_Heterogeneity": [
+          0.001642358252515,
+          0.0069617509747398,
+          0.074539674466903,
+          0.004658729654181438
+        ],
+        "Total_Count": [
+          228.0,
+          3099.0,
+          31540.0,
+          1971.25
+        ]
+      },
+      "sha256": "0672ce4c76979a681c439ea2a36745e90356c6d7ee5b452c53e630a3dacfcc3e",
+      "shape": [
+        16,
+        9
+      ]
+    },
+    "03_rank_selection/rank_decision_table.tsv": {
+      "bytes": 4048,
+      "columns": [
+        "Included_Max_Rank",
+        "Included_Cluster_Count",
+        "Included_Clusters",
+        "CTEPH_Count",
+        "AGP3K_Count",
+        "Case_Control_Ratio",
+        "Total_Count",
+        "GWAS_Neff",
+        "PC12_AllSample_Heterogeneity",
+        "Delta_Neff",
+        "Delta_Heterogeneity",
+        "Neff_Gain_per_Heterogeneity",
+        "Neff_Norm",
+        "Heterogeneity_Norm",
+        "Utility_NeffMinusHet",
+        "Is_Pareto",
+        "Distance_To_Ideal",
+        "Is_Recommended"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "AGP3K_Count": [
+          141.0,
+          2665.0,
+          25770.0,
+          1610.625
+        ],
+        "CTEPH_Count": [
+          87.0,
+          434.0,
+          5770.0,
+          360.625
+        ],
+        "Case_Control_Ratio": [
+          0.1628517823639775,
+          0.6170212765957447,
+          4.484527898926359,
+          0.28028299368289744
+        ],
+        "Delta_Heterogeneity": [
+          9.779556044165696e-05,
+          0.0008625034424551,
+          0.005319392722224257,
+          0.00035462618148161714
+        ],
+        "Delta_Neff": [
+          5.262033535416094,
+          286.6796885020614,
+          1277.6710483857273,
+          85.17806989238183
+        ],
+        "Distance_To_Ideal": [
+          0.4923062932543376,
+          1.0,
+          11.597689128225163,
+          0.7248555705140727
+        ],
+        "GWAS_Neff": [
+          215.21052631578948,
+          1492.881574701517,
+          18609.400947762257,
+          1163.087559235141
+        ],
+        "Heterogeneity_Norm": [
+          0.0,
+          1.0,
+          9.072829352309553,
+          0.567051834519347
+        ],
+        "Included_Cluster_Count": [
+          1.0,
+          16.0,
+          136.0,
+          8.5
+        ],
+        "Included_Clusters": [
+          13.0,
+          13.0,
+          13.0,
+          13.0
+        ],
+        "Included_Max_Rank": [
+          1.0,
+          16.0,
+          136.0,
+          8.5
+        ],
+        "Neff_Gain_per_Heterogeneity": [
+          17433.16907355587,
+          796758.9602778261,
+          3686981.695522509,
+          245798.7797015006
+        ],
+        "Neff_Norm": [
+          0.0,
+          1.0,
+          11.870060408640501,
+          0.7418787755400313
+        ],
+        "PC12_AllSample_Heterogeneity": [
+          0.001642358252515,
+          0.0069617509747398,
+          0.074539674466903,
+          0.004658729654181438
+        ],
+        "Total_Count": [
+          228.0,
+          3099.0,
+          31540.0,
+          1971.25
+        ],
+        "Utility_NeffMinusHet": [
+          0.0,
+          0.3117680233437967,
+          2.797231056330948,
+          0.17482694102068425
+        ]
+      },
+      "sha256": "290d9d8e108821b9ba933fcafce0b069f8064f7c2153a8a7795db527f1105b50",
+      "shape": [
+        16,
+        18
+      ]
+    },
+    "03_rank_selection/rank_selection_tradeoff.pdf": {
+      "bytes": 84493,
+      "kind": "pdf_volatile",
+      "sha256": "f0df65c7dffe2d44fe6affbfde8aa08b249c4044fc576263a4f996bddad86b63"
+    },
+    "03_rank_selection/rank_selection_tradeoff.png": {
+      "bytes": 1717231,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 251.02910307512084,
+      "sha256": "ab8818a3c98760874a6bfce4ef8ac29ea0b5fc37d399f786f418e14b7b0458b9",
+      "size": [
+        10544,
+        5400
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_all_pcs_kde.log": {
+      "bytes": 614,
+      "kind": "exact",
+      "normalized_sha256": "4b3173ae66e9e52a9750fc1ea5668eb3561dd60470638f5158ae71a1e7b5098f",
+      "sha256": "781d43ee166959b083f0bcd17857879e78a37e04128f446aa074c2283c8d2c87"
+    },
+    "04_subcluster_variants/expanded/subcluster_all_pcs_kde.png": {
+      "bytes": 1854829,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 238.68392095940106,
+      "sha256": "c754daed613298caf624c71c705eb119b71e97834913940db455b9e7ac05af89",
+      "size": [
+        8935,
+        5506
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_assignment_overview.png": {
+      "bytes": 6625883,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 249.87697777932516,
+      "sha256": "4ca6dbbcc0791eee872a74616de34f1b4ab59e456a7121753339d4a8451c0967",
+      "size": [
+        15483,
+        9038
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_posterior_probabilities.tsv": {
+      "bytes": 1462098,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "Assigned_Mainland_Subcluster_Group",
+        "Assigned_Component_ID_If_Not_Subcluster",
+        "Prob_Mainland_Subcluster",
+        "Assignment_Confidence",
+        "Prob_Cluster_1",
+        "Prob_Cluster_3",
+        "Prob_Cluster_6",
+        "Prob_Cluster_7",
+        "Prob_Cluster_9",
+        "Prob_Cluster_10",
+        "Prob_Cluster_11",
+        "Prob_Cluster_14",
+        "Prob_Cluster_15",
+        "Prob_Cluster_17",
+        "Prob_Cluster_21",
+        "Prob_Cluster_23",
+        "Prob_Cluster_24",
+        "Prob_Cluster_25"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Assigned_Component_ID_If_Not_Subcluster": [
+          -1.0,
+          25.0,
+          9271.0,
+          2.5961915429851583
+        ],
+        "Assignment_Confidence": [
+          0.3400488684957718,
+          1.0,
+          3090.3350308902527,
+          0.8653976563680349
+        ],
+        "FID": [
+          63134.0,
+          9999936379.0,
+          4957999784062.0,
+          4943170273.242273
+        ],
+        "IID": [
+          63134.0,
+          9999936379.0,
+          4957999784062.0,
+          4943170273.242273
+        ],
+        "PC1_AVG": [
+          -0.0896594,
+          0.0409028,
+          -0.3635411164000004,
+          -0.00010180372903948486
+        ],
+        "PC2_AVG": [
+          -0.0377268,
+          0.0622278,
+          12.732381780785,
+          0.003565494757990759
+        ],
+        "Prob_Cluster_1": [
+          2.9821691952375332e-210,
+          0.7144358397943139,
+          67.78342000291008,
+          0.01898163539706247
+        ],
+        "Prob_Cluster_10": [
+          2.3952847786366877e-272,
+          0.9268838674632608,
+          297.5617150067269,
+          0.08332727947542058
+        ],
+        "Prob_Cluster_11": [
+          3.656736121321232e-205,
+          0.8403285096987758,
+          89.66135749529383,
+          0.025108193081852095
+        ],
+        "Prob_Cluster_14": [
+          1.0489062749982198e-217,
+          0.7525031593799913,
+          84.12046424794949,
+          0.023556556776239003
+        ],
+        "Prob_Cluster_15": [
+          8.704009339406601e-114,
+          0.999996741398878,
+          25.992830370489216,
+          0.007278865967653099
+        ],
+        "Prob_Cluster_17": [
+          1.2889990007015901e-223,
+          0.9331615841146133,
+          93.85934424700433,
+          0.026283770441614205
+        ],
+        "Prob_Cluster_21": [
+          5.6509335653550676e-216,
+          0.7043655862418269,
+          92.67574782838322,
+          0.025952323670787796
+        ],
+        "Prob_Cluster_23": [
+          2.0603381375457304e-146,
+          0.9965705452825956,
+          62.18828125062972,
+          0.017414808527199586
+        ],
+        "Prob_Cluster_24": [
+          1.569765191878591e-87,
+          1.0,
+          36.96018384526397,
+          0.010350093487892459
+        ],
+        "Prob_Cluster_25": [
+          0.0,
+          0.9999999721600128,
+          27.451209147629108,
+          0.007687261032660069
+        ],
+        "Prob_Cluster_3": [
+          0.0,
+          0.999999999882988,
+          4.921712024683963,
+          0.0013782447562822634
+        ],
+        "Prob_Cluster_6": [
+          1.1486352356751119e-153,
+          0.9999998060228734,
+          121.35368876383036,
+          0.033983110827171766
+        ],
+        "Prob_Cluster_7": [
+          0.0,
+          0.9999999992720108,
+          55.9795060272047,
+          0.015676142824756288
+        ],
+        "Prob_Cluster_9": [
+          2.9424025796084468e-161,
+          0.9996987726252224,
+          13.577545004623746,
+          0.0038021688615580357
+        ],
+        "Prob_Mainland_Subcluster": [
+          1.2344538856485876e-132,
+          0.999999899952633,
+          2496.912994737377,
+          0.6992195448718502
+        ]
+      },
+      "sha256": "93e2d05fe27a0dcf4f1c34197b4f394cd3a9c3fee36113c84d08e331e93f7380",
+      "shape": [
+        3571,
+        22
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_summary.json": {
+      "bytes": 770,
+      "kind": "json",
+      "sha256": "4125a4d0e6a3304d819bec38bc995b7415154871e75d4e03fff0dd2e03d3b884"
+    },
+    "04_subcluster_variants/expanded/subcluster_view.png": {
+      "bytes": 3378165,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 244.31379097174684,
+      "sha256": "667f6ba35dc12aad621533d571cb339240ea54453409ac6ed8d502e139262e17",
+      "size": [
+        8913,
+        9038
+      ]
+    },
+    "04_subcluster_variants/refined/subcluster_all_pcs_kde.log": {
+      "bytes": 613,
+      "kind": "exact",
+      "normalized_sha256": "3f86257cf120cba7f7750d1d3185ee5391ca5832606856cd6b237fb6206df0be",
+      "sha256": "6c388deebef8c03f17e976d228ccfb596d1db0bfd4617ac4737e01d1a1848bae"
+    },
+    "04_subcluster_variants/refined/subcluster_all_pcs_kde.png": {
+      "bytes": 1851547,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 238.38166624167346,
+      "sha256": "3cc0a992f1bd60f277692c662bfc66b2954abf067fd30c23608a0570061a1749",
+      "size": [
+        8933,
+        5506
+      ]
+    },
+    "04_subcluster_variants/refined/subcluster_assignment_overview.png": {
       "bytes": 6734609,
       "kind": "png",
       "mode": "RGBA",
@@ -2052,8 +3834,8 @@
         9038
       ]
     },
-    "05_customize_cluster_assignment/our_posterior_probabilities_customize_merged.tsv": {
-      "bytes": 1887135,
+    "04_subcluster_variants/refined/subcluster_posterior_probabilities.tsv": {
+      "bytes": 1690150,
       "columns": [
         "FID",
         "IID",
@@ -2062,11 +3844,7 @@
         "Assigned_Mainland_Subcluster_Group",
         "Assigned_Component_ID_If_Not_Subcluster",
         "Prob_Mainland_Subcluster",
-        "Assigned_Customize_Group",
-        "Assigned_Composite_Group",
-        "Assigned_Customize_ClusterID",
         "Assignment_Confidence",
-        "Prob_Customize_Cluster",
         "Prob_Cluster_1",
         "Prob_Cluster_3",
         "Prob_Cluster_6",
@@ -2088,12 +3866,6 @@
       "kind": "tsv",
       "numeric": {
         "Assigned_Component_ID_If_Not_Subcluster": [
-          -1.0,
-          25.0,
-          16533.0,
-          4.629795575469056
-        ],
-        "Assigned_Customize_ClusterID": [
           -1.0,
           25.0,
           16533.0,
@@ -2231,12 +4003,6 @@
           13.577545004623746,
           0.0038021688615580357
         ],
-        "Prob_Customize_Cluster": [
-          6.5902371330579264e-195,
-          0.994797581330254,
-          1883.776909980023,
-          0.5275208372948819
-        ],
         "Prob_Mainland_Subcluster": [
           6.5902371330579264e-195,
           0.994797581330254,
@@ -2244,248 +4010,124 @@
           0.5275208372948819
         ]
       },
-      "sha256": "b5467430cf09099f5bdfb2d7718dfec7ead53121d4ac3a5a258495170fdc86dc",
+      "sha256": "aa13142e2dc12c0c5b6fa2f37a5abdedf3b0c56373d1912b7ee2efd8c8b89782",
       "shape": [
         3571,
-        29
+        25
       ]
     },
-    "06_mainland_subcluster_only/mainland_subcluster_all_pcs_kde.log": {
-      "bytes": 610,
-      "kind": "exact",
-      "normalized_sha256": "fac2a353a695507d7d41c24eab5400ccb93624bec0ee17acd8e92250424f751c",
-      "sha256": "0571bc4e06e5427fb993308a1cccf863828cb89de0b4733236bf7db4fcfa8e4c"
+    "04_subcluster_variants/refined/subcluster_summary.json": {
+      "bytes": 793,
+      "kind": "json",
+      "sha256": "d48780b42e59a3fa390cc057e9fbf39ceb75387c74bd36c9c69e70ee97023876"
     },
-    "06_mainland_subcluster_only/mainland_subcluster_all_pcs_kde.png": {
-      "bytes": 1851547,
+    "04_subcluster_variants/refined/subcluster_view.png": {
+      "bytes": 3270086,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 238.38166624167346,
-      "sha256": "3cc0a992f1bd60f277692c662bfc66b2954abf067fd30c23608a0570061a1749",
-      "size": [
-        8933,
-        5506
-      ]
-    },
-    "06_mainland_subcluster_only/mainland_subcluster_only.png": {
-      "bytes": 3280024,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 243.98373924380815,
-      "sha256": "255a45bc2e951d047ccb7c70baf7e0c8cfcb146c9586ec8ec5e2b4223a9fdac9",
+      "pixel_mean": 244.05963657888665,
+      "sha256": "4e6e21c21c172b41aa3a0d4807a31567a560b89d4d762153cec574560384b833",
       "size": [
         8913,
         9038
       ]
     },
-    "06_mainland_subcluster_only/mainland_subcluster_samples.fid_iid.txt": {
+    "keep_lists/expanded_mainland.fid_iid.txt": {
+      "bytes": 49078,
+      "kind": "exact",
+      "normalized_sha256": "66f4c3000c1d26ba837fa56ecb5c8e52b6339e338279f6a699722f131f3c8198",
+      "sha256": "66f4c3000c1d26ba837fa56ecb5c8e52b6339e338279f6a699722f131f3c8198"
+    },
+    "keep_lists/full_mainland.fid_iid.txt": {
+      "bytes": 58310,
+      "kind": "exact",
+      "normalized_sha256": "23eb61b389025a2e272c353d2923e6b5c11f98579ef8162c2e9694aff22d5c7b",
+      "sha256": "23eb61b389025a2e272c353d2923e6b5c11f98579ef8162c2e9694aff22d5c7b"
+    },
+    "keep_lists/keep_list_summary.tsv": {
+      "bytes": 556,
+      "columns": [
+        "variant",
+        "rank_cut",
+        "n_components",
+        "n_samples",
+        "CTEPH_Count",
+        "AGP3K_Count",
+        "Case_Control_Ratio",
+        "GWAS_Neff",
+        "PC12_RGV",
+        "components",
+        "file"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "AGP3K_Count": [
+          1730.0,
+          2665.0,
+          6602.0,
+          2200.6666666666665
+        ],
+        "CTEPH_Count": [
+          408.0,
+          434.0,
+          1272.0,
+          424.0
+        ],
+        "Case_Control_Ratio": [
+          0.1628517823639775,
+          0.2358381502890173,
+          0.5935245497803169,
+          0.19784151659343896
+        ],
+        "GWAS_Neff": [
+          1320.5612722170251,
+          1492.881574701517,
+          4252.972615595068,
+          1417.6575385316894
+        ],
+        "PC12_RGV": [
+          0.0050396314246193,
+          0.0069617509747398,
+          0.0178651256118436,
+          0.005955041870614533
+        ],
+        "n_components": [
+          9.0,
+          16.0,
+          37.0,
+          12.333333333333334
+        ],
+        "n_samples": [
+          2138.0,
+          3099.0,
+          7874.0,
+          2624.6666666666665
+        ],
+        "rank_cut": [
+          9.0,
+          12.0,
+          21.0,
+          10.5
+        ]
+      },
+      "sha256": "c37df119f4c7b4e0723dcffcfee1b056c0f6cd42179eccb1f33dc39018037d9b",
+      "shape": [
+        3,
+        11
+      ]
+    },
+    "keep_lists/refined_mainland.fid_iid.txt": {
       "bytes": 39560,
       "kind": "exact",
       "normalized_sha256": "e8a0a2f0cdc67933757bc4ad26c4bad186221ce2857ea694deac1fa74be63c6b",
       "sha256": "e8a0a2f0cdc67933757bc4ad26c4bad186221ce2857ea694deac1fa74be63c6b"
     },
-    "07_mainland_subcluster_confidence_distribution/mainland_subcluster_confidence_distribution.png": {
-      "bytes": 1020289,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 246.2551117444911,
-      "sha256": "8dfd070a99bb87a6e4d3c644fc1f62062191be42feced104802a4fd608149019",
-      "size": [
-        10173,
-        4362
-      ]
-    },
-    "08_mainland_subcluster_confidence_screening/mainland_subcluster_confidence_threshold_screening.png": {
-      "bytes": 1202237,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 227.27528543109122,
-      "sha256": "89d4cb4a88cc3031ce99f0a4bb20999aa880c573600f322297218548bd715b35",
-      "size": [
-        9185,
-        5957
-      ]
-    },
-    "08_mainland_subcluster_confidence_screening/mainland_subcluster_confidence_threshold_screening.tsv": {
-      "bytes": 812,
-      "columns": [
-        "threshold",
-        "case_total",
-        "control_total",
-        "case_kept",
-        "control_kept",
-        "case_removed",
-        "control_removed",
-        "case_keep_rate",
-        "control_keep_rate",
-        "case_removed_rate",
-        "control_removed_rate"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "case_keep_rate": [
-          0.1299019607843137,
-          0.9975490196078431,
-          3.803921568627451,
-          0.6339869281045751
-        ],
-        "case_kept": [
-          53.0,
-          407.0,
-          1552.0,
-          258.6666666666667
-        ],
-        "case_removed": [
-          1.0,
-          355.0,
-          896.0,
-          149.33333333333334
-        ],
-        "case_removed_rate": [
-          0.0024509803921568,
-          0.8700980392156863,
-          2.196078431372549,
-          0.36601307189542487
-        ],
-        "case_total": [
-          408.0,
-          408.0,
-          2448.0,
-          408.0
-        ],
-        "control_keep_rate": [
-          0.0589595375722543,
-          0.9947976878612717,
-          2.700578034682081,
-          0.45009633911368013
-        ],
-        "control_kept": [
-          102.0,
-          1721.0,
-          4672.0,
-          778.6666666666666
-        ],
-        "control_removed": [
-          9.0,
-          1628.0,
-          5708.0,
-          951.3333333333334
-        ],
-        "control_removed_rate": [
-          0.0052023121387283,
-          0.9410404624277456,
-          3.299421965317919,
-          0.5499036608863198
-        ],
-        "control_total": [
-          1730.0,
-          1730.0,
-          10380.0,
-          1730.0
-        ],
-        "threshold": [
-          0.357533038958,
-          0.99,
-          4.847533038958,
-          0.8079221731596666
-        ]
-      },
-      "sha256": "aa26555efa7717e26def9d212735a2fb43859e2d647ebe85f91b18f12257f58a",
-      "shape": [
-        6,
-        11
-      ]
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.3575.fid_iid.txt": {
-      "bytes": 39368,
-      "kind": "exact",
-      "normalized_sha256": "c70eeea3e7cf096b5a2ef3ceae0880daf9d00fa2bc7dd2cebd0d873e0059b165",
-      "sha256": "c70eeea3e7cf096b5a2ef3ceae0880daf9d00fa2bc7dd2cebd0d873e0059b165"
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.8000.fid_iid.txt": {
-      "bytes": 23572,
-      "kind": "exact",
-      "normalized_sha256": "5d3d7a84edd7d21430b7803f44475b469d66295bc2780f48efb429b3f45aed76",
-      "sha256": "5d3d7a84edd7d21430b7803f44475b469d66295bc2780f48efb429b3f45aed76"
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.8500.fid_iid.txt": {
-      "bytes": 20364,
-      "kind": "exact",
-      "normalized_sha256": "b792c51908808eb9290d3c571d7a00ea273c68a8c5891933f9bb69874f7effa1",
-      "sha256": "b792c51908808eb9290d3c571d7a00ea273c68a8c5891933f9bb69874f7effa1"
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.9000.fid_iid.txt": {
-      "bytes": 16860,
-      "kind": "exact",
-      "normalized_sha256": "1eafe7949b0936c44ac5d45abd03709090b5ab543c93467ab09c9ebad28b4da9",
-      "sha256": "1eafe7949b0936c44ac5d45abd03709090b5ab543c93467ab09c9ebad28b4da9"
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.9500.fid_iid.txt": {
-      "bytes": 11446,
-      "kind": "exact",
-      "normalized_sha256": "94a7360bb1709692552c922756d70a707560ac519c82733fca639112ccd0da7f",
-      "sha256": "94a7360bb1709692552c922756d70a707560ac519c82733fca639112ccd0da7f"
-    },
-    "09_threshold_sample_exports/retained_all_thr_0.9900.fid_iid.txt": {
-      "bytes": 2826,
-      "kind": "exact",
-      "normalized_sha256": "4e50c14f4452ccc3b65df6a88f789edc0c6734587ebf896fc86fc2986964af60",
-      "sha256": "4e50c14f4452ccc3b65df6a88f789edc0c6734587ebf896fc86fc2986964af60"
-    },
-    "09_threshold_sample_exports/threshold_retained_removed_summary.tsv": {
-      "bytes": 200,
-      "columns": [
-        "threshold",
-        "case_total",
-        "ctrl_total",
-        "case_retained",
-        "ctrl_retained"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "case_retained": [
-          53.0,
-          407.0,
-          1552.0,
-          258.6666666666667
-        ],
-        "case_total": [
-          408.0,
-          408.0,
-          2448.0,
-          408.0
-        ],
-        "ctrl_retained": [
-          102.0,
-          1721.0,
-          4672.0,
-          778.6666666666666
-        ],
-        "ctrl_total": [
-          1730.0,
-          1730.0,
-          10380.0,
-          1730.0
-        ],
-        "threshold": [
-          0.357533038958,
-          0.99,
-          4.847533038958,
-          0.8079221731596666
-        ]
-      },
-      "sha256": "339f9581cb48f2070f27c950e5ca909210131414b042d8ca794ab9be477d2ab0",
-      "shape": [
-        6,
-        5
-      ]
-    },
-    "run_config_snapshot.json": {
-      "bytes": 7537,
+    "provenance/run_config_snapshot.json": {
+      "bytes": 4269,
       "kind": "json_volatile",
-      "sha256": "6ba859d0bedae9249a4cd42bad2cf423e3db4ea2672af76a8ba3543fc599e5b5"
+      "sha256": "1671311b504cf6ac02ef80759a632b09bf33f418be4ac06b73894cc59a11c1bf"
     },
-    "run_environment.json": {
+    "provenance/run_environment.json": {
       "bytes": 491,
       "kind": "json_volatile",
       "sha256": "21f09315518717f0f858707f828ad120e6d894561ff054f55dffafbbf2a759db"

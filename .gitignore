@@ -27,22 +27,22 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
-# Large regenerable pipeline intermediates.
-# These six files are ~218 MB of the 244 MB results tree and are four redundant
-# copies of the same 181,817 x 20 PC matrix plus two posterior arrays. They are
-# reproduced exactly by re-running the notebook, and their checksums live in
-# tools/baseline_manifest.json, so `python -m tools.verify_results --manifest`
-# still validates a run without them being in version control.
-# Everything else under results/ stays tracked: the *.fid_iid.txt keep-lists
-# (the deliverables), the summary JSON/TSV tables, the audit logs and the figures.
-results/01_hdbscan_filtering/bbj_samples_non_noise_with_cluster.tsv
-results/02_gmm_clustering/bbj_samples_gmm_clustered.tsv
-results/03_gmm_component_merging/bbj_samples_gmm_clustered_merged.tsv
-results/03_gmm_component_merging/STEP3_tmp/bbj_samples_gmm_clustered_merged.tsv
-results/03_gmm_component_merging/gmm_merged_posterior_probabilities.npy
-results/03_gmm_component_merging/STEP3_tmp/gmm_merged_posterior_probabilities.npy
+# Large regenerable pipeline intermediates: redundant copies of the same PC
+# matrix (one per merge threshold) plus the posterior arrays. They are reproduced
+# exactly by re-running the notebook and their checksums live in
+# tools/baseline_manifest.json, so `verify_results --manifest` still validates a
+# run without them in version control.
+# Everything else under results/ stays tracked: the keep_lists/ deliverables, the
+# summary and evidence tables, the audit logs and the figures.
+results/01_reference_model/denoising/reference_samples_denoised.tsv
+results/01_reference_model/mixture_model/reference_samples_clustered.tsv
+results/01_reference_model/component_merging/**/reference_samples_merged.tsv
+results/01_reference_model/component_merging/**/merged_posterior_probabilities.npy
+results/01_reference_model/component_merging/reference_samples_merged.tsv
+results/01_reference_model/component_merging/merged_posterior_probabilities.npy
 
 # Verification scratch trees and the artifact cache
+results_new/
 results_verify/
 results_baseline/
 results_probe/

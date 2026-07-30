@@ -1,3 +1,25 @@
+"""Load the PCA scores and split them into reference panel and study cohort.
+
+Reads the shared PLINK2 ``--score`` matrix in chunks so a large panel does not
+have to fit in memory twice, and separates the two cohorts by IID prefix.
+Case/control membership is derived from the phenotype column and applies to the
+study cohort only -- the reference panel has no phenotype.
+
+PC columns are auto-detected, accepting either ``PC<n>`` or ``PC<n>_AVG``, and
+``#FID`` is normalised to ``FID``. The eigenvalue file is assumed to cover every
+PC present in the score file, since variance-explained is computed as a share of
+the total.
+
+Inputs
+------
+Eigenvalue file (one value per line, no header) and the ``.sscore`` matrix.
+
+Outputs
+-------
+In memory only: eigenvalues with variance-explained, the two sample frames, and
+the case/control IID lists.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -10,7 +32,7 @@ import pandas as pd
 class DataLoadingConfig:
     chunksize: int = 50000
     sep: str = "\t"
-    bbj_prefix: str = "bbj_"
+    reference_iid_prefix: str = "bbj_"
     usecols: tuple[str, ...] | None = None
     verbose: bool = True
 
@@ -131,7 +153,7 @@ def load_cohort_data(
     if prefixes is None:
         prefixes = ()
 
-    bbj_parts: list[pd.DataFrame] = []
+    reference_parts: list[pd.DataFrame] = []
     chunk_count = 0
     row_count_read = 0
 
@@ -158,13 +180,13 @@ def load_cohort_data(
             else:
                 raise ValueError(f"Unsupported iid_prefix_mode: {mode}")
 
-        bbj_parts.append(chunk.loc[keep_mask].copy())
+        reference_parts.append(chunk.loc[keep_mask].copy())
 
     cohort_samples = (
-        pd.concat(bbj_parts, ignore_index=True) if bbj_parts else pd.DataFrame(columns=list(rename_map.values()))
+        pd.concat(reference_parts, ignore_index=True) if reference_parts else pd.DataFrame(columns=list(rename_map.values()))
     )
 
-    del bbj_parts
+    del reference_parts
     del chunk
     gc.collect()
 
@@ -186,7 +208,7 @@ def load_cohort_data(
 
     if config.verbose:
         print("\n" + "=" * 80)
-        print("STEP0: COHORT DATA LOADING".center(80))
+        print("COHORT DATA LOADING".center(80))
         print("=" * 80)
 
         print("\n[INPUT CONFIGURATION]")
@@ -297,7 +319,7 @@ def load_cohort_samples(
 
     if config.verbose:
         print("\n" + "=" * 80)
-        print("STEP0: COHORT SAMPLES LOADING".center(80))
+        print("COHORT SAMPLES LOADING".center(80))
         print("=" * 80)
 
         print("\n[INPUT CONFIGURATION]")
@@ -326,7 +348,7 @@ def load_cohort_samples(
     return cohort_samples
 
 
-def load_our_data(
+def load_study_data(
     eigenval_path: str,
     sscore_path: str,
     config: DataLoadingConfig | None = None,
@@ -341,11 +363,11 @@ def load_our_data(
         base = DataLoadingConfig(
             chunksize=base.chunksize,
             sep=base.sep,
-            bbj_prefix=base.bbj_prefix,
+            reference_iid_prefix=base.reference_iid_prefix,
             usecols=base.usecols,
             verbose=base.verbose,
             iid_prefix_mode="exclude",
-            iid_prefixes=(base.bbj_prefix,),
+            iid_prefixes=(base.reference_iid_prefix,),
             phenotype_column=base.phenotype_column,
             case_value=base.case_value,
             control_value=base.control_value,
@@ -354,7 +376,7 @@ def load_our_data(
         base = DataLoadingConfig(
             chunksize=base.chunksize,
             sep=base.sep,
-            bbj_prefix=base.bbj_prefix,
+            reference_iid_prefix=base.reference_iid_prefix,
             usecols=base.usecols,
             verbose=base.verbose,
             iid_prefix_mode="exclude",
@@ -367,18 +389,18 @@ def load_our_data(
     return load_cohort_data(eigenval_path=eigenval_path, sscore_path=sscore_path, config=base)
 
 
-def load_our_samples(
+def load_study_samples(
     sscore_path: str,
     config: DataLoadingConfig | None = None,
 ) -> pd.DataFrame:
     """Convenience wrapper for loading non-BBJ samples only (no eigenval I/O)."""
 
     base = config or DataLoadingConfig()
-    prefixes = base.iid_prefixes if base.iid_prefixes is not None else (base.bbj_prefix,)
+    prefixes = base.iid_prefixes if base.iid_prefixes is not None else (base.reference_iid_prefix,)
     base = DataLoadingConfig(
         chunksize=base.chunksize,
         sep=base.sep,
-        bbj_prefix=base.bbj_prefix,
+        reference_iid_prefix=base.reference_iid_prefix,
         usecols=base.usecols,
         verbose=base.verbose,
         iid_prefix_mode="exclude",
@@ -390,7 +412,7 @@ def load_our_samples(
     return load_cohort_samples(sscore_path=sscore_path, config=base)
 
 
-def load_our_samples_with_case_control(
+def load_study_samples_with_case_control(
     sscore_path: str,
     phenotype_column: str | None = None,
     case_value: Any | None = None,
@@ -414,17 +436,17 @@ def load_our_samples_with_case_control(
 
     # Backward-compatible defaults if nothing is provided.
     if phenotype_column is None:
-        phenotype_column = "PHEN01"
+        phenotype_column = "PHENO1"  # letter O; the previous default used a digit zero
     if case_value is None:
         case_value = 2
     if control_value is None:
         control_value = 1
 
-    prefixes = base.iid_prefixes if base.iid_prefixes is not None else (base.bbj_prefix,)
+    prefixes = base.iid_prefixes if base.iid_prefixes is not None else (base.reference_iid_prefix,)
     base = DataLoadingConfig(
         chunksize=base.chunksize,
         sep=base.sep,
-        bbj_prefix=base.bbj_prefix,
+        reference_iid_prefix=base.reference_iid_prefix,
         usecols=base.usecols,
         verbose=base.verbose,
         iid_prefix_mode="exclude",
@@ -474,7 +496,7 @@ def load_our_samples_with_case_control(
     return samples_out, case_iids, ctrl_iids
 
 
-def load_bbj_data(
+def load_reference_data(
     eigenval_path: str,
     sscore_path: str,
     config: DataLoadingConfig | None = None,
@@ -505,7 +527,7 @@ def load_bbj_data(
 
     eigenval = _load_eigenval(eigenval_path)
 
-    bbj_parts: list[pd.DataFrame] = []
+    reference_parts: list[pd.DataFrame] = []
     chunk_count = 0
     row_count_read = 0
 
@@ -520,32 +542,32 @@ def load_bbj_data(
         chunk = raw_chunk
         row_count_read += len(chunk)
         chunk = chunk.rename(columns=rename_map)
-        bbj_mask = chunk["IID"].astype(str).str.startswith(config.bbj_prefix)
-        bbj_parts.append(chunk.loc[bbj_mask].copy())
+        reference_mask = chunk["IID"].astype(str).str.startswith(config.reference_iid_prefix)
+        reference_parts.append(chunk.loc[reference_mask].copy())
 
-    bbj_samples = pd.concat(bbj_parts, ignore_index=True) if bbj_parts else pd.DataFrame(columns=list(rename_map.values()))
+    reference_samples = pd.concat(reference_parts, ignore_index=True) if reference_parts else pd.DataFrame(columns=list(rename_map.values()))
 
-    del bbj_parts
+    del reference_parts
     del chunk
     gc.collect()
 
     pc1_var = float(eigenval["variance_explained"].iloc[0]) if len(eigenval) >= 1 else 0.0
     pc12_cum = float(eigenval["cumulative_variance"].iloc[1]) if len(eigenval) >= 2 else pc1_var
-    bbj_mem_mb = float(bbj_samples.memory_usage(deep=True).sum() / (1024 ** 2))
+    reference_mem_mb = float(reference_samples.memory_usage(deep=True).sum() / (1024 ** 2))
 
     summary = {
         "eigenvalues_shape": eigenval.shape,
         "rows_read": row_count_read,
-        "bbj_samples_shape": bbj_samples.shape,
+        "bbj_samples_shape": reference_samples.shape,
         "pc1_explained": pc1_var,
         "pc1_2_cumulative": pc12_cum,
-        "memory_bbj_mb": bbj_mem_mb,
+        "memory_bbj_mb": reference_mem_mb,
         "chunks_processed": chunk_count,
     }
 
     if config.verbose:
         print("\n" + "=" * 80)
-        print("STEP0: BBJ DATA LOADING".center(80))
+        print("REFERENCE PANEL LOADING".center(80))
         print("=" * 80)
         
         print("\n[INPUT CONFIGURATION]")
@@ -571,16 +593,16 @@ def load_bbj_data(
         
         print("=" * 80 + "\n")
 
-    return eigenval, bbj_samples
+    return eigenval, reference_samples
 
 
-def load_step0_bbj_and_our(
+def load_reference_and_study(
     *,
     eigenval_path: str,
     sscore_path: str,
     config: DataLoadingConfig | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], list[str]]:
-    """STEP0 convenience loader using a single config.
+    """Load both cohorts in one call from a single config.
 
     Loads, from the same `.sscore` file:
     - `eigenval` (from eigenval_path)
@@ -599,23 +621,23 @@ def load_step0_bbj_and_our(
     base = config or DataLoadingConfig()
     silent = replace(base, verbose=False)
 
-    eigenval, bbj_samples = load_bbj_data(
+    eigenval, reference_samples = load_reference_data(
         eigenval_path=eigenval_path,
         sscore_path=sscore_path,
         config=silent,
     )
 
-    our_samples, our_case_iids, our_ctrl_iids = load_our_samples_with_case_control(
+    study_samples, case_iids, control_iids = load_study_samples_with_case_control(
         sscore_path=sscore_path,
         config=silent,
     )
 
     if base.verbose:
-        bbj_mem_mb = float(bbj_samples.memory_usage(deep=True).sum() / (1024 ** 2))
-        our_mem_mb = float(our_samples.memory_usage(deep=True).sum() / (1024 ** 2))
+        reference_mem_mb = float(reference_samples.memory_usage(deep=True).sum() / (1024 ** 2))
+        study_mem_mb = float(study_samples.memory_usage(deep=True).sum() / (1024 ** 2))
         eigenval_shape = tuple(eigenval.shape)
-        bbj_shape = tuple(bbj_samples.shape)
-        our_shape = tuple(our_samples.shape)
+        reference_shape = tuple(reference_samples.shape)
+        study_shape = tuple(study_samples.shape)
 
         phenotype_column = base.phenotype_column
         case_value = base.case_value
@@ -625,7 +647,7 @@ def load_step0_bbj_and_our(
         pc12_cum = float(eigenval["cumulative_variance"].iloc[1]) if len(eigenval) >= 2 else pc1_var
 
         print("\n" + "=" * 80)
-        print("STEP0: DATA LOADING (BBJ + OUR)".center(80))
+        print("DATA LOADING (REFERENCE PANEL + STUDY COHORT)".center(80))
         print("=" * 80)
 
         print("\n[CONFIGURATION]")
@@ -633,7 +655,7 @@ def load_step0_bbj_and_our(
         print(f"  Eigenvalue path      : {eigenval_path}")
         print(f"  Score file path      : {sscore_path}")
         print(f"  Chunk size           : {base.chunksize:,}")
-        print(f"  BBJ prefix           : {base.bbj_prefix}")
+        print(f"  BBJ prefix           : {base.reference_iid_prefix}")
         if phenotype_column is None:
             print("  Phenotype column     : [NONE]")
         else:
@@ -645,13 +667,13 @@ def load_step0_bbj_and_our(
         print(f"  Eigenvalues          : {eigenval_shape[0]:,} PCs × {eigenval_shape[1]} metrics")
         print(f"  PC1 variance explained: {pc1_var * 100:.2f}%")
         print(f"  PC1-2 cumulative var.: {pc12_cum * 100:.2f}%")
-        print(f"  BBJ samples          : {bbj_shape[0]:,} × {bbj_shape[1]} cols ({bbj_mem_mb:.2f} MB)")
-        print(f"  OUR samples          : {our_shape[0]:,} × {our_shape[1]} cols ({our_mem_mb:.2f} MB)")
+        print(f"  BBJ samples          : {reference_shape[0]:,} × {reference_shape[1]} cols ({reference_mem_mb:.2f} MB)")
+        print(f"  OUR samples          : {study_shape[0]:,} × {study_shape[1]} cols ({study_mem_mb:.2f} MB)")
         if phenotype_column is not None:
-            if len(our_case_iids) == 0 and len(our_ctrl_iids) == 0:
+            if len(case_iids) == 0 and len(control_iids) == 0:
                 print("  OUR cases / ctrls    : [PHENOTYPE COLUMN NOT FOUND]")
             else:
-                print(f"  OUR cases / ctrls    : {len(our_case_iids):,} / {len(our_ctrl_iids):,}")
+                print(f"  OUR cases / ctrls    : {len(case_iids):,} / {len(control_iids):,}")
         print("=" * 80 + "\n")
 
-    return eigenval, bbj_samples, our_samples, our_case_iids, our_ctrl_iids
+    return eigenval, reference_samples, study_samples, case_iids, control_iids

@@ -1,21 +1,28 @@
-from __future__ import annotations
+"""Merge adjacent mixture components and identify the major cluster.
 
-"""GMM component merging utilities via Mahalanobis distance + hierarchical clustering.
+Distances are Mahalanobis between component means under the pooled covariance
+``S_ij = (Sigma_i + Sigma_j) / 2``, so component shape is accounted for rather
+than centroid distance alone. Hierarchical clustering on that matrix is cut at a
+configured height.
 
-Author: ZHAO TIE
+The **major cluster** is the merged cluster holding the most pre-merge
+components, ties broken by the smallest id. It is derived, never configured --
+the count is a property of the fitted model. Its population-genetic
+interpretation is an assumption this module does not verify;
+``summarize_threshold_robustness`` exists so the identification can at least be
+shown stable across cut heights.
 
-Purpose
+Inputs
+------
+The fitted mixture, the clustered reference panel, eigenvalues, run summary.
+
+Outputs
 -------
-This module merges nearby GMM components by:
-1) computing a pairwise Mahalanobis distance between component means using
-   pooled covariances, and
-2) performing hierarchical clustering on the resulting distance matrix,
-3) cutting the dendrogram by a distance threshold to obtain merged clusters.
-
-It also exports a 2x2 diagnostic figure (distance matrix, dendrogram, merged
-cluster scatter, and merged confidence scatter) matching the style used in the
-workflow notebook.
+Merge map, pairwise distance table, merged sample table, merged posteriors,
+major-cluster reference, merge summary JSON, and a 2x2 overview figure.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,16 +62,16 @@ class GMMComponentMergingOutput(NamedTuple):
     dist_df: pd.DataFrame
     merge_map: pd.DataFrame
     merged_counts: pd.DataFrame
-    bbj_samples_gmm_merged: pd.DataFrame
+    reference_samples_gmm_merged: pd.DataFrame
     probs_merged: np.ndarray
     confidence_merged: np.ndarray
     labels_merged: np.ndarray
     label_map: dict[int, int]
     linkage_matrix: np.ndarray
     summary: dict[str, Any]
-    mainland_merged_cluster_id: int
-    mainland_premerge_cluster_id: int
-    mainland_premerge_cluster_ids: list[int]
+    major_cluster_id: int
+    major_cluster_component_id: int
+    major_cluster_component_ids: list[int]
     output_dir: Path
     figure_path: Path | None
 
@@ -128,7 +135,7 @@ class GMMComponentMergingConfig:
 
     merge_threshold: float = 5.0
     linkage_method: Literal["average", "complete", "single", "ward"] = "average"
-    output_dir: str = "results/03_gmm_component_merging"
+    output_dir: str = "results/01_reference_model/component_merging"
     save_plot: bool = True
     show_plot: bool = False
     save_tables: bool = True
@@ -317,7 +324,7 @@ def _plot_overview_2x2(
     new_label_map: np.ndarray,
     labels_merged: np.ndarray,
     confidence_merged: np.ndarray,
-    bbj_samples_gmm_merged: pd.DataFrame,
+    reference_samples_gmm_merged: pd.DataFrame,
     pc_cols_used: list[str],
     eigenval: pd.DataFrame | None,
     config: GMMComponentMergingConfig,
@@ -325,8 +332,8 @@ def _plot_overview_2x2(
 ) -> None:
     pc1_col, pc2_col = pc_cols_used[0], pc_cols_used[1]
 
-    pc1 = bbj_samples_gmm_merged[pc1_col].to_numpy(dtype=np.float64, copy=False)
-    pc2 = bbj_samples_gmm_merged[pc2_col].to_numpy(dtype=np.float64, copy=False)
+    pc1 = reference_samples_gmm_merged[pc1_col].to_numpy(dtype=np.float64, copy=False)
+    pc2 = reference_samples_gmm_merged[pc2_col].to_numpy(dtype=np.float64, copy=False)
 
     xlab = _format_pc_axis_label(pc1_col, eigenval)
     ylab = _format_pc_axis_label(pc2_col, eigenval)
@@ -632,37 +639,37 @@ def _plot_overview_2x2(
 def run_gmm_component_merging(
     *,
     gmm_model: GaussianMixture,
-    bbj_samples_gmm: pd.DataFrame,
+    reference_samples_gmm: pd.DataFrame,
     eigenval: pd.DataFrame | None = None,
     gmm_summary: dict[str, Any] | None = None,
     config: GMMComponentMergingConfig | None = None,
 ) -> GMMComponentMergingOutput:
     config = config or GMMComponentMergingConfig()
 
-    if bbj_samples_gmm.empty:
+    if reference_samples_gmm.empty:
         raise ValueError("bbj_samples_gmm is empty; cannot run component merging.")
 
     if float(config.merge_threshold) <= 0:
         raise ValueError("merge_threshold must be > 0.")
 
-    if "GMM_Cluster" not in bbj_samples_gmm.columns:
+    if "GMM_Cluster" not in reference_samples_gmm.columns:
         raise ValueError("bbj_samples_gmm must contain 'GMM_Cluster' column.")
 
     # Resolve PCs used by the fitted GMM (prefer recorded summary, fallback to table columns).
     pc_cols_used: list[str] = []
     if isinstance(gmm_summary, dict):
-        pc_cols_used = [c for c in gmm_summary.get("pc_columns_used", []) if c in bbj_samples_gmm.columns]
+        pc_cols_used = [c for c in gmm_summary.get("pc_columns_used", []) if c in reference_samples_gmm.columns]
 
     if not pc_cols_used:
-        pc_cols_used = _resolve_pc_columns(bbj_samples_gmm)
+        pc_cols_used = _resolve_pc_columns(reference_samples_gmm)
         n_features = int(getattr(gmm_model, "n_features_in_", 2))
         pc_cols_used = pc_cols_used[: max(2, n_features)]
 
     if len(pc_cols_used) < 2:
         raise RuntimeError("At least two PC columns are required for visualization.")
 
-    x_model = bbj_samples_gmm[pc_cols_used].to_numpy(dtype=np.float64, copy=False)
-    labels_raw = bbj_samples_gmm["GMM_Cluster"].to_numpy(dtype=np.int32, copy=False)
+    x_model = reference_samples_gmm[pc_cols_used].to_numpy(dtype=np.float64, copy=False)
+    labels_raw = reference_samples_gmm["GMM_Cluster"].to_numpy(dtype=np.int32, copy=False)
 
     means_all = np.asarray(gmm_model.means_, dtype=np.float64)
     old_k, _d = means_all.shape
@@ -685,8 +692,8 @@ def run_gmm_component_merging(
     label_map = {int(old): int(new_label_map[old]) for old in range(int(old_k))}
     labels_merged = np.array([label_map[int(x)] for x in labels_raw], dtype=np.int32)
 
-    bbj_samples_gmm_merged = bbj_samples_gmm.copy()
-    bbj_samples_gmm_merged["GMM_Cluster_Merged"] = labels_merged
+    reference_samples_gmm_merged = reference_samples_gmm.copy()
+    reference_samples_gmm_merged["GMM_Cluster_Merged"] = labels_merged
 
     probs_all = gmm_model.predict_proba(x_model).astype(np.float64, copy=False)
     probs_merged = np.zeros((probs_all.shape[0], int(new_k)), dtype=np.float64)
@@ -699,7 +706,7 @@ def run_gmm_component_merging(
     confidence_merged = probs_merged.max(axis=1)
 
     merged_counts = (
-        bbj_samples_gmm_merged["GMM_Cluster_Merged"]
+        reference_samples_gmm_merged["GMM_Cluster_Merged"]
         .value_counts()
         .sort_index()
         .rename_axis("GMM_Cluster_Merged")
@@ -730,18 +737,18 @@ def run_gmm_component_merging(
     )
 
     top_merged_cluster = merged_component_stats.iloc[0]
-    mainland_merged_component_count = int(np.asarray(top_merged_cluster["Merged_Component_Count"]).item())
-    mainland_merged_cluster_id = int(np.asarray(top_merged_cluster["Merged_Cluster"]).item())
+    major_cluster_component_count = int(np.asarray(top_merged_cluster["Merged_Component_Count"]).item())
+    major_cluster_id = int(np.asarray(top_merged_cluster["Merged_Cluster"]).item())
 
-    mainland_premerge_df = (
-        merge_map.loc[merge_map["Merged_Cluster"] == mainland_merged_cluster_id, ["GMM_Component"]]
+    major_cluster_components_df = (
+        merge_map.loc[merge_map["Merged_Cluster"] == major_cluster_id, ["GMM_Component"]]
         .sort_values(["GMM_Component"], ascending=[True])
         .reset_index(drop=True)
     )
-    mainland_premerge_cluster_ids = mainland_premerge_df["GMM_Component"].astype(int).tolist()
-    mainland_premerge_cluster_id = int(np.asarray(mainland_premerge_df.iloc[0]["GMM_Component"]).item())
+    major_cluster_component_ids = major_cluster_components_df["GMM_Component"].astype(int).tolist()
+    major_cluster_component_id = int(np.asarray(major_cluster_components_df.iloc[0]["GMM_Component"]).item())
 
-    merge_map["Is_Mainland_Merged_Cluster"] = merge_map["Merged_Cluster"].eq(mainland_merged_cluster_id)
+    merge_map["Is_Mainland_Merged_Cluster"] = merge_map["Merged_Cluster"].eq(major_cluster_id)
 
     # Store merged-cluster colors (Panel C palette) for reproducibility.
     _palette_rgba, palette_hex = _build_merged_cluster_palette(int(new_k), config)
@@ -761,50 +768,50 @@ def run_gmm_component_merging(
         "linkage_method": str(linkage_method),
         "merge_threshold": float(config.merge_threshold),
         "pc_columns_used": list(pc_cols_used),
-        "mainland_merged_cluster_id": int(mainland_merged_cluster_id),
-        "mainland_premerge_cluster_id": int(mainland_premerge_cluster_id),
-        "mainland_premerge_cluster_ids": [int(x) for x in mainland_premerge_cluster_ids],
+        "mainland_merged_cluster_id": int(major_cluster_id),
+        "mainland_premerge_cluster_id": int(major_cluster_component_id),
+        "mainland_premerge_cluster_ids": [int(x) for x in major_cluster_component_ids],
         "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
         "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
-        "output_rows": int(bbj_samples_gmm_merged.shape[0]),
+        "output_rows": int(reference_samples_gmm_merged.shape[0]),
     }
 
-    mainland_reference = {
-        "mainland_merged_cluster_id": int(mainland_merged_cluster_id),
-        "mainland_premerge_cluster_id": int(mainland_premerge_cluster_id),
-        "mainland_premerge_cluster_ids": [int(x) for x in mainland_premerge_cluster_ids],
-        "mainland_merged_component_count": int(mainland_merged_component_count),
+    major_cluster_reference = {
+        "mainland_merged_cluster_id": int(major_cluster_id),
+        "mainland_premerge_cluster_id": int(major_cluster_component_id),
+        "mainland_premerge_cluster_ids": [int(x) for x in major_cluster_component_ids],
+        "mainland_merged_component_count": int(major_cluster_component_count),
         "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
         "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
     }
 
     figure_path: Path | None = None
     if bool(config.save_tables):
-        dist_df.to_csv(out_dir / "gmm_component_mahalanobis_dist.tsv", sep="\t")
-        merge_map.to_csv(out_dir / "gmm_component_merge_map.tsv", sep="\t", index=False)
-        bbj_samples_gmm_merged.to_csv(out_dir / "bbj_samples_gmm_clustered_merged.tsv", sep="\t", index=False)
-        merged_counts.to_csv(out_dir / "gmm_merged_cluster_summary.tsv", sep="\t", index=False)
-        np.save(out_dir / "gmm_merged_posterior_probabilities.npy", probs_merged)
+        dist_df.to_csv(out_dir / "component_mahalanobis_distance.tsv", sep="\t")
+        merge_map.to_csv(out_dir / "component_merge_map.tsv", sep="\t", index=False)
+        reference_samples_gmm_merged.to_csv(out_dir / "reference_samples_merged.tsv", sep="\t", index=False)
+        merged_counts.to_csv(out_dir / "merged_cluster_summary.tsv", sep="\t", index=False)
+        np.save(out_dir / "merged_posterior_probabilities.npy", probs_merged)
 
         pd.DataFrame(
             [
                 {
-                    "Mainland_Merged_Cluster": int(mainland_merged_cluster_id),
-                    "Mainland_Premerge_Cluster_Default": int(mainland_premerge_cluster_id),
-                    "Mainland_Premerge_Clusters": ",".join(str(x) for x in mainland_premerge_cluster_ids),
-                    "Mainland_Merged_Component_Count": int(mainland_merged_component_count),
+                    "Mainland_Merged_Cluster": int(major_cluster_id),
+                    "Mainland_Premerge_Cluster_Default": int(major_cluster_component_id),
+                    "Mainland_Premerge_Clusters": ",".join(str(x) for x in major_cluster_component_ids),
+                    "Mainland_Merged_Component_Count": int(major_cluster_component_count),
                 }
             ]
-        ).to_csv(out_dir / "gmm_mainland_cluster_reference.tsv", sep="\t", index=False)
+        ).to_csv(out_dir / "major_cluster_reference.tsv", sep="\t", index=False)
 
-        with (out_dir / "gmm_merge_summary.json").open("w", encoding="utf-8") as f:
+        with (out_dir / "merge_summary.json").open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
-        with (out_dir / "gmm_mainland_cluster_reference.json").open("w", encoding="utf-8") as f:
-            json.dump(mainland_reference, f, indent=2)
+        with (out_dir / "major_cluster_reference.json").open("w", encoding="utf-8") as f:
+            json.dump(major_cluster_reference, f, indent=2)
 
     if bool(config.save_plot):
-        figure_path = out_dir / "gmm_component_merging_overview.png"
+        figure_path = out_dir / "component_merging_overview.png"
         _plot_overview_2x2(
             dist_df=dist_df,
             component_labels=component_labels,
@@ -814,7 +821,7 @@ def run_gmm_component_merging(
             new_label_map=new_label_map,
             labels_merged=labels_merged,
             confidence_merged=confidence_merged,
-            bbj_samples_gmm_merged=bbj_samples_gmm_merged,
+            reference_samples_gmm_merged=reference_samples_gmm_merged,
             pc_cols_used=pc_cols_used,
             eigenval=eigenval,
             config=config,
@@ -823,7 +830,7 @@ def run_gmm_component_merging(
 
     if bool(config.verbose):
         print("\n" + "=" * 80)
-        print("STEP3: GMM COMPONENT MERGING (MAHALANOBIS + H-CLUSTER)".center(80))
+        print("COMPONENT MERGING (MAHALANOBIS + HIERARCHICAL CLUSTERING)".center(80))
         print("=" * 80)
         print("\n[CONFIGURATION]")
         print("-" * 80)
@@ -841,12 +848,12 @@ def run_gmm_component_merging(
         print(f"  conf_scale_hard_floor : {getattr(config, 'conf_scale_hard_floor', None)}")
         print(f"  save_plot             : {bool(config.save_plot)}")
         print(f"  save_tables           : {bool(config.save_tables)}")
-        print(f"  mainland_merged_id    : {int(mainland_merged_cluster_id)}")
-        print(f"  mainland_premerge_id  : {int(mainland_premerge_cluster_id)}")
+        print(f"  mainland_merged_id    : {int(major_cluster_id)}")
+        print(f"  mainland_premerge_id  : {int(major_cluster_component_id)}")
         print(f"  output_dir            : {out_dir}")
         print("\n[RESULTS]")
         print("-" * 80)
-        print(f"  input_rows            : {bbj_samples_gmm_merged.shape[0]:,}")
+        print(f"  input_rows            : {reference_samples_gmm_merged.shape[0]:,}")
         print(f"  original_components   : {old_k}")
         print(f"  merged_components     : {new_k}")
         print("=" * 80)
@@ -855,16 +862,96 @@ def run_gmm_component_merging(
         dist_df=dist_df,
         merge_map=merge_map,
         merged_counts=merged_counts,
-        bbj_samples_gmm_merged=bbj_samples_gmm_merged,
+        reference_samples_gmm_merged=reference_samples_gmm_merged,
         probs_merged=probs_merged,
         confidence_merged=confidence_merged,
         labels_merged=labels_merged,
         label_map=label_map,
         linkage_matrix=Z,
         summary=summary,
-        mainland_merged_cluster_id=int(mainland_merged_cluster_id),
-        mainland_premerge_cluster_id=int(mainland_premerge_cluster_id),
-        mainland_premerge_cluster_ids=[int(x) for x in mainland_premerge_cluster_ids],
+        major_cluster_id=int(major_cluster_id),
+        major_cluster_component_id=int(major_cluster_component_id),
+        major_cluster_component_ids=[int(x) for x in major_cluster_component_ids],
         output_dir=out_dir,
         figure_path=figure_path,
     )
+
+
+def summarize_threshold_robustness(
+    *,
+    results_by_threshold: dict[float, GMMComponentMergingOutput],
+    main_threshold: float,
+    output_path: Path | str | None = None,
+    verbose: bool = True,
+) -> pd.DataFrame:
+    """Compare the major-cluster identification across dendrogram cut heights.
+
+    The major cluster is defined as the merged cluster holding the most
+    pre-merge components. That rule is unambiguous at any single threshold, but
+    a reader is entitled to ask whether it picks out the same region of PC space
+    when the cut moves. This tabulates that: for each threshold, how many
+    components and samples the major cluster holds, and how its component set
+    relates to the main analysis -- a strict subset means tightening the cut
+    only carves the same region more finely, whereas a low Jaccard index would
+    mean the identification jumps elsewhere and is not robust.
+
+    Inputs
+    ------
+    One merging result per threshold, including the main one.
+
+    Outputs
+    -------
+    The comparison table, written to ``output_path`` when given.
+    """
+    main = results_by_threshold.get(main_threshold)
+    if main is None:
+        raise KeyError(f"results_by_threshold must include the main threshold {main_threshold!r}")
+    main_ids = set(int(x) for x in main.major_cluster_component_ids)
+
+    rows: list[dict[str, Any]] = []
+    for threshold in sorted(results_by_threshold):
+        out = results_by_threshold[threshold]
+        ids = set(int(x) for x in out.major_cluster_component_ids)
+        merged_col = "GMM_Cluster_Merged" if "GMM_Cluster_Merged" in out.reference_samples_gmm_merged.columns else None
+        if merged_col is not None:
+            counts = out.reference_samples_gmm_merged[merged_col]
+            n_samples = int((counts == int(out.major_cluster_id)).sum())
+            total = int(len(counts))
+        else:
+            n_samples, total = -1, -1
+        union = ids | main_ids
+        rows.append(
+            {
+                "merge_threshold": float(threshold),
+                "is_main_analysis": bool(threshold == main_threshold),
+                "n_merged_clusters": int(out.summary.get("new_k", -1)),
+                "major_cluster_id": int(out.major_cluster_id),
+                "n_components": int(len(ids)),
+                "n_samples": n_samples,
+                "sample_share": (n_samples / total) if total > 0 else float("nan"),
+                "is_subset_of_main": bool(ids <= main_ids),
+                "jaccard_vs_main": (len(ids & main_ids) / len(union)) if union else float("nan"),
+                "components": ",".join(str(c) for c in sorted(ids)),
+            }
+        )
+
+    table = pd.DataFrame(rows)
+    if output_path is not None:
+        path = Path(str(output_path))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        table.to_csv(path, sep="\t", index=False)
+
+    if verbose:
+        print("\n" + "=" * 78)
+        print("MAJOR-CLUSTER ROBUSTNESS ACROSS MERGE THRESHOLDS")
+        print("=" * 78)
+        for row in rows:
+            mark = "*" if row["is_main_analysis"] else " "
+            print(
+                f" {mark} threshold {row['merge_threshold']:>4.1f}: "
+                f"{row['n_merged_clusters']:>3} clusters, major holds "
+                f"{row['n_components']:>3} components / {row['n_samples']:>7,} samples "
+                f"({row['sample_share']:.2%}), subset={row['is_subset_of_main']}, "
+                f"jaccard={row['jaccard_vs_main']:.3f}"
+            )
+    return table

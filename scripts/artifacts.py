@@ -1,11 +1,11 @@
 """Content-addressed cache for expensive pipeline steps.
 
 Motivation: the fitted ``GaussianMixture`` lives only in the notebook variable
-``gmm_model`` and is never persisted, yet STEP3, STEP3_tmp, STEP4, STEP4_tmp
-and STEP5 all need it. Restarting the kernel therefore forces a full refit of
+``gmm_model`` and is never persisted, yet every stage after it needs the
+model. Restarting the kernel therefore forces a full refit of
 the ``k = 2..100`` BIC search (~5 minutes across 6 processes). Everything else
 that matters is already on disk as TSV and round-trips exactly, so the model is
-the one genuinely unpersisted artifact -- but caching STEP0 and STEP1 alongside
+the one genuinely unpersisted artifact -- but caching loading and denoising alongside
 it makes a warm restart near-instant.
 
 Design constraints, in order of importance:
@@ -28,7 +28,7 @@ Design constraints, in order of importance:
    This is not a theoretical concern. A measured resume run leaves all 40 data
    files it writes byte-identical -- every keep-list included -- but shifts
    3.4 % of the pixels in ``gmm_component_merging_overview.png``, because
-   skipping STEP1/STEP2 means their plotting code never runs and later steps
+   skipping the upstream stages means their plotting code never runs and later ones
    inherit a different global ``rcParams`` state. Never publish figures from a
    resume run.
 """
@@ -115,7 +115,7 @@ def _normalize_roots(value: Any) -> Any:
     summary dicts contain no path keys (both checked).
 
     The prefix is replaced rather than dropped, so a genuine change of
-    subdirectory -- ``03_gmm_component_merging`` vs its ``STEP3_tmp`` -- still
+    subdirectory -- the main merge output vs a robustness threshold -- still
     produces a different key.
     """
     import scripts.params as params
