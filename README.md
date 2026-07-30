@@ -24,6 +24,7 @@ Everything the pipeline exists to produce is in `results/keep_lists/`:
 | `full_mainland` | every component of the major cluster | the widest defensible set |
 | `refined_mainland` | rank cut chosen on effective sample size vs residual spread | **primary analysis** |
 | `expanded_mainland` | a looser cut between refined and full | sensitivity analysis |
+| `reference_full_mainland` | the *reference panel's* major cluster | the BBJ side of the same selection |
 
 Each is a headerless, tab-separated `FID IID` file:
 
@@ -67,7 +68,7 @@ frozen `…Config` dataclass and one `run_*` entry point.
 | Major-cluster robustness | *(same module)* | `…/component_merging/threshold_robustness/` |
 | Cohort assignment | `cohort_assignment`, `major_cluster_all_pcs_kde` | `02_cohort_assignment/` |
 | Rank selection | `rank_selection` | `03_rank_selection/` |
-| Subcluster variants | `subcluster_assignment`, `subcluster_view`, `subcluster_all_pcs_kde` | `04_subcluster_variants/{refined,expanded}/` |
+| Subcluster variants | `subcluster_assignment`, `subcluster_view`, `subcluster_all_pcs_kde` | `04_subcluster_variants/{full,refined,expanded}/` |
 | **Keep lists** | `keep_lists` | **`keep_lists/`** |
 
 Supporting modules: `params` (all paths and parameters), `common` (shared
@@ -99,7 +100,7 @@ ranked by case/control ratio; including the top-k trades `GWAS_Neff`
 (`4 / (1/n_case + 1/n_control)`) against `PC12_RGV` (residual genetic spread,
 `det(Sigma)**0.25` on PC1–PC2). `rank_selection` tabulates and plots the whole
 frontier; `params.REFINED_RANK_K` and `params.EXPANDED_RANK_K` record the chosen
-cuts. Set either to `None` to delegate the choice to the Pareto optimum, in
+cuts. Set either to `"pareto"` to delegate the choice to the Pareto optimum, in
 which case the notebook prints the chosen rank instead of asserting one.
 
 ---
@@ -273,10 +274,10 @@ without them.
   bottom in `"fresh"` mode and they reproduce exactly. If the figures are ever
   regenerated for publication, fix this first and regenerate all of them together.
 - **The rank cut is a human override, not the model's own choice.**
-  `params.REFINED_RANK_K = 9` forces `rank_selection`'s recommendation, whereas
+  `params.REFINED_RANK_K = 10` forces `rank_selection`'s recommendation, whereas
   the current model's Pareto analysis points to rank 5. This is deliberate, but
   it means the decision table and the applied cut disagree — state the override
-  explicitly in Methods. Setting it to `None` hands the choice back.
+  explicitly in Methods. Setting it to `"pareto"` hands the choice back.
 - `GMMConfig.use_zscale=True` is not usable end to end — `cohort_assignment`
   raises because the training scaler is never persisted. The committed run uses
   `use_zscale=False`.

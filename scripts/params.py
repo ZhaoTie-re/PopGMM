@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
 # ---------------------------------------------------------------------------
 # Roots
@@ -75,7 +76,8 @@ CONTROL_LABEL = "AGP3K"
 # The deliverable sits at the top so it is unmistakable; the supporting stages
 # are numbered in dependency order.
 
-#: The deliverable: three sample lists plus a table comparing them.
+#: The deliverable: the cohort sample lists, the reference panel's own list,
+#: and a table comparing them.
 KEEP_LIST_DIR = RESULTS_ROOT / "keep_lists"
 
 #: Modelling the reference panel: denoise, fit the mixture, merge components.
@@ -110,7 +112,7 @@ MERGE_THRESHOLD = 6.0
 #: identification. The mixture is already fitted, so each extra threshold costs
 #: one merge plus one figure. Results are compared in
 #: `threshold_robustness/major_cluster_robustness.tsv`.
-MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.5, 4.5, 8.0)
+MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 
 # ---------------------------------------------------------------------------
 # The deliverable: three sample lists
@@ -122,22 +124,29 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.5, 4.5, 8.0)
 # generalized variance of the retained samples on PC1-PC2). The rank-selection
 # stage tabulates and plots that trade-off; the cut itself is a human decision.
 #
-#   full     -- every major-cluster component. No cut, so no parameter.
+#   full     -- every major-cluster component. No cut.
 #   refined  -- the primary analysis set.
 #   expanded -- a looser cut between refined and full, for sensitivity analysis.
 #
-# Set either rank to None to hand the choice to the Pareto analysis instead; the
-# notebook then prints the chosen rank rather than asserting one.
+# All three go through the same subcluster stage, so each gets the same figures
+# and tables under `04_subcluster_variants/<variant>/` and is directly
+# comparable with the others.
+
+#: Rank cut for a variant: an int keeps the components ranked 1..k, "full" keeps
+#: every major-cluster component, and "pareto" defers to the rank-selection
+#: analysis (the notebook then prints the chosen rank rather than asserting one).
+RankCut = int | Literal["full", "pareto"]
 
 #: Primary analysis set. Currently a deliberate override: under this model the
 #: Pareto analysis would pick rank 5.
-REFINED_RANK_K: int | None = 9
+REFINED_RANK_K: RankCut = 10
 
 #: Sensitivity set, between refined and full.
-EXPANDED_RANK_K: int | None = 12
+EXPANDED_RANK_K: RankCut = 12
 
 #: Variant name -> rank cut. Drives the subcluster stage and the keep-list names.
-SUBCLUSTER_VARIANTS: dict[str, int | None] = {
+SUBCLUSTER_VARIANTS: dict[str, RankCut] = {
+    "full": "full",
     "refined": REFINED_RANK_K,
     "expanded": EXPANDED_RANK_K,
 }

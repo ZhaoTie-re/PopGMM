@@ -62,7 +62,6 @@ class RankSelectionConfig:
     cumulative_table_file: str = "rank_cumulative_metrics.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
     figure_file: str = "rank_selection_tradeoff.png"
-    figure_pdf_file: str = "rank_selection_tradeoff.pdf"
 
     # How many of the ranked mainland components to walk. None means "all of
     # them", discovered from the mainland component list rather than stated as a
@@ -693,7 +692,6 @@ def run_rank_selection(
         if bool(config.save_plot):
             figure_path = out_dir / str(config.figure_file)
             fig.savefig(figure_path, dpi=int(config.figure_dpi), bbox_inches="tight")
-            fig.savefig(out_dir / str(config.figure_pdf_file), dpi=300, bbox_inches="tight")
 
         if bool(config.show_plot):
             plt.show()
