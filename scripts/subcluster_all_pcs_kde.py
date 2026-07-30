@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NamedTuple, cast
+from typing import Any, NamedTuple
 import math
 
 import matplotlib.patches as mpatches
@@ -28,6 +28,7 @@ import pandas as pd
 import seaborn as sns
 
 from scripts.common import (
+    to_numeric_array,
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     bh_fdr_adjust as _bh_fdr_adjust,
     resolve_all_pc_columns as _resolve_all_pc_columns,
@@ -105,14 +106,18 @@ def run_subcluster_all_pcs_kde(
     test_rows: list[dict[str, Any]] = []
     for col in pc_cols:
         pc_num = int(str(col).replace("PC", "").replace("_AVG", ""))
-        x_ctrl = pd.to_numeric(df_ctrl[col], errors="coerce").to_numpy(dtype=float, copy=False)
-        x_case = pd.to_numeric(df_case[col], errors="coerce").to_numpy(dtype=float, copy=False)
+        x_ctrl = to_numeric_array(df_ctrl[col])
+        x_case = to_numeric_array(df_case[col])
         x_ctrl = x_ctrl[np.isfinite(x_ctrl)]
         x_case = x_case[np.isfinite(x_case)]
         s_ctrl = _safe_stats(x_ctrl)
         s_case = _safe_stats(x_case)
-        t_res = cast(Any, ttest_ind(x_case, x_ctrl, equal_var=False, nan_policy="omit"))
-        u_res = cast(Any, mannwhitneyu(x_case, x_ctrl, alternative="two-sided"))
+        # scipy builds these result classes with _make_tuple_bunch, so its stubs
+        # expose neither .statistic/.pvalue nor usable element types -- unpacking
+        # only moves the complaint to float(). Annotating as Any is the honest
+        # remedy for a third-party stub gap; the attributes exist at runtime.
+        t_res: Any = ttest_ind(x_case, x_ctrl, equal_var=False, nan_policy="omit")
+        u_res: Any = mannwhitneyu(x_case, x_ctrl, alternative="two-sided")
         test_rows.append(
             {
                 "pc": f"PC{pc_num}",
@@ -165,8 +170,8 @@ def run_subcluster_all_pcs_kde(
 
         for i, col in enumerate(pc_cols, start=1):
             ax = axes[(i - 1) // n_cols][(i - 1) % n_cols]
-            x_ctrl = pd.to_numeric(df_ctrl[col], errors="coerce").to_numpy(dtype=float, copy=False)
-            x_case = pd.to_numeric(df_case[col], errors="coerce").to_numpy(dtype=float, copy=False)
+            x_ctrl = to_numeric_array(df_ctrl[col])
+            x_case = to_numeric_array(df_case[col])
             x_ctrl = x_ctrl[np.isfinite(x_ctrl)]
             x_case = x_case[np.isfinite(x_case)]
             if x_ctrl.size > 1:

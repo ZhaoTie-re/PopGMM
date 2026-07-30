@@ -149,7 +149,8 @@ def _fingerprint_frame(df: pd.DataFrame) -> str:
     h = hashlib.sha256()
     h.update(json.dumps([str(c) for c in df.columns]).encode())
     h.update(json.dumps([str(t) for t in df.dtypes]).encode())
-    h.update(pd.util.hash_pandas_object(df, index=True).to_numpy().tobytes())
+    # pandas-stubs does not re-export pd.util.hash_pandas_object; it exists at runtime.
+    h.update(pd.util.hash_pandas_object(df, index=True).to_numpy().tobytes())  # type: ignore[attr-defined]
     return h.hexdigest()
 
 

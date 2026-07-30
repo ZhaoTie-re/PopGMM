@@ -30,6 +30,7 @@ import logging
 import re
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -199,6 +200,24 @@ def bh_fdr_adjust(pvals: np.ndarray) -> np.ndarray:
     tmp[order] = adj
     out[mask] = tmp
     return out
+
+
+def to_numeric_series(values: Any) -> pd.Series:
+    """Column values coerced to numeric; anything non-numeric becomes NaN.
+
+    ``pd.to_numeric`` is declared as returning a wide union (Series, scalar,
+    ndarray, NaT, Timestamp, ...), so every downstream ``.to_numpy`` /
+    ``.dropna`` / ``.astype`` / ``.iloc`` is reported once per union member --
+    a single call site produced nine diagnostics. Passing a Series always
+    yields a Series at runtime, so the narrowing is contained here instead of
+    being repeated, or suppressed, at every call site.
+    """
+    return cast(pd.Series, pd.to_numeric(values, errors="coerce"))
+
+
+def to_numeric_array(values: Any, dtype: Any = np.float64) -> np.ndarray:
+    """Column values as a numeric array; anything non-numeric becomes NaN."""
+    return to_numeric_series(values).to_numpy(dtype=dtype, copy=False)
 
 
 def gwas_neff(case_n: int, control_n: int) -> float:

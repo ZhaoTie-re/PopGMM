@@ -34,7 +34,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, cast
 
 import numpy as np
 import pandas as pd
@@ -119,6 +119,15 @@ class Check:
 # ---------------------------------------------------------------------------
 # Classification
 # ---------------------------------------------------------------------------
+
+
+def _to_numeric(values: Any) -> pd.Series:
+    """Column values coerced to numeric; anything non-numeric becomes NaN.
+
+    Duplicates ``scripts.common.to_numeric_series`` on purpose: this tool is the
+    oracle for the pipeline's output and must not import the code it checks.
+    """
+    return cast(pd.Series, pd.to_numeric(values, errors="coerce"))
 
 
 def classify(rel: str) -> str:
@@ -267,8 +276,8 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
     # The scientifically load-bearing invariants survive any tolerance.
     if rel in ARGMIN_INVARIANT:
         value_col, label_col = ARGMIN_INVARIANT[rel]
-        ka = pd.to_numeric(a[value_col], errors="coerce")
-        kb = pd.to_numeric(b[value_col], errors="coerce")
+        ka = _to_numeric(a[value_col])
+        kb = _to_numeric(b[value_col])
         wa, wb = a[label_col][ka.idxmin()], b[label_col][kb.idxmin()]
         if wa != wb or ka.min() != kb.min():
             return FAIL, (
@@ -282,12 +291,12 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
         sa, sb = a[col], b[col]
         if (sa == sb).all():
             continue
-        na = pd.to_numeric(sa, errors="coerce")
-        nb = pd.to_numeric(sb, errors="coerce")
+        na = _to_numeric(sa)
+        nb = _to_numeric(sb)
         if na.isna().all() or na.isna().sum() != nb.isna().sum():
             bad = int((sa != sb).idxmax())
             return FAIL, f"col {col!r} text differs at row {bad}: {sa[bad]!r} vs {sb[bad]!r}"
-        va, vb = na.to_numpy(float), nb.to_numpy(float)
+        va, vb = na.to_numpy("float64"), nb.to_numpy("float64")
         both_nan = np.isnan(va) & np.isnan(vb)
         close = np.isclose(va, vb, rtol=TSV_RTOL, atol=TSV_ATOL) | both_nan
         if not close.all():
@@ -457,7 +466,7 @@ def fingerprint(rel: str, path: Path, root: str) -> dict[str, Any]:
             fp["columns"] = list(df.columns)
             cols: dict[str, list[float]] = {}
             for col in df.columns:
-                v = pd.to_numeric(df[col], errors="coerce")
+                v = _to_numeric(df[col])
                 if v.notna().any():
                     cols[col] = [
                         float(np.nanmin(v)),
@@ -561,7 +570,7 @@ def render(checks: list[Check], baseline: str, candidate: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0] if __doc__ else "")
     ap.add_argument("--baseline", type=Path, help="trusted result tree")
     ap.add_argument("--candidate", type=Path, help="result tree produced by the refactor")
     ap.add_argument("--manifest", type=Path, help="fingerprint file to compare against")

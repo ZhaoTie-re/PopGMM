@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 
 from scripts.common import gwas_neff as _gwas_neff
+from scripts.common import to_numeric_array, to_numeric_series
 from scripts.common import pc12_rgv as _overall_heterogeneity_pc12
 
 
@@ -92,7 +93,7 @@ def _extract_major_cluster_components(merge_map: pd.DataFrame) -> list[int]:
         raise KeyError("merge_map must contain Is_Mainland_Merged_Cluster column.")
 
     mask = merge_map["Is_Mainland_Merged_Cluster"].astype(bool)
-    vals = pd.to_numeric(merge_map.loc[mask, "GMM_Component"], errors="coerce").dropna().astype(int)
+    vals = to_numeric_series(merge_map.loc[mask, "GMM_Component"]).dropna().astype(int)
     return sorted(set(int(v) for v in vals.tolist()))
 
 
@@ -195,15 +196,15 @@ def run_rank_selection(
 
     df = df_results.copy()
     df["IID"] = df["IID"].astype(str)
-    df["Assigned_Merged_Cluster"] = pd.to_numeric(df["Assigned_Merged_Cluster"], errors="coerce").astype("Int64")
-    df[pc1_col] = pd.to_numeric(df[pc1_col], errors="coerce")
-    df[pc2_col] = pd.to_numeric(df[pc2_col], errors="coerce")
+    df["Assigned_Merged_Cluster"] = to_numeric_series(df["Assigned_Merged_Cluster"]).astype("Int64")
+    df[pc1_col] = to_numeric_series(df[pc1_col])
+    df[pc2_col] = to_numeric_series(df[pc2_col])
 
     case_set = set(str(x) for x in case_iids)
     ctrl_set = set(str(x) for x in control_iids)
 
-    df["__is_case"] = df["IID"].isin(case_set)
-    df["__is_ctrl"] = df["IID"].isin(ctrl_set)
+    df["__is_case"] = df["IID"].isin(list(case_set))
+    df["__is_ctrl"] = df["IID"].isin(list(ctrl_set))
 
     all_cluster_ids = sorted(
         set(int(x) for x in df["Assigned_Merged_Cluster"].dropna().astype(int).tolist())
@@ -268,8 +269,8 @@ def run_rank_selection(
     old_k = int(probs_original.shape[1])
     is_case_arr = df["__is_case"].to_numpy(dtype=bool, copy=False)
     is_ctrl_arr = df["__is_ctrl"].to_numpy(dtype=bool, copy=False)
-    pc1_arr = pd.to_numeric(df[pc1_col], errors="coerce").to_numpy(dtype=np.float64, copy=False)
-    pc2_arr = pd.to_numeric(df[pc2_col], errors="coerce").to_numpy(dtype=np.float64, copy=False)
+    pc1_arr = to_numeric_array(df[pc1_col])
+    pc2_arr = to_numeric_array(df[pc2_col])
 
     for k in range(1, max_rank + 1):
         included_clusters = selected_clusters[:k]
@@ -487,9 +488,10 @@ def run_rank_selection(
                 rec_row = decision_table[decision_table["Included_Max_Rank"] == rec_k]
                 _case_col = f"{config.case_label}_Count"
                 _ctrl_col = f"{config.control_label}_Count"
-                _case_n = int(rec_row[_case_col].iloc[0]) if _case_col in rec_row.columns else None
-                _ctrl_n = int(rec_row[_ctrl_col].iloc[0]) if _ctrl_col in rec_row.columns else None
-                _total_n = int(rec_row["Total_Count"].iloc[0]) if "Total_Count" in rec_row.columns else None
+                _rec = rec_row.iloc[0]
+                _case_n = int(_rec[_case_col]) if _case_col in rec_row.columns else None
+                _ctrl_n = int(_rec[_ctrl_col]) if _ctrl_col in rec_row.columns else None
+                _total_n = int(_rec["Total_Count"]) if "Total_Count" in rec_row.columns else None
                 if _case_n is not None and _ctrl_n is not None and _total_n is not None:
                     _ann_lines = [
                         f"k = {rec_k}  (recommended)",
