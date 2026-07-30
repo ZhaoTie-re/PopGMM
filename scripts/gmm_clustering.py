@@ -1,15 +1,25 @@
-from __future__ import annotations
+"""Fit the reference-panel mixture and select the component count by BIC.
 
-"""GMM clustering utilities for BBJ samples after denoising.
+Searches a range of component counts, keeping the minimum-BIC model that leaves
+no component empty, then refits on the full denoised panel. Search fits run
+across a process pool; the per-fit audit trail is written by ``gmm_search_audit``.
 
-Author: ZHAO TIE
+Computation is float64. Under float32 the log-likelihood sum over ~180k samples
+was sensitive to BLAS reduction order, so the search log differed between runs
+even with the seed fixed, and with several EM restarts a last-bit difference
+could flip which restart won.
 
-Design goals
-------------
-1) Single-mode workflow: fixed number of PCs provided by user.
-2) Best model selection by minimum BIC only.
-3) One coherent GMM parameter set shared by grid search and final model.
+Inputs
+------
+Denoised reference panel; eigenvalues for axis labels.
+
+Outputs
+-------
+Clustered sample table, BIC search table, per-component summary, run summary
+JSON, an overview figure, and the audit logs under ``tmp/``.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,7 +55,7 @@ class GMMClusteringOutput(NamedTuple):
     labels: np.ndarray
     probabilities: np.ndarray
     bic_table: pd.DataFrame
-    bbj_samples_with_cluster: pd.DataFrame
+    reference_samples_with_cluster: pd.DataFrame
     cluster_summary: pd.DataFrame
     selected_pc_cols: list[str]
     summary: dict[str, Any]
@@ -108,7 +118,7 @@ class GMMConfig:
     search_max_samples: int = 60000
     search_workers: int = 4
     require_non_empty_clusters: bool = True
-    output_dir: str = "results/02_gmm_clustering"
+    output_dir: str = "results/01_reference_model/mixture_model"
     save_plot: bool = True
     save_tables: bool = True
     verbose: bool = True
@@ -467,7 +477,7 @@ def _plot_gmm_overview(
 
 
 def run_gmm_fixed_pcs(
-    bbj_samples_filtered: pd.DataFrame,
+    reference_samples_filtered: pd.DataFrame,
     eigenval: pd.DataFrame | None = None,
     config: GMMConfig | None = None,
 ) -> GMMClusteringOutput:
@@ -483,17 +493,17 @@ def run_gmm_fixed_pcs(
 
     config = config or GMMConfig()
 
-    if bbj_samples_filtered.empty:
+    if reference_samples_filtered.empty:
         raise ValueError("bbj_samples_filtered is empty; cannot run GMM clustering.")
 
-    pc_cols = _resolve_pc_columns(bbj_samples_filtered)
+    pc_cols = _resolve_pc_columns(reference_samples_filtered)
     if not pc_cols:
         raise ValueError("No PC columns found in bbj_samples_filtered.")
 
     n_pcs = min(max(2, int(config.fixed_n_pcs)), len(pc_cols))
     selected_pc_cols = pc_cols[:n_pcs]
 
-    x = bbj_samples_filtered[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
+    x = reference_samples_filtered[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
     if config.use_zscale:
         x = _standardize(x)
 
@@ -664,8 +674,8 @@ def run_gmm_fixed_pcs(
     probabilities_raw = final_model.predict_proba(x)
     probabilities = np.asarray(probabilities_raw, dtype=STORE_DTYPE)
 
-    bbj_samples_with_cluster = bbj_samples_filtered.copy()
-    bbj_samples_with_cluster["GMM_Cluster"] = labels
+    reference_samples_with_cluster = reference_samples_filtered.copy()
+    reference_samples_with_cluster["GMM_Cluster"] = labels
 
     cluster_summary = (
         pd.Series(labels, name="GMM_Cluster")
@@ -706,20 +716,20 @@ def run_gmm_fixed_pcs(
             bic_table=bic_table,
             best_k=best_k,
             selected_pc_cols=selected_pc_cols,
-            output_path=output_dir / "gmm_fixed_pcs_overview.png",
+            output_path=output_dir / "mixture_model_overview.png",
             eigenval=eigenval,
         )
 
     if config.save_tables:
-        bic_table.to_csv(output_dir / "gmm_bic_search.tsv", sep="\t", index=False)
-        bbj_samples_with_cluster.to_csv(output_dir / "bbj_samples_gmm_clustered.tsv", sep="\t", index=False)
-        cluster_summary.to_csv(output_dir / "gmm_cluster_summary.tsv", sep="\t", index=False)
-        with (output_dir / "gmm_summary.json").open("w", encoding="utf-8") as f:
+        bic_table.to_csv(output_dir / "bic_search.tsv", sep="\t", index=False)
+        reference_samples_with_cluster.to_csv(output_dir / "reference_samples_clustered.tsv", sep="\t", index=False)
+        cluster_summary.to_csv(output_dir / "component_summary.tsv", sep="\t", index=False)
+        with (output_dir / "mixture_model_summary.json").open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
     if config.verbose:
         print("\n" + "=" * 80)
-        print("STEP2: GMM CLUSTERING (FIXED PCs, MIN-BIC)".center(80))
+        print("MIXTURE MODEL (FIXED PCs, MIN-BIC SELECTION)".center(80))
         print("=" * 80)
         print("\n[CONFIGURATION]")
         print("-" * 80)
@@ -750,7 +760,7 @@ def run_gmm_fixed_pcs(
         labels=labels,
         probabilities=probabilities,
         bic_table=bic_table,
-        bbj_samples_with_cluster=bbj_samples_with_cluster,
+        reference_samples_with_cluster=reference_samples_with_cluster,
         cluster_summary=cluster_summary,
         selected_pc_cols=selected_pc_cols,
         summary=summary,

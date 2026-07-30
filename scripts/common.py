@@ -202,6 +202,45 @@ def bh_fdr_adjust(pvals: np.ndarray) -> np.ndarray:
     return out
 
 
+def gwas_neff(case_n: int, control_n: int) -> float:
+    """Effective sample size of a case/control set: ``4 / (1/n_case + 1/n_control)``.
+
+    The harmonic-mean form that association power actually scales with, so an
+    unbalanced set is penalised relative to its raw total.
+    """
+    if case_n <= 0 or control_n <= 0:
+        return float("nan")
+    return float(4.0 / ((1.0 / float(case_n)) + (1.0 / float(control_n))))
+
+
+def pc12_rgv(xy: np.ndarray) -> float:
+    """Residual genetic spread of a sample set on PC1-PC2.
+
+    Root generalized variance: ``det(Sigma) ** (1/4)`` for two dimensions, which
+    captures both the variance magnitude and the covariance structure in one
+    number, unlike a per-axis variance. Lower means a more homogeneous set.
+
+    Returns NaN for fewer than two samples or a degenerate covariance.
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    if xy.ndim != 2 or xy.shape[1] != 2 or int(xy.shape[0]) < 2:
+        return float("nan")
+
+    cov = np.asarray(np.cov(xy, rowvar=False), dtype=np.float64)
+    if not np.all(np.isfinite(cov)):
+        return float("nan")
+
+    # Small ridge for numerical stability under near-collinearity.
+    trace = float(np.trace(cov))
+    scale = trace / 2.0 if np.isfinite(trace) else 1.0
+    cov = cov + np.eye(2, dtype=np.float64) * (1e-8 * max(1.0, scale))
+
+    det = float(np.linalg.det(cov))
+    if not np.isfinite(det) or det <= 0.0:
+        return float("nan")
+    return float(det**0.25)
+
+
 def safe_stats(x: np.ndarray) -> dict[str, float]:
     """mean/std/min/max over the finite entries; all-NaN for an empty input."""
     x = np.asarray(x, dtype=float)

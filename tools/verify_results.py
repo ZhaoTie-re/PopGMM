@@ -88,7 +88,9 @@ SKIP_NAMES = {".DS_Store"}
 # One zero-cost invariant is kept: whichever k minimises BIC must not move. It
 # does not depend on any tolerance, and it is the single thing most worth
 # failing loudly on if numeric behaviour ever changes.
-ARGMIN_INVARIANT = {"02_gmm_clustering/gmm_bic_search.tsv": ("bic", "n_components")}
+ARGMIN_INVARIANT = {
+    "01_reference_model/mixture_model/bic_search.tsv": ("bic", "n_components")
+}
 
 PASS, WARN, FAIL = "PASS", "WARN", "FAIL"
 

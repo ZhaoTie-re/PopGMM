@@ -1,24 +1,24 @@
-"""Single source of truth for PopGMM pipeline paths and parameters.
+"""Single source of truth for pipeline paths and parameters.
 
-Everything the notebook would otherwise hard-code twice lives here. Two
-duplications in particular were live bug sources:
+Everything a run depends on is stated here exactly once: where the inputs live,
+where each stage writes, the random seed, the cohort labels, and the three
+selection parameters that define the deliverable sample lists.
 
-* the mainland rank cut ``k = 9`` was written once as
-  ``forced_recommended_rank`` in STEP4_tmp and again as
-  ``_step5_included_rank`` in STEP5, with nothing keeping them in sync;
-* the confidence threshold tuple was written verbatim in both STEP8 and STEP9.
+This is a Python module rather than a YAML file on purpose. The stage configs
+are already typed frozen dataclasses, so YAML would need an extra
+mapping-and-validation layer -- more code, plus a place for an int parameter to
+silently become a string. Half the values here are derived expressions, which
+are natural in Python and awkward in YAML. And ``git blame`` on this file yields
+the parameter history a reviewer will ask for.
 
-This is a Python module rather than a YAML file on purpose. The step configs
-are already typed ``@dataclass(frozen=True)`` objects, so YAML would need an
-extra mapping-and-validation layer -- more code, plus a place for
-``forced_recommended_rank: "9"`` to silently become a string. Half the values
-here are derived expressions, which are natural in Python and awkward in YAML.
-And ``git blame scripts/params.py`` yields the parameter change history, which
-is exactly what a reviewer asks for.
+Two things are deliberately absent, because they are properties of the fitted
+model rather than choices: which components form the major cluster (derived by
+the merging stage) and how many of them there are (the rank-selection stage
+walks all of them). Literals for either go stale the moment the model changes.
 
-Paths are ``Path`` objects. The step modules all normalise via
+Paths are ``Path`` objects. Every stage normalises via
 ``Path(str(config.output_dir)).as_posix()``, so passing a ``Path`` produces
-byte-identical log output to passing the original string literal.
+byte-identical log output to passing a string literal.
 
 The two environment overrides exist so a verification run can be written to a
 scratch tree without touching ``results/``:
@@ -44,84 +44,125 @@ DATA_ROOT = Path(os.environ.get("POPGMM_DATA_ROOT", "data"))
 # Inputs
 # ---------------------------------------------------------------------------
 
+#: PCA eigenvalues of the reference panel, one per line, no header. Assumed to
+#: cover every PC in the score file -- variance-explained is computed as
+#: eigenvalue / sum(eigenvalues), so a truncated file makes every axis label wrong.
 EIGENVAL_PATH = DATA_ROOT / "bbj.pca_base.eigenval"
+
+#: PLINK2 --score output holding both cohorts:
+#: `#FID IID PHENO1 ALLELE_CT NAMED_ALLELE_DOSAGE_SUM PC1_AVG ... PCn_AVG`
 SSCORE_PATH = DATA_ROOT / "cteph_agp3k_v6_wgs_merged.sample_qc.variant_qc.bbjproj.sscore"
 
-# ---------------------------------------------------------------------------
-# Per-step output directories
-# ---------------------------------------------------------------------------
-
-STEP1_DIR = RESULTS_ROOT / "01_hdbscan_filtering"
-STEP2_DIR = RESULTS_ROOT / "02_gmm_clustering"
-STEP3_DIR = RESULTS_ROOT / "03_gmm_component_merging"
-STEP4_DIR = RESULTS_ROOT / "04_our_assignment"
-STEP5_DIR = RESULTS_ROOT / "05_customize_cluster_assignment"
-STEP6_DIR = RESULTS_ROOT / "06_mainland_subcluster_only"
-STEP7_DIR = RESULTS_ROOT / "07_mainland_subcluster_confidence_distribution"
-STEP8_DIR = RESULTS_ROOT / "08_mainland_subcluster_confidence_screening"
-STEP9_DIR = RESULTS_ROOT / "09_threshold_sample_exports"
-
-STEP4_TMP_DIR = STEP4_DIR / "STEP4_tmp"
+#: Samples whose IID starts with this prefix form the reference panel; the rest
+#: are the study cohort.
+REFERENCE_IID_PREFIX = "bbj_"
 
 # ---------------------------------------------------------------------------
 # Cohort labels
 # ---------------------------------------------------------------------------
+#
+# The only place the specific study appears. Everything downstream refers to
+# "case cohort" and "control cohort"; these two values put the study's names on
+# the figures and in the count columns of the rank-selection tables.
 
 CASE_LABEL = "CTEPH"
 CONTROL_LABEL = "AGP3K"
 
 # ---------------------------------------------------------------------------
-# STEP2 -- GMM search
+# Output layout
+# ---------------------------------------------------------------------------
+#
+# The deliverable sits at the top so it is unmistakable; the supporting stages
+# are numbered in dependency order.
+
+#: The deliverable: three sample lists plus a table comparing them.
+KEEP_LIST_DIR = RESULTS_ROOT / "keep_lists"
+
+#: Modelling the reference panel: denoise, fit the mixture, merge components.
+REFERENCE_MODEL_DIR = RESULTS_ROOT / "01_reference_model"
+DENOISING_DIR = REFERENCE_MODEL_DIR / "denoising"
+MIXTURE_DIR = REFERENCE_MODEL_DIR / "mixture_model"
+MERGING_DIR = REFERENCE_MODEL_DIR / "component_merging"
+THRESHOLD_ROBUSTNESS_DIR = MERGING_DIR / "threshold_robustness"
+
+#: Projecting the study cohort into the mixture and assigning it.
+ASSIGNMENT_DIR = RESULTS_ROOT / "02_cohort_assignment"
+
+#: Evidence for the rank cut: effective sample size against residual spread.
+RANK_SELECTION_DIR = RESULTS_ROOT / "03_rank_selection"
+
+#: One subdirectory per subcluster variant (see SUBCLUSTER_VARIANTS).
+SUBCLUSTER_DIR = RESULTS_ROOT / "04_subcluster_variants"
+
+#: Environment and configuration snapshots for the run.
+PROVENANCE_DIR = RESULTS_ROOT / "provenance"
+
+# ---------------------------------------------------------------------------
+# Reference-panel modelling
 # ---------------------------------------------------------------------------
 
 RANDOM_SEED = 42
 
+#: Dendrogram cut on the pairwise Mahalanobis distances between component means.
+MERGE_THRESHOLD = 6.0
+
+#: Additional thresholds run purely as robustness evidence for the major-cluster
+#: identification. The mixture is already fitted, so each extra threshold costs
+#: one merge plus one figure. Results are compared in
+#: `threshold_robustness/major_cluster_robustness.tsv`.
+MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.5, 4.5, 8.0)
+
 # ---------------------------------------------------------------------------
-# STEP3 -- component merging
+# The deliverable: three sample lists
 # ---------------------------------------------------------------------------
-
-MERGE_THRESHOLD_MAIN = 6.0
-
-# Sensitivity runs, as {merge_threshold: output subdirectory}. The subdirectory
-# name is not derivable from the threshold, so it is stated rather than built.
-MERGE_THRESHOLD_SENSITIVITY: dict[float, str] = {2.5: "STEP3_tmp"}
-
-# ---------------------------------------------------------------------------
-# STEP4_tmp / STEP5 -- mainland rank progression and the cut
-# ---------------------------------------------------------------------------
-
-# There is deliberately no MAINLAND_MAX_RANK constant. How many mainland
-# components exist is a property of the fitted model -- 17 under the previous
-# float32 run, 16 under float64 -- so STEP4_tmp discovers it from the mainland
-# component list (which gmm_component_merging already derives automatically via
-# "merged cluster with the most pre-merge components, ties to the smallest id").
-# A literal here went stale the moment the model changed.
-
-# The rank cut: how many of the ranked mainland components are merged into the
-# Mainland Subcluster.
 #
-# This is a HUMAN decision, stated here and nowhere else. STEP5 reads the rank
-# back off STEP4_tmp's output and asserts it matches, so the value cannot drift
-# between the two steps.
+# The major cluster is split into nested variants by a rank cut. Components are
+# ranked by case/control ratio; including the top-k of them trades effective
+# sample size (GWAS_Neff) against residual genetic spread (RGV, the root
+# generalized variance of the retained samples on PC1-PC2). The rank-selection
+# stage tabulates and plots that trade-off; the cut itself is a human decision.
 #
-# Set to None to hand the choice to STEP4_tmp's Pareto analysis instead
-# (Neff vs PC1-2 heterogeneity). That is a one-line change and the notebook
-# handles it -- no assertion fires, the chosen rank is printed instead.
+#   full     -- every major-cluster component. No cut, so no parameter.
+#   refined  -- the primary analysis set.
+#   expanded -- a looser cut between refined and full, for sensitivity analysis.
 #
-# Currently forced to 9. Note that under the float64 model the Pareto analysis
-# would pick rank 5 (both Distance_To_Ideal and Utility_NeffMinusHet point
-# there); 9 is a deliberate override, not an oversight. See README.
-MAINLAND_RANK_K: int | None = 9
+# Set either rank to None to hand the choice to the Pareto analysis instead; the
+# notebook then prints the chosen rank rather than asserting one.
+
+#: Primary analysis set. Currently a deliberate override: under this model the
+#: Pareto analysis would pick rank 5.
+REFINED_RANK_K: int | None = 9
+
+#: Sensitivity set, between refined and full.
+EXPANDED_RANK_K: int | None = 12
+
+#: Variant name -> rank cut. Drives the subcluster stage and the keep-list names.
+SUBCLUSTER_VARIANTS: dict[str, int | None] = {
+    "refined": REFINED_RANK_K,
+    "expanded": EXPANDED_RANK_K,
+}
 
 # ---------------------------------------------------------------------------
-# STEP8 / STEP9 -- confidence thresholds
+# Display
 # ---------------------------------------------------------------------------
 
-# Shared by the screening step and the export step; they must agree, or the
-# summary table and the emitted keep-lists describe different cutoffs.
-CONFIDENCE_THRESHOLDS: tuple[float, ...] = (0.80, 0.85, 0.90, 0.95, 0.99)
+#: What the major cluster is called on figures and in reports. The code names it
+#: by its definition (the merged cluster holding the most components); this is
+#: the population-genetic interpretation of that cluster, and is an assumption
+#: the pipeline does not itself verify.
+MAJOR_CLUSTER_DISPLAY_NAME = "Mainland"
 
 
-def merge_threshold_dir(subdir: str) -> Path:
-    """Output directory for a STEP3 sensitivity run."""
-    return STEP3_DIR / subdir
+def subcluster_dir(variant: str) -> Path:
+    """Output directory for one subcluster variant."""
+    return SUBCLUSTER_DIR / variant
+
+
+def threshold_robustness_dir(threshold: float) -> Path:
+    """Output directory for one robustness threshold."""
+    return THRESHOLD_ROBUSTNESS_DIR / f"threshold_{threshold:.1f}".replace(".", "p")
+
+
+def keep_list_path(variant: str) -> Path:
+    """Path of the deliverable sample list for a variant ('full' included)."""
+    return KEEP_LIST_DIR / f"{variant}_{MAJOR_CLUSTER_DISPLAY_NAME.lower()}.fid_iid.txt"
