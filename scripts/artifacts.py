@@ -75,11 +75,17 @@ def run_environment(run_mode: str) -> dict[str, Any]:
     """
     import os
 
+    from scripts.hdbscan_filtering import HDBSCAN_BACKEND
+
     return {
         "run_mode": run_mode,
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "libraries": library_versions(),
+        # Which clustering implementation actually ran. hdbscan_summary.json
+        # echoes config values rather than what the estimator received, so
+        # without this there was no record of the backend at all.
+        "hdbscan_backend": HDBSCAN_BACKEND,
         "threading": {
             var: os.environ.get(var)
             for var in (
