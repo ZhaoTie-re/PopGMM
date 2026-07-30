@@ -144,14 +144,18 @@ samples keep their place until their probabilities have been evaluated.
 
 The denoised panel is modelled as a $K$-component mixture with full covariances,
 
-$$p(x \mid \theta) \;=\; \sum_{k=1}^{K} \pi_k \, \mathcal{N}(x \mid \mu_k, \Sigma_k),
-\qquad \theta = \{\pi_k, \mu_k, \Sigma_k\}_{k=1}^{K},$$
+```math
+p(x \mid \theta) \;=\; \sum_{k=1}^{K} \pi_k \, \mathcal{N}(x \mid \mu_k, \Sigma_k),
+\qquad \theta = \{\pi_k, \mu_k, \Sigma_k\}_{k=1}^{K}
+```
 
 fitted by expectation–maximization. The order $K$ is selected over a candidate
 range by the Bayesian Information Criterion,
 
-$$\hat{K} \;=\; \arg\min_{K} \operatorname{BIC}(K),
-\qquad \operatorname{BIC}(K) \;=\; -2\,\ell(\hat{\theta}_K) \;+\; p_K \log N,$$
+```math
+\hat{K} \;=\; \arg\min_{K} \mathrm{BIC}(K),
+\qquad \mathrm{BIC}(K) \;=\; -2\,\ell(\hat{\theta}_K) \;+\; p_K \log N
+```
 
 which penalises the parameter count $p_K$ against the maximised log-likelihood.
 Each component contributes a weight, a center, and a covariance describing the
@@ -167,15 +171,19 @@ density-modelling choice, not an estimate of how many human populations exist.
 Components are compared by the Mahalanobis distance between their means under
 their pooled covariance,
 
-$$S_{ij} = \tfrac{1}{2}\left(\Sigma_i + \Sigma_j\right),
-\qquad d_{ij} = \sqrt{(\mu_i - \mu_j)^{\top} S_{ij}^{-1} (\mu_i - \mu_j)},$$
+```math
+S_{ij} \;=\; \tfrac{1}{2}\left(\Sigma_i + \Sigma_j\right),
+\qquad d_{ij} \;=\; \sqrt{(\mu_i - \mu_j)^{\top} S_{ij}^{-1} (\mu_i - \mu_j)}
+```
 
 which — unlike Euclidean distance — accounts for scale, elongation, and
 orientation. The matrix $D = [d_{ij}]$ is clustered by hierarchical linkage and
 cut at a threshold, giving a map $k \mapsto c(k)$ from components to ancestry
 clusters. Posterior mass follows the map,
 
-$$r_{nc} \;=\; \sum_{k \,:\, c(k) = c} r_{nk},$$
+```math
+r_{nc} \;=\; \sum_{k \,:\, c(k) = c} r_{nk}
+```
 
 so probability is preserved as the description moves from local density elements
 to broader regions. The **major cluster** follows an explicit rule: the merged
@@ -199,8 +207,10 @@ hunter-gatherer Jomon in Japanese populations, *Nature Communications 15, 9780
 The cohort is evaluated under the fitted model without refitting it. Each study
 point $x_n$ receives responsibilities over the original components,
 
-$$r_{nk} \;=\; \frac{\pi_k \, \mathcal{N}(x_n \mid \mu_k, \Sigma_k)}
-{\sum_{j=1}^{K} \pi_j \, \mathcal{N}(x_n \mid \mu_j, \Sigma_j)},$$
+```math
+r_{nk} \;=\; \frac{\pi_k \, \mathcal{N}(x_n \mid \mu_k, \Sigma_k)}
+{\sum_{j=1}^{K} \pi_j \, \mathcal{N}(x_n \mid \mu_j, \Sigma_j)}
+```
 
 evaluated at the fixed estimate $\hat{\theta}$, together with an assignment
 $\arg\max_k r_{nk}$ and a confidence $\max_k r_{nk}$.
@@ -216,9 +226,11 @@ The major cluster can still contain internal structure. Its components are ranke
 by observed case/control ratio, and each cumulative set is scored on two
 complementary quantities — effective sample size and residual genetic spread:
 
-$$N_{\mathrm{eff}} \;=\; \frac{4}{n_{\mathrm{case}}^{-1} + n_{\mathrm{ctrl}}^{-1}},
+```math
+N_{\mathrm{eff}} \;=\; \frac{4}{n_{\mathrm{case}}^{-1} + n_{\mathrm{ctrl}}^{-1}},
 \qquad
-\mathrm{RGV} \;=\; \left(\det \Sigma_{\mathrm{PC}_{1,2}}\right)^{1/4}.$$
+\mathrm{RGV} \;=\; \left(\det \Sigma_{\mathrm{PC}_{1,2}}\right)^{1/4}
+```
 
 $N_{\mathrm{eff}}$ is the harmonic form that association power actually scales
 with, so an unbalanced set is penalised against its raw total. $\mathrm{RGV}$,
@@ -235,11 +247,16 @@ A selected component set $\mathcal{G}$ is treated as one composite group.
 Responsibilities are computed over the **original** components first, then summed
 across $\mathcal{G}$, with every unselected component still competing:
 
-$$\hat{g}_n \;=\; \arg\max \Bigl\{\; \underbrace{\textstyle\sum_{k \in \mathcal{G}} r_{nk}}_{\text{composite group}}
-\;,\;\; \{\, r_{nk} \,\}_{k \notin \mathcal{G}} \;\Bigr\}.$$
+```math
+\tilde{r}_{n\mathcal{G}} \;=\; \sum_{k \in \mathcal{G}} r_{nk}
+\qquad\text{and}\qquad
+\hat{g}_n = \mathcal{G}
+\;\;\Longleftrightarrow\;\;
+\tilde{r}_{n\mathcal{G}} \;>\; \max_{k \notin \mathcal{G}} r_{nk}
+```
 
-> With $r_n = (0.30,\, 0.30,\, 0.40)$ over components $(A, B, C)$ and
-> $\mathcal{G} = \{A, B\}$, the sample joins $\mathcal{G}$ at $0.60$ — not $C$.
+> With $r_n = (0.30, 0.30, 0.40)$ over components $(A, B, C)$ and
+> $\mathcal{G} = \lbrace A, B \rbrace$, the sample joins $\mathcal{G}$ at $0.60$ — not $C$.
 
 The order matters. Merging first and projecting into the coarsened mixture would
 discard exactly the joint evidence that places a borderline sample in the broader
