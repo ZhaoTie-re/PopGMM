@@ -587,12 +587,32 @@ def main(argv: list[str] | None = None) -> int:
     croot = args.candidate.as_posix()
     checks: list[Check] = []
 
-    # A "resume" run reuses cached STEP0-STEP2 results, which means those steps'
+    # A "resume" run reuses cached upstream results, which means those stages'
     # side-effect files were never rewritten -- whatever is on disk for them came
     # from some earlier run. Such a tree cannot testify to anything, so reject it
     # outright rather than let it pass on stale files.
-    env_path = args.candidate / "run_environment.json"
-    if env_path.exists():
+    #
+    # The file moved into provenance/ when the output layout was reorganised, and
+    # this guard kept looking for it at the root -- so it silently stopped firing
+    # and a resume tree could pass. Both locations are checked now; the root one
+    # keeps older trees verifiable. Missing the file entirely is also reported,
+    # because a silent skip is what caused the regression in the first place.
+    env_candidates = [
+        args.candidate / "provenance" / "run_environment.json",
+        args.candidate / "run_environment.json",
+    ]
+    env_path = next((p for p in env_candidates if p.exists()), None)
+    if env_path is None:
+        checks.append(
+            Check(
+                "run_environment.json",
+                "run_mode",
+                WARN,
+                "no run_environment.json in provenance/ or at the tree root; "
+                "cannot confirm the candidate was produced with RUN_MODE=\"fresh\"",
+            )
+        )
+    else:
         try:
             mode = json.loads(env_path.read_text()).get("run_mode")
         except Exception:

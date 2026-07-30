@@ -238,7 +238,7 @@ def run_cohort_assignment(
         raise ValueError("study_samples is empty; cannot assign the cohort.")
 
     if "IID" not in study_samples.columns:
-        raise ValueError("our_samples must contain an 'IID' column.")
+        raise ValueError("study_samples must contain an 'IID' column.")
 
     if not isinstance(label_map, dict) or len(label_map) == 0:
         raise ValueError("label_map is missing/empty; run component merging to obtain the component->merged mapping.")

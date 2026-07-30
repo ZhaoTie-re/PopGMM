@@ -198,7 +198,7 @@ float32 analysis is preserved at the git tag `results-float32-final`.
 
 ## Environment
 
-Pinned in [`requirements.txt`](requirements.txt) / [`environment.yml`](environment.yml);
+Pinned in [`environment.yml`](environment.yml);
 the machine that produced `results/` is recorded in
 [`docs/environment_snapshot.txt`](docs/environment_snapshot.txt), and every run
 writes its own `results/provenance/run_environment.json`.

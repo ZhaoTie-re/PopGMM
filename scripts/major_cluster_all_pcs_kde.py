@@ -20,9 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
-import logging
 import math
-import sys
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -35,10 +33,8 @@ from scipy.stats import mannwhitneyu, ttest_ind
 from scripts.common import (
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     bh_fdr_adjust as _bh_fdr_adjust,
-    format_template as _format_template,
     pc_sort_key as _pc_sort_key,
     resolve_all_pc_columns as _resolve_all_pc_columns,
-    safe_stats as _safe_stats,
     setup_file_logger as _setup_file_logger,
 )
 
@@ -86,7 +82,7 @@ def run_major_cluster_all_pcs_kde(
     df_results = pd.DataFrame(df_results).copy()
     study_df = pd.DataFrame(study_samples).copy()
     if "IID" not in df_results.columns or "IID" not in study_df.columns:
-        raise KeyError("Both df_results and our_samples must contain 'IID'.")
+        raise KeyError("Both df_results and study_samples must contain 'IID'.")
     if "Assigned_Merged_Cluster" not in df_results.columns:
         raise KeyError("df_results must contain 'Assigned_Merged_Cluster'.")
 

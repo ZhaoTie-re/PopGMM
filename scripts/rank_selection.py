@@ -136,43 +136,6 @@ def _resolve_model_pc_columns(
     return any_pc
 
 
-def _case_ctrl_mahalanobis_pc12(case_xy: np.ndarray, ctrl_xy: np.ndarray) -> float:
-    if case_xy.ndim != 2 or ctrl_xy.ndim != 2 or case_xy.shape[1] != 2 or ctrl_xy.shape[1] != 2:
-        return float("nan")
-
-    n_case = int(case_xy.shape[0])
-    n_ctrl = int(ctrl_xy.shape[0])
-    if n_case < 2 or n_ctrl < 2:
-        return float("nan")
-
-    case_mean = case_xy.mean(axis=0)
-    ctrl_mean = ctrl_xy.mean(axis=0)
-    delta = case_mean - ctrl_mean
-
-    cov_case = np.cov(case_xy, rowvar=False)
-    cov_ctrl = np.cov(ctrl_xy, rowvar=False)
-
-    dof = n_case + n_ctrl - 2
-    if dof <= 0:
-        return float("nan")
-
-    pooled_cov = (((n_case - 1) * cov_case) + ((n_ctrl - 1) * cov_ctrl)) / float(dof)
-    pooled_cov = np.asarray(pooled_cov, dtype=np.float64)
-
-    # Small ridge for numerical stability under near-collinearity.
-    pooled_cov = pooled_cov + np.eye(2, dtype=np.float64) * 1e-8
-
-    try:
-        inv_cov = np.linalg.pinv(pooled_cov)
-        d2 = float(delta.T @ inv_cov @ delta)
-    except Exception:
-        return float("nan")
-
-    if not np.isfinite(d2):
-        return float("nan")
-    return float(np.sqrt(max(0.0, d2)))
-
-
 def _pareto_front_indices(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Return indices of Pareto-optimal points for minimizing x and maximizing y."""
     n = int(len(x))

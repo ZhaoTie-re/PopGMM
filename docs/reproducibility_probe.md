@@ -154,7 +154,7 @@ hdbscan 0.8.42 via python-hdbscan, OpenBLAS 0.3.31, macOS arm64).
 
 1. Re-run-and-diff is a valid acceptance test, with **no tolerance** — a
    stronger claim than the float32 pipeline could support.
-2. The version pins in `requirements.txt` are backed by evidence and can be
+2. The version pins in `environment.yml` are backed by evidence and can be
    cited in Methods.
 3. `verify_results.py` keeps one zero-cost invariant beyond exact comparison:
    the k minimising BIC must not move. It costs nothing and is the single thing

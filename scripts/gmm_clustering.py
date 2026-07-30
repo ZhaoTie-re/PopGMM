@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import Any, Literal, NamedTuple, cast
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import json
-import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -43,8 +42,6 @@ from scripts.common import (
     STORE_DTYPE,
     build_distinct_palette as _build_distinct_palette,
     format_pc_axis_label as _format_pc_axis_label,
-    pc_index_from_col as _pc_index_from_col,
-    pc_sort_key as _pc_sort_key,
     resolve_pc_columns as _resolve_pc_columns,
 )
 

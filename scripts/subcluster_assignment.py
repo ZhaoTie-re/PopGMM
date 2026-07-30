@@ -31,7 +31,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.colors import to_hex, to_rgba
-from matplotlib.lines import Line2D
 from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
@@ -177,9 +176,9 @@ def run_subcluster_assignment(
     exclude_cluster_ids = _normalize_cluster_ids(config.exclude_cluster_ids)
 
     if study_samples.empty:
-        raise ValueError("our_samples is empty; cannot run customize-cluster assignment.")
+        raise ValueError("study_samples is empty; cannot run subcluster assignment.")
     if "IID" not in study_samples.columns:
-        raise ValueError("our_samples must contain an 'IID' column.")
+        raise ValueError("study_samples must contain an 'IID' column.")
 
     pc_cols_used = _resolve_pc_columns_for_projection(study_samples=study_samples, gmm_model=gmm_model, gmm_summary=gmm_summary)
 

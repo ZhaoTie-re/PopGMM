@@ -2,9 +2,9 @@
 
 Import direction is strictly one-way: this module imports nothing from
 ``scripts.*``, and every other module imports from it. That dissolves the
-previous tangle in which ``cluster_all_pcs_kde`` acted as an accidental utility
-library for the two ``mainland_*_kde`` modules while itself importing
-``_PLOT_STYLE_RC`` back out of ``our_assignment``.
+previous tangle in which one KDE module had become an accidental utility
+library for the others while itself importing the shared plot style back out of
+the assignment module.
 
 Only helpers that were verified to be behaviourally identical across their
 copies live here. Two deliberate exceptions are recorded so the next person does
@@ -16,9 +16,8 @@ not "finish the job" and change a figure:
   ``PC1 (39.2%)`` where the others drew ``PC1 (39.24%)``. The call site in
   the merging module must pass ``decimals=1``.
 * ``resolve_pc_columns`` returns *all* PC columns.
-  ``mainland_subcluster_only`` needs a 2-PC variant that raises when fewer than
-  two are present, so it keeps a thin local wrapper rather than changing this
-  one.
+  ``subcluster_view`` needs a 2-PC variant that raises when fewer than two are
+  present, so it keeps a thin local wrapper rather than changing this one.
 
 ``_build_merged_cluster_palette`` and ``_build_premerge_component_palette`` are
 NOT here: they have two genuinely different implementations each, and unifying
@@ -281,14 +280,3 @@ def setup_file_logger(name: str, log_path: Path) -> logging.Logger:
     return logger
 
 
-def format_template(template: str, *, cluster_id: int, threshold: float) -> str:
-    """Expand ``{cluster_id}``/``{threshold*}`` placeholders in a filename."""
-    threshold_str = f"{float(threshold):.2f}"
-    threshold_tag = threshold_str.replace(".", "p")
-    return str(template).format(
-        cluster_id=int(cluster_id),
-        threshold=float(threshold),
-        threshold_str=threshold_str,
-        threshold_tag=threshold_tag,
-        threshold_pct=int(round(float(threshold) * 100.0)),
-    )

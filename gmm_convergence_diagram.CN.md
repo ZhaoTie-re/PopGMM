@@ -162,7 +162,7 @@ $$
 | `fixed_n_pcs` | $d$ | 特征维度（PC 数） |
 | `k_min..k_max` | $K$ 候选范围 | BIC 搜索的成分数范围 |
 | `covariance_type` | $\Sigma_k$ 的结构 | 协方差形式约束 |
-| `n_init` + `init_params` | 初始化 | 缓解局部最优（默认 `k-means++`） |
+| `n_init` + `init_params` | 初始化 | 缓解局部最优。已提交的运行用 `n_init=3`、`init_params="kmeans"`（notebook 覆盖了类默认值 `k-means++`） |
 | `tol` | 收敛阈值 | 以 $\Delta LB$ 与 `tol` 比较决定停止（sklearn 默认 $10^{-3}$） |
 | `max_iter` | 迭代上限 | EM 最大迭代次数 |
 | `reg_covar` | $\lambda I$ | 协方差数值稳定 |

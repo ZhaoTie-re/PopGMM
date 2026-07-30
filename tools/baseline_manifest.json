@@ -4123,9 +4123,9 @@
       "sha256": "e8a0a2f0cdc67933757bc4ad26c4bad186221ce2857ea694deac1fa74be63c6b"
     },
     "provenance/run_config_snapshot.json": {
-      "bytes": 4269,
+      "bytes": 4281,
       "kind": "json_volatile",
-      "sha256": "1671311b504cf6ac02ef80759a632b09bf33f418be4ac06b73894cc59a11c1bf"
+      "sha256": "b0ee9a186a94ef3cb14f0be8145afbaa68dee8be0d6c07ad32844ccd9b5b5e45"
     },
     "provenance/run_environment.json": {
       "bytes": 491,
