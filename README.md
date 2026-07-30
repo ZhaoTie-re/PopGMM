@@ -18,7 +18,7 @@ conda env create -f environment.yml
 conda activate popgmm
 python -m ipykernel install --user --name popgmm --display-name popgmm
 
-# then: open workflow.ipynb and Restart & Run All   (~7 minutes)
+# then: open workflow.ipynb and Restart & Run All   (~13 minutes)
 ```
 
 The notebook runs top to bottom as a linear dependency chain, and must be
@@ -83,24 +83,31 @@ plink2 --pfile <dataset> \
 | Stage | Value |
 |---|---|
 | BBJ reference loaded | 183,013 |
-| After HDBSCAN denoising | 181,817 (1,196 noise, 0.65 %) |
-| Selected mixture | **k = 26** by minimum BIC (BIC = −2,682,580.33) |
+| After HDBSCAN denoising | 181,815 (1,198 noise, 0.65 %) |
+| Selected mixture | **k = 26** by minimum BIC (BIC = −2,682,560.08) |
 | After merging at threshold 6.0 | 6 clusters |
-| Mainland cluster | 17 pre-merge components |
+| Mainland cluster | 16 pre-merge components |
 | Mainland samples (study cohort) | 3,099 / 3,571 — 434 cases, 2,665 controls |
-| Rank cut | k = 9 → components {0, 2, 3, 7, 12, 14, 18, 24, 25} |
-| Mainland Subcluster | 2,193 / 3,571 — 411 cases, 1,782 controls |
+| Rank cut | k = 9 → components {0, 2, 4, 5, 12, 13, 16, 19, 22} |
+| Mainland Subcluster | 2,138 / 3,571 — 408 cases, 1,730 controls |
 
 Retained after confidence filtering:
 
 | Threshold | Cases | Controls |
 |---|---|---|
-| 0.4240 (case minimum) | 411 | 1,755 |
-| 0.80 | 354 | 1,214 |
-| 0.85 | 336 | 1,070 |
-| 0.90 | 300 | 890 |
-| 0.95 | 235 | 633 |
-| 0.99 | 84 | 203 |
+| 0.3575 (case minimum) | 407 | 1,721 |
+| 0.80 | 320 | 962 |
+| 0.85 | 301 | 809 |
+| 0.90 | 272 | 650 |
+| 0.95 | 199 | 428 |
+| 0.99 | 53 | 102 |
+
+The pipeline computes in float64. An earlier version cast to float32, which made
+the model search sensitive to BLAS reduction order and produced a different
+(and less reproducible) analysis; that version is preserved at the git tag
+`results-float32-final`. See
+[`docs/reproducibility_probe.md`](docs/reproducibility_probe.md) for the
+measurement and the full before/after comparison.
 
 ---
 
@@ -113,7 +120,15 @@ in sync.
 
 The mainland rank cut is stated once as `params.MAINLAND_RANK_K`; STEP5 reads
 `recommended_rank` back off STEP4_tmp's output and asserts it matches, so a
-divergence fails loudly instead of silently analysing the wrong components.
+divergence fails loudly instead of silently analysing the wrong components. Set
+it to `None` to let STEP4_tmp's Pareto analysis choose instead.
+
+Two things are deliberately **not** constants, because they are properties of the
+fitted model and go stale the moment it changes: the mainland component ids
+(derived by `gmm_component_merging` as "the merged cluster with the most
+pre-merge components, ties to the smallest id") and how many of them there are
+(STEP4_tmp walks all of them when `max_rank` is left at `None`). Under float32
+there were 17; under float64 there are 16.
 
 Two environment overrides, both pure path substitutions:
 
@@ -128,19 +143,22 @@ POPGMM_DATA_ROOT=/path/to/data
 
 - `"fresh"` (default) — execute every step and write all of its output files.
   **Use this for any run whose results you intend to keep, publish or verify.**
-- `"resume"` — reuse cached STEP0–STEP2 artifacts to skip the ~5 minute GMM
-  search while iterating. Measured: 6 min 52 s → **47 s**.
+- `"resume"` — reuse cached STEP0–STEP2 artifacts to skip the `k = 2..100` GMM
+  search, which dominates the runtime. Under the previous float32 pipeline this
+  cut a run from 6 min 52 s to 47 s; the float64 search is ~2.3× more expensive,
+  so the saving is larger still (not separately measured).
 
 `"resume"` is a development convenience with two consequences, both measured:
 
 1. A cache hit skips the function, so STEP1 and STEP2 write nothing — their 12
    output files are simply absent from the results tree.
-2. **The figures of later steps change.** Data is unaffected (all 40 files a
-   resume run does write, including every keep-list, are byte-identical), but
-   `gmm_component_merging_overview.png` differs in 3.4 % of its pixels. The
-   cause is the `rcParams` leak described under Known issues: skipping STEP1/2
-   means their plotting code never runs, so STEP3 onward inherits a different
-   global style state.
+2. **The figures of later steps change.** Data is unaffected — every file a
+   resume run does write, including all keep-lists, is byte-identical — but
+   `gmm_component_merging_overview.png` shifts by ~3.4 % of its pixels
+   (measured under float32; the mechanism is dtype-independent). The cause is the
+   `rcParams` leak described under Known issues: skipping STEP1/2 means their
+   plotting code never runs, so STEP3 onward inherits a different global style
+   state.
 
 The mode is recorded in `run_environment.json`, and `verify_results.py` refuses
 to verify a tree produced with it.
@@ -170,11 +188,12 @@ python -m tools.verify_results --manifest tools/baseline_manifest.json \
        --candidate results_verify
 ```
 
-Exit code 0 means nothing failed. Each artifact is compared by a rule matched to
-its type — byte-exact for keep-lists and logs, parsed with tolerance for
-TSV/JSON/`.npy` (plus an argmax check, so a probability may wobble but an
-assignment may not), volatile-key stripping for timestamped audit logs, and
-perceptual comparison for PNG/PDF, which cannot be byte-reproducible.
+Exit code 0 means nothing failed. The pipeline is deterministic, so **there is no
+per-file numeric tolerance**: any difference in a numeric artifact or a figure is
+a failure. Only two things are normalised away — embedded UTC timestamps in the
+audit logs and PDF, and the results-root path that a run records in its `.log`
+files and config snapshot. One extra invariant is asserted for free: the k
+minimising BIC must not move.
 
 A cheap pre-flight that needs no pipeline run:
 
@@ -184,20 +203,15 @@ diff results/run_config_snapshot.json results_verify/run_config_snapshot.json
 
 ### Reproducibility status
 
-Across three measured run pairs, every artifact reproduces byte-for-byte except
-the STEP2 BIC search log. `best_k`, `best_bic`, the fitted model, and all seven
-keep-lists are identical to the last bit every time.
+**Fully deterministic.** Two independent full runs in the same environment give
+60 pass / 0 warn / 0 fail with no numeric tolerance applied. 52 of 60 artifacts
+are raw byte-identical, including **all 12 figures**; the other 8 differ only in
+embedded timestamps or the results-root path they record. No numeric value
+varies. Thread pinning is not required — parallelism stays on.
 
-In the search log, 15–18 of the 99 candidate fits differ by up to 11.27 BIC
-units. Two mechanisms: most differences are one float32 ULP of the
-log-likelihood amplified by the sample count (float reduction order across the
-process pool), and occasionally `n_init=3` flips which of the three EM restarts
-wins. Neither can affect the selection — the margin between the winner (k = 26)
-and the runner-up (k = 29) is 155.92 units, and the most-perturbed candidate
-sits 1,759 units away. The verification tool enforces this explicitly rather
-than with a blanket tolerance: `argmin(BIC)` must not move, the winning value
-must be identical, and no candidate may drift more than 10 % of the winner
-margin. Full analysis in
+This is a stronger claim than the previous float32 pipeline could support, where
+15–18 of the 99 candidate model fits varied by up to 11.27 BIC units between
+runs. Measurement, mechanism and the full before/after comparison are in
 [`docs/reproducibility_probe.md`](docs/reproducibility_probe.md).
 
 ---
@@ -210,6 +224,9 @@ the machine that produced `results/` is recorded in
 
 Python 3.12.6 · numpy 2.4.2 · pandas 2.2.3 · scikit-learn 1.8.0 · scipy 1.17.0 ·
 hdbscan 0.8.42 · matplotlib 3.9.2 · seaborn 0.13.2
+
+Every run records its own provenance to `results/run_environment.json`, including
+the HDBSCAN backend that actually executed and the BLAS thread settings.
 
 Two pins are load-bearing rather than hygiene:
 
@@ -256,7 +273,7 @@ data/                       inputs (not tracked)
 ```
 
 Six large regenerable intermediates under `results/` are untracked — four
-redundant copies of the same 181,817 × 20 PC matrix plus two posterior arrays,
+redundant copies of the same 181,815 × 20 PC matrix plus two posterior arrays,
 218 MB in total. They are reproduced exactly by re-running the notebook and
 their checksums are in `tools/baseline_manifest.json`, so
 `verify_results --manifest` validates a run without them.
@@ -278,6 +295,14 @@ their checksums are in `tools/baseline_manifest.json`, so
   notebook top to bottom in `"fresh"` mode, as intended, and the figures
   reproduce exactly. If the figures are ever regenerated for publication, fix
   this first and regenerate all of them together.
+- **The rank cut is a human override, not the model's own choice.**
+  `params.MAINLAND_RANK_K = 9` forces STEP4_tmp's recommendation, whereas the
+  current model's Pareto analysis points to rank 5 (both `Distance_To_Ideal` and
+  `Utility_NeffMinusHet` in `STEP4_tmp/mainland_rank_decision_table.tsv`). This
+  is deliberate, but it means the decision table and the applied cut disagree —
+  state the override explicitly in Methods. Setting `MAINLAND_RANK_K = None`
+  hands the choice back to the Pareto analysis; the notebook prints the chosen
+  rank instead of asserting one, and nothing else needs changing.
 - `GMMConfig.use_zscale=True` is not usable end to end — `our_assignment` raises
   because the training scaler is never persisted. The committed run uses
   `use_zscale=False`.

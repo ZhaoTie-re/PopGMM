@@ -35,6 +35,8 @@ import seaborn as sns
 from matplotlib.lines import Line2D
 
 from scripts.common import (
+    COMPUTE_DTYPE,
+    STORE_DTYPE,
     format_pc_axis_label as _format_pc_axis_label,
     pc_index_from_col as _pc_index_from_col,
     pc_sort_key as _pc_sort_key,
@@ -126,8 +128,8 @@ def _standardize_inplace(x: np.ndarray) -> None:
     means = x.mean(axis=0, dtype=np.float64)
     stds = x.std(axis=0, dtype=np.float64)
     stds[stds == 0] = 1.0
-    x -= means.astype(np.float32)
-    x /= stds.astype(np.float32)
+    x -= means
+    x /= stds
 
 
 #: The one supported HDBSCAN backend. This pipeline is pinned to
@@ -427,7 +429,7 @@ def run_hdbscan_denoise_bbj(
     n_pcs = min(config.n_pcs_hdbscan, len(pc_cols))
     selected_pc_cols = pc_cols[:n_pcs]
 
-    x = bbj_samples[selected_pc_cols].to_numpy(dtype=np.float32, copy=True)
+    x = bbj_samples[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
     if config.use_zscale_hdbscan:
         _standardize_inplace(x)
 
@@ -445,9 +447,9 @@ def run_hdbscan_denoise_bbj(
 
     probabilities_raw = getattr(estimator, "probabilities_", None)
     if probabilities_raw is None:
-        probabilities = np.full(labels.shape[0], np.nan, dtype=np.float32)
+        probabilities = np.full(labels.shape[0], np.nan, dtype=STORE_DTYPE)
     else:
-        probabilities = np.asarray(probabilities_raw, dtype=np.float32)
+        probabilities = np.asarray(probabilities_raw, dtype=STORE_DTYPE)
 
     noise_mask = labels == -1
     keep_mask = ~noise_mask

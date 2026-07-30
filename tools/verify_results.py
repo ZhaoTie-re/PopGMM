@@ -18,8 +18,10 @@ Two modes:
     # (re)generate the fingerprint file from a trusted tree
     python -m tools.verify_results --baseline results --write-manifest tools/baseline_manifest.json
 
-Exit code is 0 only when nothing failed. ``*.fid_iid.txt`` and ``*.tsv``
-mismatches are always hard failures -- the keep-lists are the deliverable.
+Exit code is 0 only when nothing failed. The pipeline is deterministic
+(float64), so there are no per-file numeric tolerances: any difference in a
+numeric artifact or a figure is a failure. Only embedded timestamps and the
+results-root path are normalised away.
 """
 
 from __future__ import annotations
@@ -45,7 +47,9 @@ TSV_RTOL = 1e-12
 TSV_ATOL = 1e-15
 JSON_RTOL = 1e-12
 NPY_ATOL = 1e-7
-PNG_WARN_MEAN_ABS_DIFF = 0.5  # 0-255 scale; above this a figure really changed
+# 0-255 scale. Only used to label how large a figure difference is; it is not a
+# pass threshold -- any pixel difference fails.
+PNG_PERCEPTUAL_MEAN_ABS_DIFF = 0.5
 
 # Keys whose values legitimately differ between two runs of the same pipeline.
 VOLATILE_JSON_KEYS = frozenset(
@@ -65,49 +69,25 @@ VOLATILE_PDF = [
 SKIP_NAMES = {".DS_Store"}
 
 # ---------------------------------------------------------------------------
-# Documented numerical noise in the STEP2 model search
+# Determinism
 # ---------------------------------------------------------------------------
 #
-# Independent runs of the pipeline in the same environment agree byte-for-byte
-# on every artifact except the k=2..100 BIC search log. Across three measured
-# run pairs, 15-18 of the 99 candidate fits differ, by at most 11.27 BIC units
-# (4.2e-6 relative). Two mechanisms are at work:
+# The pipeline computes in float64 and is fully deterministic: two independent
+# full runs in the same environment produce 52 of 60 artifacts byte-identical,
+# and the 8 that differ do so only in embedded timestamps or the results-root
+# path they were written to. All 12 figures are byte-identical. No numeric
+# artifact varies. See docs/reproducibility_probe.md.
 #
-#   * most differences are exact multiples of 0.173394 BIC units -- one float32
-#     ULP of `average_log_likelihood` amplified by 2 x 181,817 samples, from
-#     float reduction order varying across the ProcessPool workers;
-#   * occasionally a candidate jumps by ~10 units because n_init=3 means EM is
-#     restarted three times and the best is kept, and a float difference can
-#     flip which restart wins.
+# There is therefore NO numeric tolerance anywhere in this tool beyond the
+# float-comparison epsilons below, which exist to give useful diagnostics on a
+# real mismatch rather than to excuse one. Adding a per-file tolerance would be
+# a scientific decision, not a convenience -- the previous float32 pipeline
+# needed one for the BIC search log, and removing that need was the point of
+# the switch.
 #
-# Neither propagates: best_k, the fitted model, and all 57 downstream artifacts
-# are byte-identical in every run pair measured. See
-# docs/reproducibility_probe.md.
-#
-# Rather than pick an arbitrary relative tolerance, the search table is judged
-# on what actually carries the science:
-#
-#   1. argmin(BIC) -- which k is selected -- must not move (ARGMIN_INVARIANT);
-#   2. the winning BIC value must be identical;
-#   3. no candidate may be perturbed by more than SEARCH_NOISE_MARGIN_FRACTION
-#      of the winner-to-runner-up margin, which the tool derives from the
-#      baseline itself. At the observed margin of 155.92 units this admits
-#      15.59 units of wobble -- above the 11.27 seen in practice, and far below
-#      anything that could reorder the top of the ranking.
-#
-# The two JSONL audit logs hold the same quantities and get a matching relative
-# tolerance. Nothing else in the tree gets any tolerance; widening this is a
-# scientific decision, not a convenience.
-
-SEARCH_NOISE_MARGIN_FRACTION = 0.10
-
-NOISE_TOLERANT_FILES = {
-    "02_gmm_clustering/gmm_bic_search.tsv": 1e-5,
-    "02_gmm_clustering/tmp/gmm_search_bic_log.jsonl": 1e-5,
-    "02_gmm_clustering/tmp/gmm_search_convergence_log.jsonl": 1e-5,
-}
-
-# In the BIC search table, the selected k must never move.
+# One zero-cost invariant is kept: whichever k minimises BIC must not move. It
+# does not depend on any tolerance, and it is the single thing most worth
+# failing loudly on if numeric behaviour ever changes.
 ARGMIN_INVARIANT = {"02_gmm_clustering/gmm_bic_search.tsv": ("bic", "n_components")}
 
 PASS, WARN, FAIL = "PASS", "WARN", "FAIL"
@@ -182,7 +162,17 @@ def iter_files(root: Path) -> Iterator[str]:
 # Directory names a result tree may live under. The artifacts record the root
 # they were written to, so every alias has to collapse to the same placeholder
 # regardless of where the tree currently sits on disk.
-KNOWN_ROOT_ALIASES = ("results_baseline", "results_verify", "results_probe", "results")
+#
+# Corollary worth knowing: a tree generated under one name and then renamed keeps
+# the original path baked into its .log files and config snapshot. Generate the
+# authoritative tree directly into `results/` rather than promoting a scratch
+# directory by renaming it.
+KNOWN_ROOT_ALIASES = (
+    "results_baseline",
+    "results_verify",
+    "results_probe",
+    "results",
+)
 
 
 def normalize_text(text: str, baseline_root: str, candidate_root: str) -> str:
@@ -194,10 +184,16 @@ def normalize_text(text: str, baseline_root: str, candidate_root: str) -> str:
     being otherwise identical, so both roots collapse to a placeholder. Renaming
     the tree afterwards does not change what was baked into the file, hence the
     alias list as well as the two roots actually being compared.
+
+    Substitution requires the root to be followed by a path separator or a
+    delimiter, so a root name that is a prefix of another one does not corrupt
+    it -- a plain str.replace turns "results_f64b/01_x" into
+    "<RESULTS_ROOT>b/01_x" when "results_f64" is also in play, which shows up as
+    a bogus mismatch.
     """
     roots = {baseline_root, candidate_root, *KNOWN_ROOT_ALIASES} - {""}
     for root in sorted(roots, key=len, reverse=True):
-        text = text.replace(root, "<RESULTS_ROOT>")
+        text = re.sub(re.escape(root) + r"""(?=[/\\\s"',)\]}]|$)""", "<RESULTS_ROOT>", text)
     return text
 
 
@@ -258,8 +254,6 @@ def compare_json_obj(a: Any, b: Any, path: str = "", rtol: float = JSON_RTOL) ->
 def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
     a = pd.read_csv(base, sep="\t", dtype=object, keep_default_na=False)
     b = pd.read_csv(cand, sep="\t", dtype=object, keep_default_na=False)
-    rtol = NOISE_TOLERANT_FILES.get(rel, TSV_RTOL)
-    noted = " [noise-tolerant]" if rel in NOISE_TOLERANT_FILES else ""
 
     if list(a.columns) != list(b.columns):
         only_b = [c for c in b.columns if c not in a.columns]
@@ -279,21 +273,6 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
                 f"argmin({value_col}) moved: {label_col}={wa} ({ka.min()!r}) "
                 f"vs {label_col}={wb} ({kb.min()!r})"
             )
-        # No candidate may wobble by an appreciable fraction of the margin that
-        # separates the winner from the runner-up -- that is what would make the
-        # selection fragile, regardless of how small the relative change looks.
-        ranked = ka.sort_values()
-        margin = float(ranked.iloc[1] - ranked.iloc[0])
-        budget = SEARCH_NOISE_MARGIN_FRACTION * margin
-        drift = float(np.nanmax(np.abs(ka.to_numpy(float) - kb.to_numpy(float))))
-        if drift > budget:
-            i = int(np.nanargmax(np.abs(ka.to_numpy(float) - kb.to_numpy(float))))
-            return FAIL, (
-                f"{value_col} drift {drift:.2f} at {label_col}={a[label_col][i]} "
-                f"exceeds {SEARCH_NOISE_MARGIN_FRACTION:.0%} of the "
-                f"{margin:.2f}-unit winner margin ({budget:.2f})"
-            )
-        noted = f" [search noise {drift:.2f} of {budget:.2f} budget]"
 
     worst = 0.0
     worst_at = ""
@@ -308,7 +287,7 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
             return FAIL, f"col {col!r} text differs at row {bad}: {sa[bad]!r} vs {sb[bad]!r}"
         va, vb = na.to_numpy(float), nb.to_numpy(float)
         both_nan = np.isnan(va) & np.isnan(vb)
-        close = np.isclose(va, vb, rtol=rtol, atol=TSV_ATOL) | both_nan
+        close = np.isclose(va, vb, rtol=TSV_RTOL, atol=TSV_ATOL) | both_nan
         if not close.all():
             i = int(np.argmax(~close))
             return FAIL, (
@@ -321,7 +300,7 @@ def compare_tsv(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
     if worst:
         n = int(sum((a[c] != b[c]).any() for c in a.columns))
         return PASS, (
-            f"within tolerance{noted} (max |d|={worst:.3g} in {worst_at}, "
+            f"equal within float epsilon (max |d|={worst:.3g} in {worst_at}, "
             f"{n} cols affected)"
         )
     return PASS, "identical after parse"
@@ -352,6 +331,11 @@ def compare_png(base: Path, cand: Path) -> tuple[str, str]:
         return WARN, "pillow not installed; skipped"
     # The dpi=400 overview figures exceed PIL's decompression-bomb guard; these
     # are our own artifacts, so the guard is noise here.
+    #
+    # Note: an earlier version of this tool claimed PNGs could not be compared
+    # byte-for-byte because of embedded matplotlib metadata. That was wrong --
+    # the metadata is stable within a pinned environment. Under float32 the
+    # figures differed because the plotted data differed.
     Image.MAX_IMAGE_PIXELS = None
     with Image.open(base) as ia, Image.open(cand) as ib:
         if ia.size != ib.size:
@@ -361,10 +345,16 @@ def compare_png(base: Path, cand: Path) -> tuple[str, str]:
     d = np.abs(aa - bb)
     if d.max() == 0:
         return PASS, "pixel-identical"
+    # Two independent float64 runs produce all 12 figures byte-identical, so any
+    # pixel difference means either the plotted data changed or the environment
+    # did -- both worth stopping for. The magnitude is still reported so a
+    # sub-pixel render difference can be told apart from a changed curve.
     mean = float(d.mean())
     frac = float((d.max(axis=2) > 0).mean())
-    detail = f"mean|d|={mean:.4f}, {frac:.3%} of pixels differ, max={int(d.max())}"
-    return (WARN, detail) if mean < PNG_WARN_MEAN_ABS_DIFF else (FAIL, detail)
+    scale = "sub-perceptual" if mean < PNG_PERCEPTUAL_MEAN_ABS_DIFF else "visible"
+    return FAIL, (
+        f"{scale}: mean|d|={mean:.4f}, {frac:.3%} of pixels differ, max={int(d.max())}"
+    )
 
 
 def compare_pdf(base: Path, cand: Path) -> tuple[str, str]:
@@ -381,18 +371,16 @@ def compare_jsonl(base: Path, cand: Path, rel: str = "") -> tuple[str, str]:
     lb = [strip_volatile(json.loads(x)) for x in cand.read_text().splitlines() if x.strip()]
     if len(la) != len(lb):
         return FAIL, f"{len(la)} vs {len(lb)} records"
-    rtol = NOISE_TOLERANT_FILES.get(rel, JSON_RTOL)
-    noted = " [noise-tolerant]" if rel in NOISE_TOLERANT_FILES else ""
     affected = 0
     for i, (x, y) in enumerate(zip(la, lb)):
-        diffs = compare_json_obj(x, y, f"[{i}]", rtol=rtol)
+        diffs = compare_json_obj(x, y, f"[{i}]")
         if diffs:
             return FAIL, "; ".join(diffs[:3])
         if x != y:
             affected += 1
     if affected:
         return PASS, (
-            f"{len(la)} records within tolerance{noted} ({affected} differ at the float floor)"
+            f"{len(la)} records equal within float epsilon ({affected} differ in the last bits)"
         )
     return PASS, f"{len(la)} records identical (volatile keys ignored)"
 

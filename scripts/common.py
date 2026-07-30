@@ -63,6 +63,38 @@ PLOT_STYLE_RC: dict[str, object] = {
 _PC_RE = re.compile(r"^PC(\d+)(?:_AVG)?$")
 
 # ---------------------------------------------------------------------------
+# Numeric precision
+# ---------------------------------------------------------------------------
+
+#: dtype for the matrices HDBSCAN and the GMM are fitted on.
+#:
+#: This was float32 through the run that produced the original results, which
+#: made the pipeline numerically fragile in a measurable way. float32 carries
+#: ~7 decimal digits, so summing 181,817 per-sample log-likelihoods surfaces the
+#: reduction order used by multi-threaded BLAS: independent runs of the k=2..100
+#: search disagreed on 15-18 of the 99 candidates by up to 11.27 BIC units, and
+#: with n_init=3 that was occasionally enough to flip which EM restart won.
+#:
+#: In float64 the same fits are bit-identical across independent processes with
+#: BLAS threading left on (measured 5/5 at the two k values that wobble in
+#: float32), so determinism no longer requires pinning thread counts.
+#:
+#: Changing this is NOT a refactor. float32 and float64 disagree strongly about
+#: which model is best -- the BIC curve reshuffles rather than shifts (per-k
+#: differences from -2222 to +2237, mean |d| 195) and the selected k moves from
+#: 26 to 25, which renumbers every component and therefore changes the merged
+#: partition, the mainland set, the rank cut and every keep-list. The search
+#: also costs ~2.3x more compute.
+COMPUTE_DTYPE = np.float64
+
+#: dtype for posterior probabilities and confidences written to disk.
+#:
+#: Also float32 originally, which meant the confidence thresholds (0.80..0.99)
+#: were applied to values already rounded to ~7 digits. Kept equal to
+#: COMPUTE_DTYPE so a stored posterior is the one that was computed.
+STORE_DTYPE = np.float64
+
+# ---------------------------------------------------------------------------
 # PC column handling
 # ---------------------------------------------------------------------------
 

@@ -37,6 +37,7 @@ from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
 from scripts.common import (
+    STORE_DTYPE,
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     build_distinct_palette as _build_distinct_palette,
 )
@@ -273,7 +274,7 @@ def run_our_assignment_to_merged_gmm(
     probs_merged_our = probs_merged_our / row_sums
 
     assigned_merged = np.argmax(probs_merged_our, axis=1).astype(int)
-    assignment_conf = np.max(probs_merged_our, axis=1).astype(np.float32)
+    assignment_conf = np.max(probs_merged_our, axis=1).astype(STORE_DTYPE)
 
     fid_col = "#FID" if "#FID" in our_samples.columns else ("FID" if "FID" in our_samples.columns else None)
     meta_cols = [c for c in [fid_col, "IID"] if c is not None and c in our_samples.columns]
@@ -285,7 +286,7 @@ def run_our_assignment_to_merged_gmm(
     df_results["Assigned_Merged_Cluster"] = assigned_merged
     df_results["Assignment_Confidence"] = assignment_conf
     for m in range(int(new_k)):
-        df_results[f"Prob_Merge_Cluster_{m}"] = probs_merged_our[:, m].astype(np.float32)
+        df_results[f"Prob_Merge_Cluster_{m}"] = probs_merged_our[:, m].astype(STORE_DTYPE)
 
     out_dir = Path(str(config.output_dir))
     out_dir.mkdir(parents=True, exist_ok=True)

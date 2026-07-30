@@ -90,14 +90,28 @@ MERGE_THRESHOLD_SENSITIVITY: dict[float, str] = {2.5: "STEP3_tmp"}
 # STEP4_tmp / STEP5 -- mainland rank progression and the cut
 # ---------------------------------------------------------------------------
 
-# Number of mainland pre-merge components ranked by case/control ratio.
-MAINLAND_MAX_RANK = 17
+# There is deliberately no MAINLAND_MAX_RANK constant. How many mainland
+# components exist is a property of the fitted model -- 17 under the previous
+# float32 run, 16 under float64 -- so STEP4_tmp discovers it from the mainland
+# component list (which gmm_component_merging already derives automatically via
+# "merged cluster with the most pre-merge components, ties to the smallest id").
+# A literal here went stale the moment the model changed.
 
-# The cut. STEP4_tmp is forced to this rank rather than using its Pareto-auto
-# choice, and STEP5 reads the rank back off STEP4_tmp's output and asserts it
-# matches -- so the value is stated exactly once and verified, not copied.
-# At k=9 this selects components {0, 2, 3, 7, 12, 14, 18, 24, 25}.
-MAINLAND_RANK_K = 9
+# The rank cut: how many of the ranked mainland components are merged into the
+# Mainland Subcluster.
+#
+# This is a HUMAN decision, stated here and nowhere else. STEP5 reads the rank
+# back off STEP4_tmp's output and asserts it matches, so the value cannot drift
+# between the two steps.
+#
+# Set to None to hand the choice to STEP4_tmp's Pareto analysis instead
+# (Neff vs PC1-2 heterogeneity). That is a one-line change and the notebook
+# handles it -- no assertion fires, the chosen rank is printed instead.
+#
+# Currently forced to 9. Note that under the float64 model the Pareto analysis
+# would pick rank 5 (both Distance_To_Ideal and Utility_NeffMinusHet point
+# there); 9 is a deliberate override, not an oversight. See README.
+MAINLAND_RANK_K: int | None = 9
 
 # ---------------------------------------------------------------------------
 # STEP8 / STEP9 -- confidence thresholds
