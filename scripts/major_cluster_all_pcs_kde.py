@@ -31,6 +31,8 @@ from scipy.stats import mannwhitneyu, ttest_ind
 
 
 from scripts.common import (
+    to_numeric_series,
+    to_numeric_array,
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     bh_fdr_adjust as _bh_fdr_adjust,
     pc_sort_key as _pc_sort_key,
@@ -94,7 +96,7 @@ def run_major_cluster_all_pcs_kde(
         raise ValueError("major_cluster_component_ids is empty; pass the set derived by component merging.")
 
     df_join = study_df.merge(df_results, on="IID", how="inner", suffixes=("", "_result"))
-    df_join["Assigned_Merged_Cluster"] = pd.to_numeric(df_join["Assigned_Merged_Cluster"], errors="coerce").fillna(-1).astype(int)
+    df_join["Assigned_Merged_Cluster"] = to_numeric_series(df_join["Assigned_Merged_Cluster"]).fillna(-1).astype(int)
     df_major_cluster = df_join.loc[df_join["Assigned_Merged_Cluster"].isin(mainland_ids)].copy()
 
     case_set = set(map(str, case_iids))
@@ -120,12 +122,16 @@ def run_major_cluster_all_pcs_kde(
     for col in pc_cols:
         pc_num = int(_pc_sort_key(col))
         var = float(var_lookup.get(pc_num, np.nan))
-        x_ctrl = pd.to_numeric(df_ctrl[col], errors="coerce").to_numpy(dtype=float, copy=False)
-        x_case = pd.to_numeric(df_case[col], errors="coerce").to_numpy(dtype=float, copy=False)
+        x_ctrl = to_numeric_array(df_ctrl[col])
+        x_case = to_numeric_array(df_case[col])
         x_ctrl = x_ctrl[np.isfinite(x_ctrl)]
         x_case = x_case[np.isfinite(x_case)]
-        t_res = ttest_ind(x_case, x_ctrl, equal_var=False, nan_policy="omit")
-        u_res = mannwhitneyu(x_case, x_ctrl, alternative="two-sided")
+        # scipy builds these result classes with _make_tuple_bunch, so its stubs
+        # expose neither .statistic/.pvalue nor usable element types -- unpacking
+        # only moves the complaint to float(). Annotating as Any is the honest
+        # remedy for a third-party stub gap; the attributes exist at runtime.
+        t_res: Any = ttest_ind(x_case, x_ctrl, equal_var=False, nan_policy="omit")
+        u_res: Any = mannwhitneyu(x_case, x_ctrl, alternative="two-sided")
         test_rows.append(
             {
                 "pc": f"PC{pc_num}",
@@ -175,8 +181,8 @@ def run_major_cluster_all_pcs_kde(
 
         for i, col in enumerate(pc_cols, start=1):
             ax = axes[(i - 1) // n_cols][(i - 1) % n_cols]
-            x_ctrl = pd.to_numeric(df_ctrl[col], errors="coerce").to_numpy(dtype=float, copy=False)
-            x_case = pd.to_numeric(df_case[col], errors="coerce").to_numpy(dtype=float, copy=False)
+            x_ctrl = to_numeric_array(df_ctrl[col])
+            x_case = to_numeric_array(df_case[col])
             x_ctrl = x_ctrl[np.isfinite(x_ctrl)]
             x_case = x_case[np.isfinite(x_case)]
             if x_ctrl.size > 1:

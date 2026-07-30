@@ -19,6 +19,12 @@ Outputs
 Per-sample posterior table, component rank table, and a four-panel figure.
 """
 
+# NOTE on the `pyright: ignore` comments below:
+# pandas-stubs types these column-name arguments as SequenceNotStr, whose
+# index() must accept keyword arguments -- list.index is positional-only, so
+# no list literal can ever satisfy it. Passing a list of column names is the
+# documented pandas usage; the stub is wrong, not the call.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -37,6 +43,7 @@ from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
 from scripts.common import (
+    to_numeric_series,
     STORE_DTYPE,
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     build_distinct_palette as _build_distinct_palette,
@@ -149,7 +156,7 @@ def _build_merged_cluster_palette(
     if isinstance(merge_map, pd.DataFrame) and ("Merged_Cluster" in merge_map.columns):
         if "Merged_Cluster_Color" in merge_map.columns:
             tmp = (
-                merge_map[["Merged_Cluster", "Merged_Cluster_Color"]]
+                merge_map[["Merged_Cluster", "Merged_Cluster_Color"]]  # pyright: ignore[reportCallIssue]
                 .dropna()
                 .drop_duplicates(subset=["Merged_Cluster"])
                 .sort_values("Merged_Cluster")
@@ -206,7 +213,7 @@ def _extract_major_cluster_component_ids(merge_map: pd.DataFrame | None) -> list
     except Exception:
         return []
 
-    vals = pd.to_numeric(merge_map.loc[mask, "GMM_Component"], errors="coerce").dropna().astype(int)
+    vals = to_numeric_series(merge_map.loc[mask, "GMM_Component"]).dropna().astype(int)
     if vals.empty:
         return []
 
@@ -269,7 +276,8 @@ def run_cohort_assignment(
     fid_col = "#FID" if "#FID" in study_samples.columns else ("FID" if "FID" in study_samples.columns else None)
     meta_cols = [c for c in [fid_col, "IID"] if c is not None and c in study_samples.columns]
 
-    df_results = study_samples[meta_cols + pc_cols_used[:2]].copy() if meta_cols else study_samples[pc_cols_used[:2]].copy()
+    # meta_cols may be empty, in which case `[] + pc_cols` is just `pc_cols`.
+    df_results = cast(pd.DataFrame, study_samples[meta_cols + pc_cols_used[:2]]).copy()
     if fid_col == "#FID":
         df_results = df_results.rename(columns={"#FID": "FID"})
 
@@ -305,8 +313,8 @@ def run_cohort_assignment(
         study_iid = study_samples["IID"].astype(str)
         case_set = set(str(x) for x in case_iids)
         ctrl_set = set(str(x) for x in control_iids)
-        is_case = study_iid.isin(case_set).to_numpy()
-        is_ctrl = study_iid.isin(ctrl_set).to_numpy()
+        is_case = study_iid.isin(list(case_set)).to_numpy()
+        is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
         is_other = ~(is_case | is_ctrl)
 
         try:

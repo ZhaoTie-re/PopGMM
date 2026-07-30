@@ -17,11 +17,17 @@ Outputs
 Per-sample posterior table, group summary JSON, and an assignment figure.
 """
 
+# NOTE on the `pyright: ignore` comments below:
+# pandas-stubs types these column-name arguments as SequenceNotStr, whose
+# index() must accept keyword arguments -- list.index is positional-only, so
+# no list literal can ever satisfy it. Passing a list of column names is the
+# documented pandas usage; the stub is wrong, not the call.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 import json
 
 import matplotlib.gridspec as gridspec
@@ -226,7 +232,8 @@ def run_subcluster_assignment(
     fid_col = "#FID" if "#FID" in study_samples.columns else ("FID" if "FID" in study_samples.columns else None)
     meta_cols = [c for c in [fid_col, "IID"] if c is not None and c in study_samples.columns]
 
-    df_results = study_samples[meta_cols + pc_cols_used[:2]].copy() if meta_cols else study_samples[pc_cols_used[:2]].copy()
+    # meta_cols may be empty, in which case `[] + pc_cols` is just `pc_cols`.
+    df_results = cast(pd.DataFrame, study_samples[meta_cols + pc_cols_used[:2]]).copy()
     if fid_col == "#FID":
         df_results = df_results.rename(columns={"#FID": "FID"})
 
@@ -277,8 +284,8 @@ def run_subcluster_assignment(
         study_iid = study_samples["IID"].astype(str)
         case_set = set(str(x) for x in case_iids)
         ctrl_set = set(str(x) for x in control_iids)
-        is_case = study_iid.isin(case_set).to_numpy()
-        is_ctrl = study_iid.isin(ctrl_set).to_numpy()
+        is_case = study_iid.isin(list(case_set)).to_numpy()
+        is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
         is_other = ~(is_case | is_ctrl)
 
         try:
@@ -395,7 +402,7 @@ def run_subcluster_assignment(
         ax4.set_title("D. Assignment Statistics (Recomputed Posterior)", loc="center", pad=40, fontweight="bold")
 
         df_cc = pd.DataFrame({"Group": assigned_group, "Case": is_case.astype(int), "Control": is_ctrl.astype(int)})
-        stats = pd.DataFrame(index=group_order)
+        stats = pd.DataFrame(index=group_order)  # pyright: ignore[reportArgumentType]
         stats["Case"] = df_cc.groupby("Group")["Case"].sum().reindex(group_order).fillna(0).astype(int)
         stats["Control"] = df_cc.groupby("Group")["Control"].sum().reindex(group_order).fillna(0).astype(int)
         stats["Total"] = df_cc.groupby("Group").size().reindex(group_order).fillna(0).astype(int)

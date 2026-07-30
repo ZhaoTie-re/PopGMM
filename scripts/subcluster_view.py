@@ -27,6 +27,7 @@ import pandas as pd
 import seaborn as sns
 
 from scripts.common import resolve_pc_columns as _shared_resolve_pc_columns
+from scripts.common import to_numeric_array
 
 
 def _resolve_pc_columns(df: pd.DataFrame) -> list[str]:
@@ -119,12 +120,12 @@ def run_subcluster_view(
     )
     n_unlabeled = int((df_subcluster["Group"].astype(str) == "").sum())
 
-    confidence = pd.to_numeric(df_subcluster[confidence_col], errors="coerce").to_numpy(dtype=np.float32, copy=False)
+    confidence = to_numeric_array(df_subcluster[confidence_col], np.float32)
     if not np.isfinite(confidence).all():
         raise ValueError("Selected mainland_subcluster subset contains invalid assignment confidence values.")
 
-    study_pc1 = pd.to_numeric(df_subcluster[pc_cols[0]], errors="coerce").to_numpy(dtype=np.float64, copy=False)
-    study_pc2 = pd.to_numeric(df_subcluster[pc_cols[1]], errors="coerce").to_numpy(dtype=np.float64, copy=False)
+    study_pc1 = to_numeric_array(df_subcluster[pc_cols[0]])
+    study_pc2 = to_numeric_array(df_subcluster[pc_cols[1]])
     if not np.isfinite(study_pc1).all() or not np.isfinite(study_pc2).all():
         raise ValueError("Selected mainland_subcluster subset contains invalid PC coordinates.")
 

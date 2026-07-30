@@ -125,8 +125,8 @@ def write_keep_lists(
         paths[variant.name] = path
 
         iid_str = frame[config.iid_col].astype(str)
-        n_case = int(iid_str.isin(case_set).sum())
-        n_control = int(iid_str.isin(control_set).sum())
+        n_case = int(iid_str.isin(list(case_set)).sum())
+        n_control = int(iid_str.isin(list(control_set)).sum())
 
         pc_cols = resolve_pc_columns(frame)[:2]
         xy = frame[pc_cols].to_numpy(dtype=np.float64, copy=False) if len(pc_cols) == 2 else np.empty((0, 2))

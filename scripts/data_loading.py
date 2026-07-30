@@ -20,6 +20,12 @@ In memory only: eigenvalues with variance-explained, the two sample frames, and
 the case/control IID lists.
 """
 
+# NOTE on the `pyright: ignore` comments below:
+# pandas-stubs types these column-name arguments as SequenceNotStr, whose
+# index() must accept keyword arguments -- list.index is positional-only, so
+# no list literal can ever satisfy it. Passing a list of column names is the
+# documented pandas usage; the stub is wrong, not the call.
+
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -28,6 +34,9 @@ import gc
 from typing import Any, Literal
 
 import pandas as pd
+
+from scripts.common import to_numeric_series
+
 
 @dataclass(frozen=True)
 class DataLoadingConfig:
@@ -91,7 +100,7 @@ def _resolve_usecols(requested: tuple[str, ...], available_cols: list[str]) -> t
 
 def _load_eigenval(eigenval_path: str | Path) -> pd.DataFrame:
     eigenval = pd.read_csv(eigenval_path, header=None, names=["eigenvalue"])
-    eigenval["eigenvalue"] = pd.to_numeric(eigenval["eigenvalue"], errors="coerce")
+    eigenval["eigenvalue"] = to_numeric_series(eigenval["eigenvalue"])
     eigenval = eigenval.dropna(subset=["eigenvalue"]).reset_index(drop=True)
     eigenval["variance_explained"] = eigenval["eigenvalue"] / eigenval["eigenvalue"].sum()
     eigenval["cumulative_variance"] = eigenval["variance_explained"].cumsum()
@@ -153,10 +162,10 @@ def load_cohort_samples(
     row_count_read = 0
 
     chunk = pd.DataFrame()
-    for raw_chunk in pd.read_csv(
+    for raw_chunk in pd.read_csv(  # pyright: ignore[reportCallIssue]
         sscore_path,
         sep=config.sep,
-        usecols=usecols_resolved,
+        usecols=usecols_resolved,  # pyright: ignore[reportArgumentType]
         chunksize=config.chunksize,
     ):
         chunk_count += 1
@@ -177,7 +186,7 @@ def load_cohort_samples(
 
         parts.append(chunk.loc[keep_mask].copy())
 
-    cohort_samples = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=list(rename_map.values()))
+    cohort_samples = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=list(rename_map.values()))  # pyright: ignore[reportArgumentType]
 
     del parts
     del chunk
@@ -271,7 +280,7 @@ def load_study_samples_with_case_control(
         return samples, [], []
 
     pheno_raw = samples[phenotype_column]
-    pheno_num = pd.to_numeric(pheno_raw, errors="coerce")
+    pheno_num = to_numeric_series(pheno_raw)
     pheno_str = pheno_raw.astype(str).str.strip().str.lower()
 
     def _mask_for(target: Any) -> pd.Series:
@@ -279,7 +288,7 @@ def load_study_samples_with_case_control(
             return pd.Series(False, index=samples.index)
 
         target_str = str(target).strip().lower()
-        target_num = pd.to_numeric(pd.Series([target]), errors="coerce").iloc[0]
+        target_num = to_numeric_series(pd.Series([target])).iloc[0]
 
         mask = pd.Series(False, index=samples.index)
         if target_str != "":
@@ -336,10 +345,10 @@ def load_reference_data(
     row_count_read = 0
 
     chunk = pd.DataFrame()
-    for raw_chunk in pd.read_csv(
+    for raw_chunk in pd.read_csv(  # pyright: ignore[reportCallIssue]
         sscore_path,
         sep=config.sep,
-        usecols=usecols_resolved,
+        usecols=usecols_resolved,  # pyright: ignore[reportArgumentType]
         chunksize=config.chunksize,
     ):
         chunk_count += 1
@@ -349,7 +358,7 @@ def load_reference_data(
         reference_mask = chunk["IID"].astype(str).str.startswith(config.reference_iid_prefix)
         reference_parts.append(chunk.loc[reference_mask].copy())
 
-    reference_samples = pd.concat(reference_parts, ignore_index=True) if reference_parts else pd.DataFrame(columns=list(rename_map.values()))
+    reference_samples = pd.concat(reference_parts, ignore_index=True) if reference_parts else pd.DataFrame(columns=list(rename_map.values()))  # pyright: ignore[reportArgumentType]
 
     del reference_parts
     del chunk

@@ -22,6 +22,14 @@ Merge map, pairwise distance table, merged sample table, merged posteriors,
 major-cluster reference, merge summary JSON, and a 2x2 overview figure.
 """
 
+# NOTE on the `pyright: ignore` comments below:
+# pandas-stubs types these column-name arguments as SequenceNotStr, whose
+# index() must accept keyword arguments -- list.index is positional-only, so
+# no list literal can ever satisfy it. Passing a list of column names is the
+# documented pandas usage; the stub is wrong, not the call. The one on the
+# .map() call is a second stub gap of the same character: Series.map is
+# documented to accept a Mapping, but the stub declares only a callable.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -675,7 +683,7 @@ def run_gmm_component_merging(
     dist_matrix = _pairwise_pooled_mahalanobis(means_all, cov_raw)
 
     component_labels = [str(i) for i in range(int(old_k))]
-    dist_df = pd.DataFrame(dist_matrix, index=component_labels, columns=component_labels)
+    dist_df = pd.DataFrame(dist_matrix, index=component_labels, columns=component_labels)  # pyright: ignore[reportArgumentType]
 
     dists_condensed = squareform(dist_matrix, checks=False)
     linkage_method = str(config.linkage_method)
@@ -724,7 +732,7 @@ def run_gmm_component_merging(
     # Define a reproducible "mainland" merged cluster and its representative
     # pre-merge cluster ID for downstream tracking.
     merged_component_stats = (
-        merge_map.groupby("Merged_Cluster", as_index=False)
+        merge_map.groupby("Merged_Cluster", as_index=False)  # pyright: ignore[reportCallIssue]
         .agg(
             Merged_Component_Count=("GMM_Component", "count"),
         )
@@ -749,7 +757,7 @@ def run_gmm_component_merging(
     # Store merged-cluster colors (Panel C palette) for reproducibility.
     _palette_rgba, palette_hex = _build_merged_cluster_palette(int(new_k), config)
     merged_cluster_to_hex = {int(k): str(palette_hex[int(k)]) for k in range(int(new_k))}
-    merge_map["Merged_Cluster_Color"] = merge_map["Merged_Cluster"].map(merged_cluster_to_hex)
+    merge_map["Merged_Cluster_Color"] = merge_map["Merged_Cluster"].map(merged_cluster_to_hex)  # pyright: ignore[reportArgumentType]
 
     out_dir = Path(str(config.output_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
