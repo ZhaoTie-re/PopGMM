@@ -1,0 +1,29 @@
+{
+  "old_k": 26,
+  "new_k": 8,
+  "covariance_type": "full",
+  "distance_metric": "mahalanobis_between_component_means",
+  "covariance_for_distance": "pairwise_average_component_covariance",
+  "pairwise_covariance_formula": "S_ij=0.5*(Sigma_i+Sigma_j)",
+  "linkage_method": "average",
+  "merge_threshold": 4.0,
+  "pc_columns_used": [
+    "PC1_AVG",
+    "PC2_AVG"
+  ],
+  "mainland_merged_cluster_id": 3,
+  "mainland_premerge_cluster_id": 0,
+  "mainland_premerge_cluster_ids": [
+    0,
+    4,
+    5,
+    8,
+    10,
+    12,
+    18,
+    22
+  ],
+  "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
+  "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id",
+  "output_rows": 181815
+}

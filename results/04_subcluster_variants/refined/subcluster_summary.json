@@ -7,6 +7,7 @@
     12,
     13,
     16,
+    18,
     19,
     22
   ],
@@ -18,6 +19,7 @@
     12,
     13,
     16,
+    18,
     19,
     22
   ],
@@ -26,7 +28,6 @@
     8,
     10,
     11,
-    18,
     20,
     21
   ],
@@ -42,7 +43,6 @@
     14,
     15,
     17,
-    18,
     20,
     21,
     23,
@@ -61,7 +61,6 @@
     14,
     15,
     17,
-    18,
     20,
     21,
     23,
@@ -70,7 +69,7 @@
   ],
   "custom_group_label": "Mainland Subcluster",
   "custom_group_color": "#E67E22",
-  "n_groups": 18,
+  "n_groups": 17,
   "rows": 3571,
   "workflow_name": "mainland_subcluster_reassignment"
 }

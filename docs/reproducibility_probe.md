@@ -27,8 +27,7 @@ The 9 artifacts that are not raw byte-identical differ *only* in:
 
 - embedded UTC timestamps — the four `01_reference_model/mixture_model/tmp/` audit files
   (`timestamp_utc`, `generated_at_utc`, `elapsed_seconds`, and the
-  `- Generated (UTC):` line of the report) and `/CreationDate` in
-  `03_rank_selection/rank_selection_tradeoff.pdf`;
+  `- Generated (UTC):` line of the report);
 - the results-root path they record — the `*_all_pcs_kde.log` files echo
   their own `output_dir`, and `provenance/run_config_snapshot.json` stores it per stage.
 
