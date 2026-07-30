@@ -90,7 +90,7 @@ class CohortAssignmentConfig:
         Print structured logs.
     """
 
-    output_dir: str = "results/02_cohort_assignment"
+    output_dir: str | Path = "results/02_cohort_assignment"
     save_plot: bool = True
     show_plot: bool = False
     save_tables: bool = True

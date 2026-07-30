@@ -46,7 +46,7 @@ class SubclusterAllPCsKDEOutput(NamedTuple):
 
 @dataclass(frozen=True)
 class SubclusterAllPCsKDEConfig:
-    output_dir: str = "results/04_subcluster_variants/refined"
+    output_dir: str | Path = "results/04_subcluster_variants/refined"
     save_plot: bool = True
     show_plot: bool = False
     figure_file: str = "subcluster_all_pcs_kde.png"

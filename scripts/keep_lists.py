@@ -45,7 +45,7 @@ class KeepListOutput(NamedTuple):
 @dataclass(frozen=True)
 class KeepListConfig:
     #: Directory the lists and the summary are written to.
-    output_dir: str = "results/keep_lists"
+    output_dir: str | Path = "results/keep_lists"
 
     #: Name of the comparison table.
     summary_file: str = "keep_list_summary.tsv"

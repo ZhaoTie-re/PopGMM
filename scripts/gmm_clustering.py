@@ -115,7 +115,7 @@ class GMMConfig:
     search_max_samples: int = 60000
     search_workers: int = 4
     require_non_empty_clusters: bool = True
-    output_dir: str = "results/01_reference_model/mixture_model"
+    output_dir: str | Path = "results/01_reference_model/mixture_model"
     save_plot: bool = True
     save_tables: bool = True
     verbose: bool = True

@@ -111,7 +111,7 @@ class HDBSCANConfig:
     algorithm: str = "best"
     approx_min_span_tree: bool = True
     gen_min_span_tree: bool = False
-    output_dir: str = "results/01_reference_model/denoising"
+    output_dir: str | Path = "results/01_reference_model/denoising"
     save_plot: bool = True
     save_tables: bool = True
     verbose: bool = True

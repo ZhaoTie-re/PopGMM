@@ -49,7 +49,7 @@ class MajorClusterAllPCsKDEOutput(NamedTuple):
 
 @dataclass(frozen=True)
 class MajorClusterAllPCsKDEConfig:
-    output_dir: str = "results/02_cohort_assignment"
+    output_dir: str | Path = "results/02_cohort_assignment"
     save_plot: bool = True
     show_plot: bool = False
     figure_file: str = "major_cluster_all_pcs_kde.png"

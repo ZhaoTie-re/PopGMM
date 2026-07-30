@@ -131,7 +131,7 @@ class GMMComponentMergingConfig:
 
     merge_threshold: float = 5.0
     linkage_method: Literal["average", "complete", "single", "ward"] = "average"
-    output_dir: str = "results/01_reference_model/component_merging"
+    output_dir: str | Path = "results/01_reference_model/component_merging"
     save_plot: bool = True
     show_plot: bool = False
     save_tables: bool = True
