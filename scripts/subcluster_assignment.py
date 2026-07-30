@@ -53,7 +53,7 @@ class SubclusterAssignmentOutput(NamedTuple):
 # Backward-compatible alias.
 @dataclass(frozen=True)
 class SubclusterAssignmentConfig:
-    output_dir: str = "results/04_subcluster_variants/refined"
+    output_dir: str | Path = "results/04_subcluster_variants/refined"
     save_plot: bool = True
     show_plot: bool = False
     save_tables: bool = True

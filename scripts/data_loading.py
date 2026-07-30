@@ -23,6 +23,7 @@ the case/control IID lists.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from pathlib import Path
 import gc
 from typing import Any, Literal
 
@@ -88,7 +89,7 @@ def _resolve_usecols(requested: tuple[str, ...], available_cols: list[str]) -> t
     return resolved, rename_map
 
 
-def _load_eigenval(eigenval_path: str) -> pd.DataFrame:
+def _load_eigenval(eigenval_path: str | Path) -> pd.DataFrame:
     eigenval = pd.read_csv(eigenval_path, header=None, names=["eigenvalue"])
     eigenval["eigenvalue"] = pd.to_numeric(eigenval["eigenvalue"], errors="coerce")
     eigenval = eigenval.dropna(subset=["eigenvalue"]).reset_index(drop=True)
@@ -109,7 +110,7 @@ def _prefix_mask(values: pd.Series, prefixes: tuple[str, ...]) -> pd.Series:
 
 
 def load_cohort_samples(
-    sscore_path: str,
+    sscore_path: str | Path,
     config: DataLoadingConfig | None = None,
 ) -> pd.DataFrame:
     """Load cohort samples only (chunked), without reading eigenval.
@@ -216,7 +217,7 @@ def load_cohort_samples(
 
 
 def load_study_samples_with_case_control(
-    sscore_path: str,
+    sscore_path: str | Path,
     phenotype_column: str | None = None,
     case_value: Any | None = None,
     control_value: Any | None = None,
@@ -300,8 +301,8 @@ def load_study_samples_with_case_control(
 
 
 def load_reference_data(
-    eigenval_path: str,
-    sscore_path: str,
+    eigenval_path: str | Path,
+    sscore_path: str | Path,
     config: DataLoadingConfig | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     config = config or DataLoadingConfig()
@@ -401,8 +402,8 @@ def load_reference_data(
 
 def load_reference_and_study(
     *,
-    eigenval_path: str,
-    sscore_path: str,
+    eigenval_path: str | Path,
+    sscore_path: str | Path,
     config: DataLoadingConfig | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], list[str]]:
     """Load both cohorts in one call from a single config.

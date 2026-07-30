@@ -46,7 +46,7 @@ class SubclusterViewOutput(NamedTuple):
 
 @dataclass(frozen=True)
 class SubclusterViewConfig:
-    output_dir: str = "results/04_subcluster_variants/refined"
+    output_dir: str | Path = "results/04_subcluster_variants/refined"
     figure_file: str = "subcluster_view.png"
 
     group_label: str = "Mainland Subcluster"

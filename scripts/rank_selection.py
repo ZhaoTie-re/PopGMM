@@ -56,7 +56,7 @@ class RankSelectionOutput(NamedTuple):
 class RankSelectionConfig:
     """Configuration for the rank-selection trade-off analysis."""
 
-    output_dir: str = "results/03_rank_selection"
+    output_dir: str | Path = "results/03_rank_selection"
     rank_table_file: str = "component_rank_table.tsv"
     cumulative_table_file: str = "rank_cumulative_metrics.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
