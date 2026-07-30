@@ -28,14 +28,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, NamedTuple
 import json
-import re
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.colors import Normalize, PowerNorm, to_hex, to_rgba
-from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.cluster.hierarchy import dendrogram, fcluster, linkage, to_tree
 from scipy.spatial.distance import squareform
@@ -44,8 +42,6 @@ from sklearn.mixture import GaussianMixture
 from scripts.common import (
     build_distinct_palette as _build_distinct_palette,
     format_pc_axis_label as _shared_format_pc_axis_label,
-    pc_index_from_col as _pc_index_from_col,
-    pc_sort_key as _pc_sort_key,
     resolve_pc_columns as _resolve_pc_columns,
 )
 

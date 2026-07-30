@@ -18,7 +18,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
-import re
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -27,7 +26,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from scripts.common import pc_sort_key as _pc_sort_key
 from scripts.common import resolve_pc_columns as _shared_resolve_pc_columns
 
 
@@ -58,7 +56,6 @@ class SubclusterViewConfig:
     case_label: str = "Case"
     control_label: str = "Control"
 
-    group_color: str = "#E67E22"
     reference_color: str = "#B0B0B0"
     reference_alpha: float = 0.20
     study_point_size: float = 60.0

@@ -30,7 +30,6 @@ import seaborn as sns
 from scripts.common import (
     PLOT_STYLE_RC as _PLOT_STYLE_RC,
     bh_fdr_adjust as _bh_fdr_adjust,
-    format_template as _format_template,
     resolve_all_pc_columns as _resolve_all_pc_columns,
     safe_stats as _safe_stats,
     setup_file_logger as _setup_file_logger,

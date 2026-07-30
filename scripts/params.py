@@ -163,6 +163,3 @@ def threshold_robustness_dir(threshold: float) -> Path:
     return THRESHOLD_ROBUSTNESS_DIR / f"threshold_{threshold:.1f}".replace(".", "p")
 
 
-def keep_list_path(variant: str) -> Path:
-    """Path of the deliverable sample list for a variant ('full' included)."""
-    return KEEP_LIST_DIR / f"{variant}_{MAJOR_CLUSTER_DISPLAY_NAME.lower()}.fid_iid.txt"

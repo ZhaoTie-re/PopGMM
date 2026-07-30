@@ -162,7 +162,7 @@ $$
 | `fixed_n_pcs` | $d$ | Feature dimensionality (number of PCs) |
 | `k_min..k_max` | Candidate range of $K$ | Component-count search range for BIC |
 | `covariance_type` | Structure of $\Sigma_k$ | Covariance-form constraint |
-| `n_init` + `init_params` | Initialization | Mitigates local optima (`k-means++` by default) |
+| `n_init` + `init_params` | Initialization | Mitigates local optima. The committed run uses `n_init=3`, `init_params="kmeans"` (the notebook overrides the class default of `k-means++`) |
 | `tol` | Convergence threshold | Stop when $\Delta LB$ is below `tol` (sklearn default $10^{-3}$) |
 | `max_iter` | Iteration upper bound | Maximum EM iteration count |
 | `reg_covar` | $\lambda I$ | Covariance numerical stabilization |

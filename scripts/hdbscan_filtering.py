@@ -24,9 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
-import inspect
 import json
-import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,8 +36,6 @@ from scripts.common import (
     COMPUTE_DTYPE,
     STORE_DTYPE,
     format_pc_axis_label as _format_pc_axis_label,
-    pc_index_from_col as _pc_index_from_col,
-    pc_sort_key as _pc_sort_key,
     resolve_pc_columns as _resolve_pc_columns,
 )
 
@@ -98,8 +94,6 @@ class HDBSCANConfig:
         Save HDBSCAN overview figure.
     save_tables : bool
         Save non-noise sample table and summary JSON.
-    save_full_table : bool
-        Backward-compatibility flag; no extra table is written.
     verbose : bool
         Print structured runtime logs.
     """
@@ -120,7 +114,6 @@ class HDBSCANConfig:
     output_dir: str = "results/01_reference_model/denoising"
     save_plot: bool = True
     save_tables: bool = True
-    save_full_table: bool = False
     verbose: bool = True
 
 
@@ -133,7 +126,7 @@ def _standardize_inplace(x: np.ndarray) -> None:
 
 
 #: The one supported HDBSCAN backend. This pipeline is pinned to
-#: python-hdbscan (see requirements.txt) rather than accepting whichever
+#: python-hdbscan (see environment.yml) rather than accepting whichever
 #: implementation happens to be importable.
 #:
 #: There used to be a fallback to sklearn.cluster.HDBSCAN behind a bare
@@ -175,7 +168,7 @@ def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any]
     except ImportError as exc:
         raise ImportError(
             "python-hdbscan is required and is not installed. This pipeline is "
-            "pinned to it (requirements.txt: hdbscan==0.8.42); "
+            "pinned to it (environment.yml: hdbscan==0.8.42); "
             "sklearn.cluster.HDBSCAN is NOT an acceptable substitute because it "
             "produces a different noise set. Install it with "
             "`pip install hdbscan==0.8.42`."
@@ -527,7 +520,6 @@ def run_hdbscan_denoise(
         print(f"  gen_min_span_tree     : {config.gen_min_span_tree}")
         print(f"  use_zscale            : {config.use_zscale_hdbscan}")
         print(f"  save_plot             : {config.save_plot}")
-        print(f"  save_full_table       : {config.save_full_table}")
         print(f"  output_dir            : {output_dir}")
         print("\n[RESULTS]")
         print("-" * 80)

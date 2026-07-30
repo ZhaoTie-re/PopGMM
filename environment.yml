@@ -1,13 +1,30 @@
 # Conda environment that produced the committed `results/` tree.
 #
-# The pipeline is driven from workflow.ipynb via a Jupyter kernel; the original
-# run used a conda env displayed as "digital_market". See requirements.txt for
-# why these pins are scientifically load-bearing rather than mere hygiene, and
-# docs/reproducibility_probe.md for the evidence that they reproduce.
-#
 #   conda env create -f environment.yml
 #   conda activate popgmm
 #   python -m ipykernel install --user --name popgmm --display-name popgmm
+#
+# This is the single dependency declaration. A parallel requirements.txt used to
+# exist and had already drifted -- it pinned `matplotlib` where this file pins
+# `matplotlib-base`, and carried no Python version. Two files stating the same
+# pins is how that happens; there is now one.
+#
+# The pins are scientifically load-bearing, not hygiene:
+#
+#   * hdbscan is REQUIRED. scripts/hdbscan_filtering.py is pinned to
+#     python-hdbscan and raises rather than falling back to
+#     sklearn.cluster.HDBSCAN, because the two do not agree on the noise set --
+#     a silent substitution would change the cohort while the summary file still
+#     reported the requested parameters.
+#   * scikit-learn drives GaussianMixture with init_params="kmeans", whose
+#     KMeans RNG stream and n_init defaults have changed across minor releases.
+#     That would move the selected component count and renumber every component,
+#     which the downstream rank cut refers to by id.
+#   * numpy/BLAS govern float reduction order. Computation is float64 precisely
+#     so that this stops mattering; see docs/reproducibility_probe.md for the
+#     measurement, and docs/environment_snapshot.txt for the exact machine.
+#
+# Every run also records its own versions to results/provenance/run_environment.json.
 
 name: popgmm
 
@@ -23,12 +40,13 @@ dependencies:
   - matplotlib-base=3.9.2
   - seaborn=0.13.2
   - joblib=1.5.3
+  # tools/verify_results.py only, for figure comparison
   - pillow=10.4.0
+  # notebook execution
   - ipykernel=6.29.5
   - nbconvert=7.16.4
   - pip
   - pip:
-      # Not on conda-forge at this pin. REQUIRED, not optional: without it
-      # scripts/hdbscan_filtering.py silently falls back to
-      # sklearn.cluster.HDBSCAN, which produces a different noise set.
+      # Not on conda-forge at this pin. See the note above -- this one is not
+      # optional.
       - hdbscan==0.8.42

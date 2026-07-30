@@ -108,139 +108,6 @@ def _prefix_mask(values: pd.Series, prefixes: tuple[str, ...]) -> pd.Series:
     return mask
 
 
-def load_cohort_data(
-    eigenval_path: str,
-    sscore_path: str,
-    config: DataLoadingConfig | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load a cohort from an .sscore file (chunked), optionally filtering by IID prefixes.
-
-    Notes
-    -----
-    This loader shares the same column auto-detection and renaming logic as
-    `load_bbj_data`, but can be used for non-BBJ cohorts as well.
-    """
-
-    config = config or DataLoadingConfig()
-
-    header_cols = pd.read_csv(sscore_path, sep=config.sep, nrows=0).columns.tolist()
-
-    # Auto-detect all PC columns if usecols is None
-    if config.usecols is None:
-        pc_cols = [col for col in header_cols if col.startswith("PC")]
-
-        def extract_pc_number(col: str) -> int:
-            col_base = col.replace("_AVG", "")
-            return int(col_base[2:]) if col_base[2:].isdigit() else 0
-
-        sorted_pcs = sorted(pc_cols, key=extract_pc_number)
-        extra_cols: list[str] = []
-        if config.phenotype_column and config.phenotype_column in header_cols:
-            extra_cols.append(config.phenotype_column)
-        requested_cols = ("#FID", "IID") + tuple(extra_cols) + tuple(sorted_pcs)
-    else:
-        requested_cols = config.usecols
-
-    usecols_resolved, rename_map = _resolve_usecols(requested_cols, header_cols)
-
-    if "IID" not in rename_map.values():
-        raise ValueError("IID column must be included in usecols.")
-
-    eigenval = _load_eigenval(eigenval_path)
-
-    mode = str(getattr(config, "iid_prefix_mode", "all")).lower()
-    prefixes = getattr(config, "iid_prefixes", None)
-    if prefixes is None:
-        prefixes = ()
-
-    reference_parts: list[pd.DataFrame] = []
-    chunk_count = 0
-    row_count_read = 0
-
-    chunk = pd.DataFrame()
-    for raw_chunk in pd.read_csv(
-        sscore_path,
-        sep=config.sep,
-        usecols=usecols_resolved,
-        chunksize=config.chunksize,
-    ):
-        chunk_count += 1
-        chunk = raw_chunk
-        row_count_read += len(chunk)
-        chunk = chunk.rename(columns=rename_map)
-
-        if mode == "all" or len(prefixes) == 0:
-            keep_mask = pd.Series(True, index=chunk.index)
-        else:
-            prefix_hit = _prefix_mask(chunk["IID"], prefixes)
-            if mode == "include":
-                keep_mask = prefix_hit
-            elif mode == "exclude":
-                keep_mask = ~prefix_hit
-            else:
-                raise ValueError(f"Unsupported iid_prefix_mode: {mode}")
-
-        reference_parts.append(chunk.loc[keep_mask].copy())
-
-    cohort_samples = (
-        pd.concat(reference_parts, ignore_index=True) if reference_parts else pd.DataFrame(columns=list(rename_map.values()))
-    )
-
-    del reference_parts
-    del chunk
-    gc.collect()
-
-    pc1_var = float(eigenval["variance_explained"].iloc[0]) if len(eigenval) >= 1 else 0.0
-    pc12_cum = float(eigenval["cumulative_variance"].iloc[1]) if len(eigenval) >= 2 else pc1_var
-    cohort_mem_mb = float(cohort_samples.memory_usage(deep=True).sum() / (1024 ** 2))
-
-    summary = {
-        "eigenvalues_shape": eigenval.shape,
-        "rows_read": row_count_read,
-        "cohort_samples_shape": cohort_samples.shape,
-        "pc1_explained": pc1_var,
-        "pc1_2_cumulative": pc12_cum,
-        "memory_cohort_mb": cohort_mem_mb,
-        "chunks_processed": chunk_count,
-        "iid_prefix_mode": mode,
-        "iid_prefixes": list(prefixes),
-    }
-
-    if config.verbose:
-        print("\n" + "=" * 80)
-        print("COHORT DATA LOADING".center(80))
-        print("=" * 80)
-
-        print("\n[INPUT CONFIGURATION]")
-        print("-" * 80)
-        print(f"  Eigenvalue path         : {eigenval_path}")
-        print(f"  Score file path         : {sscore_path}")
-        if config.usecols is None:
-            print("  Columns requested       : [AUTO-DETECTED ALL PCs]")
-        else:
-            print(f"  Columns requested       : {', '.join(config.usecols)}")
-        print(f"  Columns loaded          : {len(usecols_resolved)}")
-        print(f"  Chunk size              : {config.chunksize:,}")
-        print(f"  IID prefix mode         : {mode}")
-        if len(prefixes) == 0:
-            print("  IID prefixes            : [NONE]")
-        else:
-            print(f"  IID prefixes            : {', '.join(prefixes)}")
-
-        print("\n[DATA PROCESSING SUMMARY]")
-        print("-" * 80)
-        print(f"  Eigenvalues loaded      : {summary['eigenvalues_shape'][0]:,} PCs × {summary['eigenvalues_shape'][1]} metrics")
-        print(f"  Total rows processed    : {summary['rows_read']:,}")
-        print(f"  Cohort samples extracted: {summary['cohort_samples_shape'][0]:,} × {summary['cohort_samples_shape'][1]} cols")
-        print(f"  PC1 variance explained  : {summary['pc1_explained'] * 100:.2f}%")
-        print(f"  PC1-2 cumulative var.   : {summary['pc1_2_cumulative'] * 100:.2f}%")
-        print(f"  Memory footprint        : {summary['memory_cohort_mb']:.2f} MB")
-        print(f"  Chunks read             : {summary['chunks_processed']}")
-        print("=" * 80 + "\n")
-
-    return eigenval, cohort_samples
-
-
 def load_cohort_samples(
     sscore_path: str,
     config: DataLoadingConfig | None = None,
@@ -348,70 +215,6 @@ def load_cohort_samples(
     return cohort_samples
 
 
-def load_study_data(
-    eigenval_path: str,
-    sscore_path: str,
-    config: DataLoadingConfig | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Convenience wrapper for loading non-BBJ samples from the same sscore file.
-
-    By default, this excludes IIDs starting with config.bbj_prefix.
-    """
-
-    base = config or DataLoadingConfig()
-    if base.iid_prefixes is None:
-        base = DataLoadingConfig(
-            chunksize=base.chunksize,
-            sep=base.sep,
-            reference_iid_prefix=base.reference_iid_prefix,
-            usecols=base.usecols,
-            verbose=base.verbose,
-            iid_prefix_mode="exclude",
-            iid_prefixes=(base.reference_iid_prefix,),
-            phenotype_column=base.phenotype_column,
-            case_value=base.case_value,
-            control_value=base.control_value,
-        )
-    else:
-        base = DataLoadingConfig(
-            chunksize=base.chunksize,
-            sep=base.sep,
-            reference_iid_prefix=base.reference_iid_prefix,
-            usecols=base.usecols,
-            verbose=base.verbose,
-            iid_prefix_mode="exclude",
-            iid_prefixes=base.iid_prefixes,
-            phenotype_column=base.phenotype_column,
-            case_value=base.case_value,
-            control_value=base.control_value,
-        )
-
-    return load_cohort_data(eigenval_path=eigenval_path, sscore_path=sscore_path, config=base)
-
-
-def load_study_samples(
-    sscore_path: str,
-    config: DataLoadingConfig | None = None,
-) -> pd.DataFrame:
-    """Convenience wrapper for loading non-BBJ samples only (no eigenval I/O)."""
-
-    base = config or DataLoadingConfig()
-    prefixes = base.iid_prefixes if base.iid_prefixes is not None else (base.reference_iid_prefix,)
-    base = DataLoadingConfig(
-        chunksize=base.chunksize,
-        sep=base.sep,
-        reference_iid_prefix=base.reference_iid_prefix,
-        usecols=base.usecols,
-        verbose=base.verbose,
-        iid_prefix_mode="exclude",
-        iid_prefixes=prefixes,
-        phenotype_column=base.phenotype_column,
-        case_value=base.case_value,
-        control_value=base.control_value,
-    )
-    return load_cohort_samples(sscore_path=sscore_path, config=base)
-
-
 def load_study_samples_with_case_control(
     sscore_path: str,
     phenotype_column: str | None = None,
@@ -423,7 +226,7 @@ def load_study_samples_with_case_control(
 
     Notes
     -----
-    - Uses the same non-BBJ filtering as `load_our_samples`.
+    - Uses the same reference-prefix exclusion as the study-cohort loader.
     - Ensures `phenotype_column` is loaded (when present in the sscore header).
     - If the phenotype column is missing, returns empty case/control lists.
     """
@@ -491,7 +294,7 @@ def load_study_samples_with_case_control(
     ctrl_iids = [str(x) for x in pd.Series(samples.loc[ctrl_mask, "IID"]).to_list()]
 
     # The phenotype column is only needed to derive case/control IID lists.
-    # Keep `our_samples` lean for downstream steps.
+    # Keep the study-cohort frame lean for downstream stages.
     samples_out = samples.drop(columns=[phenotype_column], errors="ignore")
     return samples_out, case_iids, ctrl_iids
 
@@ -607,7 +410,7 @@ def load_reference_and_study(
     Loads, from the same `.sscore` file:
     - `eigenval` (from eigenval_path)
     - `bbj_samples` (IIDs starting with `config.bbj_prefix`)
-    - `our_samples` (IIDs NOT starting with `config.bbj_prefix`)
+    - `study_samples` (IIDs NOT starting with `config.reference_iid_prefix`)
     - `our_case_iids`, `our_ctrl_iids` parsed from `config.phenotype_column`
 
     Notes
@@ -615,7 +418,7 @@ def load_reference_and_study(
     - Case/control lists are derived only for OUR samples.
     - Phenotype parsing uses `config.phenotype_column`, `config.case_value`,
       and `config.control_value` (with backward-compatible defaults inside
-      `load_our_samples_with_case_control`).
+      `load_study_samples_with_case_control`).
     """
 
     base = config or DataLoadingConfig()
