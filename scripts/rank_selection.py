@@ -36,6 +36,7 @@ import pandas as pd
 
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
+from scripts.common import pc12_case_ctrl_separation as _case_ctrl_separation_pc12
 from scripts.common import pc12_rgv as _overall_heterogeneity_pc12
 
 
@@ -299,6 +300,14 @@ def run_rank_selection(
         all_xy = np.stack([pc1_arr[finite_mask], pc2_arr[finite_mask]], axis=1)
         heterogeneity = _overall_heterogeneity_pc12(all_xy)
 
+        # Diagnostic only -- reported next to the two selection metrics, never
+        # optimised against. See scripts.common.pc12_case_ctrl_separation for
+        # why minimising it would be the wrong objective.
+        separation = _case_ctrl_separation_pc12(
+            np.stack([pc1_arr[finite_mask & is_case_arr], pc2_arr[finite_mask & is_case_arr]], axis=1),
+            np.stack([pc1_arr[finite_mask & is_ctrl_arr], pc2_arr[finite_mask & is_ctrl_arr]], axis=1),
+        )
+
         cum_records.append(
             {
                 "Included_Max_Rank": int(k),
@@ -310,6 +319,9 @@ def run_rank_selection(
                 "Total_Count": int(total_n),
                 "GWAS_Neff": float(neff),
                 "PC12_AllSample_Heterogeneity": float(heterogeneity),
+                "PC12_CaseCtrl_Mahalanobis": float(separation.mahalanobis),
+                "PC12_CaseCtrl_HotellingT2": float(separation.hotelling_t2),
+                "PC12_CaseCtrl_P": float(separation.p_value),
             }
         )
 
@@ -487,10 +499,15 @@ def run_rank_selection(
                 rec_row = decision_table[decision_table["Included_Max_Rank"] == rec_k]
                 _case_col = f"{config.case_label}_Count"
                 _ctrl_col = f"{config.control_label}_Count"
-                _rec = rec_row.iloc[0]
-                _case_n = int(_rec[_case_col]) if _case_col in rec_row.columns else None
-                _ctrl_n = int(_rec[_ctrl_col]) if _ctrl_col in rec_row.columns else None
-                _total_n = int(_rec["Total_Count"]) if "Total_Count" in rec_row.columns else None
+                def _rec_count(col: str) -> int | None:
+                    """The recommended row's value in a count column, if present."""
+                    if col not in rec_row.columns:
+                        return None
+                    return int(to_numeric_array(rec_row[col])[0])
+
+                _case_n = _rec_count(_case_col)
+                _ctrl_n = _rec_count(_ctrl_col)
+                _total_n = _rec_count("Total_Count")
                 if _case_n is not None and _ctrl_n is not None and _total_n is not None:
                     _ann_lines = [
                         f"k = {rec_k}  (recommended)",

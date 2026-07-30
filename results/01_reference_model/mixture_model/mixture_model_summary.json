@@ -1,5 +1,5 @@
 {
-  "input_rows": 181815,
+  "input_rows": 181567,
   "pc_columns_used": [
     "PC1_AVG",
     "PC2_AVG"
@@ -7,8 +7,8 @@
   "fixed_n_pcs": 2,
   "k_min": 2,
   "k_max": 100,
-  "best_k": 26,
-  "best_bic": -2682560.0780631886,
+  "best_k": 27,
+  "best_bic": -2681176.7796375984,
   "covariance_type": "full",
   "n_init": 3,
   "init_params": "kmeans",
@@ -16,8 +16,8 @@
   "max_iter": 200,
   "random_state": 42,
   "use_zscale": false,
-  "search_rows": 181815,
-  "full_rows": 181815,
+  "search_rows": 181567,
+  "full_rows": 181567,
   "search_max_samples": 200000,
   "require_non_empty_clusters": true,
   "search_non_empty_model_count": 99

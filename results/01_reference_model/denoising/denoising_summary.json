@@ -1,15 +1,15 @@
 {
   "input_rows": 183013,
-  "output_rows": 181815,
-  "noise_rows": 1198,
-  "noise_ratio": 0.00654598307224077,
-  "clusters_found": 7,
+  "output_rows": 181567,
+  "noise_rows": 1446,
+  "noise_ratio": 0.007901078065492615,
+  "clusters_found": 8,
   "pc_columns_used": [
     "PC1_AVG",
     "PC2_AVG"
   ],
   "n_pcs_hdbscan": 2,
-  "min_cluster_size": 50,
+  "min_cluster_size": 53,
   "min_samples": 6,
   "cluster_selection_epsilon": 0.005,
   "cluster_selection_method": "eom",

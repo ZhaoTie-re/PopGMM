@@ -1,16 +1,15 @@
 {
-  "mainland_merged_cluster_id": 6,
-  "mainland_premerge_cluster_id": 2,
+  "mainland_merged_cluster_id": 4,
+  "mainland_premerge_cluster_id": 1,
   "mainland_premerge_cluster_ids": [
-    2,
-    11,
-    13,
-    16,
-    19,
-    20,
+    1,
+    7,
+    12,
+    17,
+    18,
     21
   ],
-  "mainland_merged_component_count": 7,
+  "mainland_merged_component_count": 6,
   "mainland_selection_rule": "merged_cluster_with_max_premerge_components_then_smallest_id",
   "mainland_premerge_selection_rule": "within_mainland_merged_cluster_smallest_premerge_component_id"
 }
