@@ -1,13 +1,13 @@
 >>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND_SUBCLUSTER SAMPLES...
    -> output_dir = results/04_subcluster_variants/refined
    -> mainland label = Mainland Subcluster
-   -> mainland_subcluster samples = 2417 / 3571
-   -> Case samples: 424
-   -> Control samples: 1993
+   -> mainland_subcluster samples = 2326 / 3569
+   -> Case samples: 425
+   -> Control samples: 1901
    -> Total PCs to analyze: 20
    -> Running statistical tests...
    -> Applying FDR correction (Benjamini-Hochberg method) to all tests...
    -> FDR correction complete.
-      • Significant by t-test: 6 PC(s)
-      • Significant by Mann-Whitney U: 6 PC(s)
+      • Significant by t-test: 8 PC(s)
+      • Significant by Mann-Whitney U: 8 PC(s)
 ================================================================================

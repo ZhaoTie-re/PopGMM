@@ -30,11 +30,12 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import f as _f_dist
 
 # ---------------------------------------------------------------------------
 # Plot style
@@ -257,6 +258,90 @@ def pc12_rgv(xy: np.ndarray) -> float:
     if not np.isfinite(det) or det <= 0.0:
         return float("nan")
     return float(det**0.25)
+
+
+class CaseControlSeparation(NamedTuple):
+    """How far apart cases and controls sit in ancestry space."""
+
+    #: Mahalanobis distance between the two group means, in pooled within-group
+    #: SD units. Scale-free, so it is comparable across sample sets.
+    mahalanobis: float
+    #: Hotelling's T-squared -- the same distance weighted by sample size. This
+    #: is the test statistic; the distance alone says nothing about evidence.
+    hotelling_t2: float
+    #: p-value of that test, via the exact F transform. Small means the two
+    #: groups really do sit at different places on PC1-PC2.
+    p_value: float
+
+
+def pc12_case_ctrl_separation(
+    case_xy: np.ndarray, ctrl_xy: np.ndarray
+) -> CaseControlSeparation:
+    """Case-vs-control ancestry separation on PC1-PC2.
+
+    Reported as a diagnostic, never optimised against. Three reasons, all
+    measured on this dataset rather than assumed:
+
+    * It is not monotone in the rank cut (Spearman -0.49 against k, versus
+      +1.00 for ``pc12_rgv``) and its minimum falls on the *uncut* set, which is
+      also where GWAS_Neff is largest. Selecting on it would put both objectives
+      at the same point, leaving no trade-off and so no decision to make.
+    * ``E[D^2]`` carries a ``p * (1/n_case + 1/n_control)`` bias that shrinks as
+      the set grows -- from 0.037 at the tightest cut to 0.005 at the widest.
+      Minimising it therefore partly just selects for a larger set.
+    * It is computed from the case/control labels. Choosing the samples that
+      minimise it optimises the very quantity the association test measures, so
+      a genuinely ancestry-linked risk would be selected away along with the
+      confounding.
+
+    What it is good for is the question ``pc12_rgv`` cannot answer: residual
+    spread says how wide the retained set is, not whether cases and controls
+    are drawn from the same place within it. Only the second is what biases an
+    association test.
+
+    Returns NaN for fewer than two samples in either group, or a singular
+    pooled covariance.
+    """
+    case_xy = np.asarray(case_xy, dtype=np.float64)
+    ctrl_xy = np.asarray(ctrl_xy, dtype=np.float64)
+    nan = CaseControlSeparation(float("nan"), float("nan"), float("nan"))
+
+    if case_xy.ndim != 2 or ctrl_xy.ndim != 2:
+        return nan
+    if case_xy.shape[1] != 2 or ctrl_xy.shape[1] != 2:
+        return nan
+
+    n_case, n_ctrl, n_dim = int(case_xy.shape[0]), int(ctrl_xy.shape[0]), 2
+    if n_case < 2 or n_ctrl < 2:
+        return nan
+
+    dof = n_case + n_ctrl - 2
+    pooled = (
+        (n_case - 1) * np.cov(case_xy, rowvar=False)
+        + (n_ctrl - 1) * np.cov(ctrl_xy, rowvar=False)
+    ) / float(dof)
+    pooled = np.asarray(pooled, dtype=np.float64)
+    if not np.all(np.isfinite(pooled)):
+        return nan
+
+    # Small ridge for numerical stability under near-collinearity.
+    trace = float(np.trace(pooled))
+    scale = trace / 2.0 if np.isfinite(trace) else 1.0
+    pooled = pooled + np.eye(2, dtype=np.float64) * (1e-8 * max(1.0, scale))
+
+    delta = case_xy.mean(axis=0) - ctrl_xy.mean(axis=0)
+    d2 = float(delta @ np.linalg.pinv(pooled) @ delta)
+    if not np.isfinite(d2) or d2 < 0.0:
+        return nan
+
+    t2 = d2 * (n_case * n_ctrl) / float(n_case + n_ctrl)
+    df2 = dof - n_dim + 1
+    if df2 <= 0:
+        return CaseControlSeparation(float(np.sqrt(d2)), float(t2), float("nan"))
+
+    f_stat = t2 * df2 / float(n_dim * dof)
+    p_value = float(cast(Any, _f_dist).sf(f_stat, n_dim, df2))
+    return CaseControlSeparation(float(np.sqrt(d2)), float(t2), p_value)
 
 
 def safe_stats(x: np.ndarray) -> dict[str, float]:
