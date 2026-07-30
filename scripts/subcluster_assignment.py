@@ -174,6 +174,7 @@ def run_subcluster_assignment(
     case_iids: list[Any],
     control_iids: list[Any],
     major_cluster_component_ids: list[int],
+    reference_samples_background: pd.DataFrame | None = None,
     eigenval: pd.DataFrame | None = None,
     gmm_summary: dict[str, Any] | None = None,
     config: SubclusterAssignmentConfig | None = None,
@@ -278,6 +279,14 @@ def run_subcluster_assignment(
 
         reference_pc1 = reference_samples_gmm[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
         reference_pc2 = reference_samples_gmm[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+
+        # The background shows every reference sample, including the ones HDBSCAN
+        # removed. The axes are still framed on the modelled panel above, so the
+        # few far outliers fall outside the view instead of shrinking the
+        # structure the figure exists to show.
+        _background = reference_samples_gmm if reference_samples_background is None else reference_samples_background
+        background_pc1 = _background[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+        background_pc2 = _background[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
         study_pc1 = study_samples[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
         study_pc2 = study_samples[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
 
@@ -320,8 +329,8 @@ def run_subcluster_assignment(
 
         def _add_reference_background(ax, label: str = "BBJ") -> None:
             ax.scatter(
-                reference_pc1,
-                reference_pc2,
+                background_pc1,
+                background_pc2,
                 c=str(config.reference_color),
                 s=20,
                 alpha=float(config.reference_alpha),
