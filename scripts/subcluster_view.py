@@ -82,6 +82,7 @@ def run_subcluster_view(
     control_iids: list[Any],
     config: SubclusterViewConfig | None = None,
     reference_samples_gmm: pd.DataFrame | None = None,
+    reference_samples_background: pd.DataFrame | None = None,
     eigenval: pd.DataFrame | None = None,
 ) -> SubclusterViewOutput:
     config = config or SubclusterViewConfig()
@@ -140,11 +141,19 @@ def run_subcluster_view(
         plt.style.use("seaborn-v0_8-whitegrid")
         sns.set_context("paper", font_scale=2.5)
 
-        reference_pc1 = np.array([], dtype=np.float64)
-        reference_pc2 = np.array([], dtype=np.float64)
-        if reference_samples_gmm is not None and pc_cols[0] in reference_samples_gmm.columns and pc_cols[1] in reference_samples_gmm.columns:
-            reference_pc1 = reference_samples_gmm[pc_cols[0]].to_numpy(dtype=np.float64, copy=False)
-            reference_pc2 = reference_samples_gmm[pc_cols[1]].to_numpy(dtype=np.float64, copy=False)
+        def _pc_arrays(frame: pd.DataFrame | None) -> tuple[np.ndarray, np.ndarray]:
+            if frame is None or pc_cols[0] not in frame.columns or pc_cols[1] not in frame.columns:
+                return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+            return (frame[pc_cols[0]].to_numpy(dtype=np.float64, copy=False),
+                    frame[pc_cols[1]].to_numpy(dtype=np.float64, copy=False))
+
+        # reference_pc* frames the axes; background_pc* is only drawn. Passing the
+        # pre-denoising panel as the background shows every reference sample while
+        # leaving the view framed on the set the model was fitted to.
+        reference_pc1, reference_pc2 = _pc_arrays(reference_samples_gmm)
+        background_pc1, background_pc2 = _pc_arrays(
+            reference_samples_gmm if reference_samples_background is None else reference_samples_background
+        )
 
         all_x = np.concatenate([reference_pc1, study_pc1]) if reference_pc1.size > 0 else study_pc1
         all_y = np.concatenate([reference_pc2, study_pc2]) if reference_pc2.size > 0 else study_pc2
@@ -165,11 +174,11 @@ def run_subcluster_view(
             ax.set_anchor("C")
 
         def _add_reference_background(ax, label: str = "BBJ") -> None:
-            if reference_pc1.size == 0:
+            if background_pc1.size == 0:
                 return
             ax.scatter(
-                reference_pc1,
-                reference_pc2,
+                background_pc1,
+                background_pc2,
                 c=str(config.reference_color),
                 s=20,
                 alpha=float(config.reference_alpha),

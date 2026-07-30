@@ -4021,29 +4021,29 @@
     "01_reference_model/mixture_model/tmp/search_bic_log.jsonl": {
       "bytes": 41502,
       "kind": "jsonl_volatile",
-      "sha256": "1ec3ea174a0b914ecabcf182b98182dd336089195fabc72366fd8b6a8e315d2d"
+      "sha256": "ead81725db4543019dcea58c17c535cb80ca6e3d3305702dea8b878e5a15e27c"
     },
     "01_reference_model/mixture_model/tmp/search_convergence_log.jsonl": {
-      "bytes": 53077,
+      "bytes": 53091,
       "kind": "jsonl_volatile",
-      "sha256": "7798d1e93976375f362b25222db36fcf23818b8b6279b5f09f7998a71740d5b0"
+      "sha256": "4623670b50a097892ee960c188c303ba42b0ab00d7285c45d9fb00a6203b70ec"
     },
     "01_reference_model/mixture_model/tmp/search_report.md": {
       "bytes": 20529,
       "kind": "md_volatile",
-      "sha256": "8fb421fde691f096bf66f7d82d548914aebb26f2886ea3e6b5639af107faf382"
+      "sha256": "053399c681d7f99ed90a5bf53f8414b0830478b464eaae04ca61854df59b1e98"
     },
     "01_reference_model/mixture_model/tmp/selected_model_components.json": {
       "bytes": 11993,
       "kind": "json_volatile",
-      "sha256": "810c34728ae230a0d43f4e43d05056e67ae243d7a041b06cdcd4eedd682b1eec"
+      "sha256": "b188e573fcf9f496ad9839ac6d7450e830f4e423e98b5c463aabc8480df34efd"
     },
     "02_cohort_assignment/cohort_assignment_overview.png": {
-      "bytes": 6769986,
+      "bytes": 7757308,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.7863188276196,
-      "sha256": "5fd7beb96bb93fa039691b90a66b82dd18d1fb651d5717485bf2132187afb5c4",
+      "pixel_mean": 245.48282069580205,
+      "sha256": "84bb24d8be06b1279be6ce39d365d6abb42c5e39016366e422fbb017c7602bbf",
       "size": [
         9360,
         9050
@@ -4618,11 +4618,11 @@
       ]
     },
     "04_subcluster_variants/expanded/subcluster_assignment_overview.png": {
-      "bytes": 6625883,
+      "bytes": 7778405,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.87697777932516,
-      "sha256": "4ca6dbbcc0791eee872a74616de34f1b4ab59e456a7121753339d4a8451c0967",
+      "pixel_mean": 249.69403834323384,
+      "sha256": "57b0ae0023608810785e11e1cb8da394e1b73b87ba0171989f9d05a124ebd419",
       "size": [
         15483,
         9038
@@ -4795,11 +4795,11 @@
       "sha256": "4125a4d0e6a3304d819bec38bc995b7415154871e75d4e03fff0dd2e03d3b884"
     },
     "04_subcluster_variants/expanded/subcluster_view.png": {
-      "bytes": 3378165,
+      "bytes": 4256131,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 244.31379097174684,
-      "sha256": "667f6ba35dc12aad621533d571cb339240ea54453409ac6ed8d502e139262e17",
+      "pixel_mean": 244.08192142507022,
+      "sha256": "fe8ffc3797fb5d7309d5c9d2894db24e5886e8950f6f66b5d3299f17da82b262",
       "size": [
         8913,
         9038
@@ -4823,11 +4823,11 @@
       ]
     },
     "04_subcluster_variants/full/subcluster_assignment_overview.png": {
-      "bytes": 6419813,
+      "bytes": 7573543,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 250.24997185323642,
-      "sha256": "3278435e1ef2227deaa88a012c60319f304aad124a7a2a621989fd5fe6decb06",
+      "pixel_mean": 250.0795848800384,
+      "sha256": "d39746847953d31046a67d3789c0aa994d47eff350d1d5058b3eda3c80bbabce",
       "size": [
         16627,
         9038
@@ -4972,11 +4972,11 @@
       "sha256": "28efdd2bfef90155fb2c634dda13d80d057c6b4eed2b220c040d7522b1a9d5dd"
     },
     "04_subcluster_variants/full/subcluster_view.png": {
-      "bytes": 3552961,
+      "bytes": 4431802,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 244.41895516721635,
-      "sha256": "ea20beb9aa39f9ed3d428f2f1f31d3f3a4ef494caf5862aab5ea96cb6deeb30e",
+      "pixel_mean": 244.1923121039712,
+      "sha256": "f446bd7817df8a16f414855933c414cff3fe434aebf1390eb53d9ca982160502",
       "size": [
         8913,
         9038
@@ -5000,11 +5000,11 @@
       ]
     },
     "04_subcluster_variants/refined/subcluster_assignment_overview.png": {
-      "bytes": 6681576,
+      "bytes": 7831211,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.68309642561613,
-      "sha256": "5c22331c5c256ab5d5d679684674c163b6fbad0c47527019db0601c01e6df338",
+      "pixel_mean": 249.49371608135738,
+      "sha256": "ee6b7c45f19b9027e795a73f7316763f311bcdb8373787e3b440fd9b3baeb8ea",
       "size": [
         14958,
         9038
@@ -5191,11 +5191,11 @@
       "sha256": "b2623b86b42a9f7a8e82e13dedbf5df878af4957e9a9c0edcf9455f4bfa3cb43"
     },
     "04_subcluster_variants/refined/subcluster_view.png": {
-      "bytes": 3274844,
+      "bytes": 4146044,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 244.24975566593716,
-      "sha256": "d5a10c4cdd45d9f5aacffede7a01900619199c2417ea12911f000f895f03766c",
+      "pixel_mean": 244.01604700035233,
+      "sha256": "a47348ef9660490ef575a0ecf9551e02ade4d882477cb9858a300de8e7f697c4",
       "size": [
         8913,
         9038
