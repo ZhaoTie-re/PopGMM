@@ -1,283 +1,381 @@
-# PopGMM
+# PopGMM: Probabilistic Ancestry Inference and Population Stratification Control
 
-**Ancestry-homogeneous sample selection for association studies, via PCA + Gaussian mixture models.**
+**An Unsupervised Learning Approach via PCA + Gaussian Mixture Models (GMM)**
 
-A study cohort is projected onto a population PCA reference panel. The panel is
-denoised with HDBSCAN and modelled with a full-covariance Gaussian mixture;
-study samples then receive posterior membership probabilities in that mixture.
-The dominant ("major") cluster is narrowed by an explicit trade-off between
-effective sample size and residual genetic spread, producing the sample lists
-that association analysis should run on.
+PopGMM identifies genetically coherent samples before case/control association
+analysis. It learns population structure from a PCA reference panel, represents
+that structure as a probability density, and projects the study cohort into the
+fitted model — without letting study phenotypes influence ancestry estimation.
 
-The pipeline is generic. The specific study it is currently configured for —
-cohort labels, input filenames, the selected rank cuts — lives entirely in
-[`scripts/params.py`](scripts/params.py).
+The deliverable is a set of PLINK-compatible `--keep` files defining nested study
+subsets that make the trade-off between association power and residual
+heterogeneity explicit. Posterior probabilities, model-selection evidence,
+diagnostic figures, and run provenance accompany them, so every list can be
+traced to the decisions that produced it.
+
+PopGMM does not infer ethnicity or a definitive ancestry label. It describes
+structure relative to the supplied reference panel and its PCA coordinate system.
 
 ---
 
-## The deliverable: three sample lists
+## Motivation
 
-Everything the pipeline exists to produce is in `results/keep_lists/`:
+### Stratification confounding
 
-| List | Definition | Use |
-|---|---|---|
-| `full_mainland` | every component of the major cluster | the widest defensible set |
-| `refined_mainland` | rank cut chosen on effective sample size vs residual spread | **primary analysis** |
-| `expanded_mainland` | a looser cut between refined and full | sensitivity analysis |
-| `reference_full_mainland` | the *reference panel's* major cluster | the BBJ side of the same selection |
+Allele frequencies vary across populations. If cases and controls differ in
+ancestry composition, a variant can appear associated with disease because it
+tracks ancestry rather than biology — inflating test statistics, creating
+false-positive loci, and obscuring genuine signals.
 
-Each is a headerless, tab-separated `FID IID` file:
+Principal-component covariates and mixed models adjust for structure *during*
+association testing. PopGMM addresses a complementary question earlier in the
+analysis:
+
+> Which samples form a sufficiently coherent ancestry subset for the intended
+> case/control analysis, and what is lost or gained when that subset is made
+> narrower or broader?
+
+A single hard ancestry label cannot express that uncertainty, and a manually
+drawn PCA boundary is difficult to reproduce or audit.
+
+### From density elements to population structure
+
+PCA turns genome-wide similarity into a coordinate system but does not decide
+where one population region ends and another begins. Real PCA clouds are skewed,
+elongated, overlapping, or joined by gradients, so one named population may
+require several Gaussian components to describe its geometry.
+
+PopGMM therefore works at two levels:
+
+- a **component** $k$ is a local density element — on its own it makes no
+  population claim;
+- an **ancestry cluster** $c$ is a coherent region obtained by merging nearby
+  components, and it is at this level that the model recovers documented
+  structure ([§4](#4-merging-components-into-ancestry-regions)).
+
+### Uncertainty is information
+
+Samples near a population boundary are not as confidently placed as samples at a
+cluster center. PopGMM assigns posterior membership probabilities rather than
+nearest-centroid labels, so each study sample carries a distribution over the
+fitted components alongside its assignment and confidence.
+
+### Homogeneity versus power
+
+A narrow sample set reduces residual genetic spread but discards usable cases and
+controls; a broad set preserves sample size but retains more structure. In an
+unbalanced study, raw count also overstates power — adding many controls to few
+cases contributes less than the total suggests.
+
+PopGMM makes the exchange visible by reporting effective sample size against
+residual genetic spread, and emits several nested sample sets rather than hiding
+the choice behind one threshold.
+
+---
+
+## Workflow
+
+```mermaid
+flowchart TB
+    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:2px;
+    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:2px;
+    classDef model fill:#fff7e6,stroke:#b26a00,stroke-width:2px;
+    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:2px;
+
+    X0["<b>Reference panel</b><br/>PCA scores"]:::in
+    X1["<b>Study cohort</b><br/>projected on the same loadings"]:::in
+
+    subgraph LEARN["① Reference model — phenotype-blind"]
+        direction LR
+        A1["<b>2</b> · Denoise<br/>HDBSCAN in PCA space"]:::step
+        A2["<b>3</b> · Fit density<br/>full-covariance GMM<br/>K selected by BIC"]:::step
+        A3["<b>4</b> · Merge components<br/>Mahalanobis distance<br/>+ hierarchical clustering"]:::step
+        A1 --> A2 --> A3
+    end
+
+    THETA["<b>Fitted reference model</b><br/>components · merged clusters · major cluster"]:::model
+
+    subgraph ASSIGN["② Study assignment — no refitting"]
+        direction LR
+        B1["<b>5</b> · Posterior projection<br/>membership probabilities<br/>+ confidence"]:::step
+        B2["<b>6</b> · Assess nested subsets<br/>N_eff vs RGV"]:::step
+        B3["<b>7</b> · Composite-posterior<br/>reassignment per<br/>selected component group"]:::step
+        B1 --> B2 --> B3
+    end
+
+    OUT["<b>full · refined · expanded</b><br/>PLINK keep lists"]:::out
+    DIAG["<b>8</b> · All-PC case/control<br/>diagnostics"]:::step
+
+    X0 --> A1
+    A3 --> THETA
+    THETA --> B1
+    X1 --> B1
+    B3 --> OUT
+    B3 --> DIAG
+```
+
+### 1. A shared PCA coordinate system
+
+PopGMM starts from PCA scores generated upstream. Study samples must be projected
+onto the reference loadings so that both datasets share axes, scale, and
+orientation: a study point can only be evaluated under the reference density if
+its coordinates carry the same meaning. The score table is split by IID
+convention into a reference panel and a study cohort; case/control status is kept
+for later assessment but never used to fit the density.
+
+Density estimation uses the leading two principal components, so each sample is a
+point $x_n \in \mathbb{R}^2$. Higher PCs are read from the input and used for
+post-assignment diagnostics ([§8](#8-residual-structure-diagnostics)), never for
+fitting.
+
+### 2. Denoising the reference panel
+
+A Gaussian mixture must explain every observation, so sparse isolated samples
+attract a spurious component or inflate a covariance, and the distortion
+propagates through merging and assignment. HDBSCAN removes them: dense reference
+structure is retained, sparse off-manifold observations are marked as noise.
+
+Density clustering compares distances across axes and is scale-sensitive, so it
+runs on $z$-scaled PCs; the mixture is fitted on raw PCs, where a full covariance
+absorbs any per-axis rescaling. Only the reference panel is denoised — study
+samples keep their place until their probabilities have been evaluated.
+
+### 3. Learning the reference density
+
+The denoised panel is modelled as a $K$-component mixture with full covariances,
+
+$$p(x \mid \theta) \;=\; \sum_{k=1}^{K} \pi_k \, \mathcal{N}(x \mid \mu_k, \Sigma_k),
+\qquad \theta = \{\pi_k, \mu_k, \Sigma_k\}_{k=1}^{K},$$
+
+fitted by expectation–maximization. The order $K$ is selected over a candidate
+range by the Bayesian Information Criterion,
+
+$$\hat{K} \;=\; \arg\min_{K} \operatorname{BIC}(K),
+\qquad \operatorname{BIC}(K) \;=\; -2\,\ell(\hat{\theta}_K) \;+\; p_K \log N,$$
+
+which penalises the parameter count $p_K$ against the maximised log-likelihood.
+Each component contributes a weight, a center, and a covariance describing the
+orientation and spread of a local ancestry cloud. $\hat{K}$ is a
+density-modelling choice, not an estimate of how many human populations exist.
+
+> The EM iteration behind the fit — initialization, E-step, M-step,
+> regularization, convergence test — is derived in
+> [`gmm_convergence_diagram.EN.md`](gmm_convergence_diagram.EN.md).
+
+### 4. Merging components into ancestry regions
+
+Components are compared by the Mahalanobis distance between their means under
+their pooled covariance,
+
+$$S_{ij} = \tfrac{1}{2}\left(\Sigma_i + \Sigma_j\right),
+\qquad d_{ij} = \sqrt{(\mu_i - \mu_j)^{\top} S_{ij}^{-1} (\mu_i - \mu_j)},$$
+
+which — unlike Euclidean distance — accounts for scale, elongation, and
+orientation. The matrix $D = [d_{ij}]$ is clustered by hierarchical linkage and
+cut at a threshold, giving a map $k \mapsto c(k)$ from components to ancestry
+clusters. Posterior mass follows the map,
+
+$$r_{nc} \;=\; \sum_{k \,:\, c(k) = c} r_{nk},$$
+
+so probability is preserved as the description moves from local density elements
+to broader regions. The **major cluster** follows an explicit rule: the merged
+group containing the most components.
+
+Merging is also what makes the model checkable. On a BioBank Japan panel the
+merged clusters line up with independently published population structure, and a
+tighter cut subdivides the same regions rather than rearranging them — so the
+components do carry ancestry information, even though no single component is a
+population.
+
+![Merged clusters compared against published BBJ population structure](docs/published_structure.png)
+
+*Illustrative, from an earlier fit of the same panel. Published structure
+reproduced from Yamamoto et al. (2024),* Genetic legacy of ancient
+hunter-gatherer Jomon in Japanese populations, *Nature Communications 15, 9780
+(CC BY 4.0).*
+
+### 5. Projecting the study cohort
+
+The cohort is evaluated under the fitted model without refitting it. Each study
+point $x_n$ receives responsibilities over the original components,
+
+$$r_{nk} \;=\; \frac{\pi_k \, \mathcal{N}(x_n \mid \mu_k, \Sigma_k)}
+{\sum_{j=1}^{K} \pi_j \, \mathcal{N}(x_n \mid \mu_j, \Sigma_j)},$$
+
+evaluated at the fixed estimate $\hat{\theta}$, together with an assignment
+$\arg\max_k r_{nk}$ and a confidence $\max_k r_{nk}$.
+
+The projection is one-way by design: cohort composition, disease status, and
+case/control imbalance cannot move the learned boundaries. It also keeps
+ambiguous samples visible — a low-confidence assignment stays available for
+review instead of disappearing behind a hard label.
+
+### 6. Assessing nested subsets
+
+The major cluster can still contain internal structure. Its components are ranked
+by observed case/control ratio, and each cumulative set is scored on two
+complementary quantities — effective sample size and residual genetic spread:
+
+$$N_{\mathrm{eff}} \;=\; \frac{4}{n_{\mathrm{case}}^{-1} + n_{\mathrm{ctrl}}^{-1}},
+\qquad
+\mathrm{RGV} \;=\; \left(\det \Sigma_{\mathrm{PC}_{1,2}}\right)^{1/4}.$$
+
+$N_{\mathrm{eff}}$ is the harmonic form that association power actually scales
+with, so an unbalanced set is penalised against its raw total. $\mathrm{RGV}$,
+the root generalized variance, summarises dispersion while accounting for
+correlation between the leading axes, which a per-axis variance would miss.
+
+The resulting curve does not name a correct subset; it prices the exchange — how
+much effective sample size is gained as the region broadens, and how much
+residual spread comes with it. The cuts are analysis decisions, open to review.
+
+### 7. Composite-posterior reassignment
+
+A selected component set $\mathcal{G}$ is treated as one composite group.
+Responsibilities are computed over the **original** components first, then summed
+across $\mathcal{G}$, with every unselected component still competing:
+
+$$\hat{g}_n \;=\; \arg\max \Bigl\{\; \underbrace{\textstyle\sum_{k \in \mathcal{G}} r_{nk}}_{\text{composite group}}
+\;,\;\; \{\, r_{nk} \,\}_{k \notin \mathcal{G}} \;\Bigr\}.$$
+
+> With $r_n = (0.30,\, 0.30,\, 0.40)$ over components $(A, B, C)$ and
+> $\mathcal{G} = \{A, B\}$, the sample joins $\mathcal{G}$ at $0.60$ — not $C$.
+
+The order matters. Merging first and projecting into the coarsened mixture would
+discard exactly the joint evidence that places a borderline sample in the broader
+region, so membership is a property of the group rather than of any single
+component.
+
+### 8. Residual-structure diagnostics
+
+After assignment, case and control distributions are compared across all
+available PCs, not only the two used for fitting. These checks surface residual
+structure invisible in the fitting view; they are reported for quality control
+and never redefine the model.
+
+---
+
+## Outputs
+
+Final files are written to `results/keep_lists/`. Each `.fid_iid.txt` is a
+headerless, tab-separated `FID IID` list accepted by PLINK/PLINK2.
+
+| Output | Contents |
+|---|---|
+| `full_mainland.fid_iid.txt` | Study samples in the complete major cluster |
+| `refined_mainland.fid_iid.txt` | Narrower primary-analysis subset |
+| `expanded_mainland.fid_iid.txt` | Broader sensitivity subset, between refined and full |
+| `reference_full_mainland.fid_iid.txt` | Reference-panel samples in the major cluster |
+| `keep_list_summary.tsv` | The lists side by side: counts, balance, $N_{\mathrm{eff}}$, RGV, components |
+
+`mainland` is the configured display label, not a model output.
 
 ```bash
 plink2 --pfile <dataset> \
-       --keep results/keep_lists/refined_mainland.fid_iid.txt \
-       --make-pgen --out <dataset>.ancestry_qc
+  --keep results/keep_lists/refined_mainland.fid_iid.txt \
+  --make-pgen \
+  --out <dataset>.popgmm
 ```
 
-`keep_list_summary.tsv` compares them on size, case/control balance, `GWAS_Neff`
-and `PC12_RGV` — the table to reproduce in a Methods section.
+The rest of the tree documents how those lists were derived. Bracketed numbers
+are the workflow stages above.
 
----
-
-## Quick start
-
-```bash
-conda env create -f environment.yml
-conda activate popgmm
-python -m ipykernel install --user --name popgmm --display-name popgmm
-
-# then: open workflow.ipynb and Restart & Run All   (~12 minutes)
+```text
+results/
+├── keep_lists/                    final PLINK-compatible sample lists
+├── 01_reference_model/
+│   ├── denoising/           [2]   noise labels, retained panel, figures
+│   ├── mixture_model/       [3]   BIC search, fitted components, audit logs
+│   └── component_merging/   [4]   merge map, distances, major cluster, robustness
+├── 02_cohort_assignment/    [5,8] per-sample posteriors, confidence, diagnostics
+├── 03_rank_selection/       [6]   cumulative subset metrics and trade-off figure
+├── 04_subcluster_variants/  [7,8] full/refined/expanded reassignment and diagnostics
+└── provenance/                    configuration and environment snapshots
 ```
-
-Runs top to bottom as a linear dependency chain; the working directory must be
-the repository root.
-
----
-
-## Pipeline
-
-`workflow.ipynb` is the only orchestrator. Each module in `scripts/` exposes one
-frozen `…Config` dataclass and one `run_*` entry point.
-
-| Stage | Module | Output |
-|---|---|---|
-| Data loading | `data_loading` | in memory |
-| Reference panel — denoising | `hdbscan_filtering` | `01_reference_model/denoising/` |
-| Reference panel — mixture model | `gmm_clustering`, `gmm_search_audit` | `01_reference_model/mixture_model/` |
-| Reference panel — component merging | `gmm_component_merging` | `01_reference_model/component_merging/` |
-| Major-cluster robustness | *(same module)* | `…/component_merging/threshold_robustness/` |
-| Cohort assignment | `cohort_assignment`, `major_cluster_all_pcs_kde` | `02_cohort_assignment/` |
-| Rank selection | `rank_selection` | `03_rank_selection/` |
-| Subcluster variants | `subcluster_assignment`, `subcluster_view`, `subcluster_all_pcs_kde` | `04_subcluster_variants/{full,refined,expanded}/` |
-| **Keep lists** | `keep_lists` | **`keep_lists/`** |
-
-Supporting modules: `params` (all paths and parameters), `common` (shared
-helpers and metrics), `artifacts` (stage caching).
-
-GMM/EM mathematics and convergence criteria are documented separately in
-[`gmm_convergence_diagram.EN.md`](gmm_convergence_diagram.EN.md) and
-[`gmm_convergence_diagram.CN.md`](gmm_convergence_diagram.CN.md).
-
----
-
-## How the selection works
-
-**The major cluster is derived, not configured.** Component merging picks the
-merged cluster holding the most pre-merge components (ties to the smallest id).
-Currently that is 16 of 26 components and 92.2 % of the reference panel, so the
-choice is unambiguous — but the *population-genetic interpretation* of that
-cluster is an assumption the pipeline does not verify.
-`params.MAJOR_CLUSTER_DISPLAY_NAME` is what appears on figures.
-
-`threshold_robustness/major_cluster_robustness.tsv` tests whether the
-identification is stable across dendrogram cut heights. At every threshold tried
-the selected component set is a **strict subset** of the main analysis
-(Jaccard 0.44 → 1.00 as the cut loosens): tightening the cut carves the same
-region more finely rather than jumping elsewhere.
-
-**The rank cut is a human decision, supported by evidence.** Components are
-ranked by case/control ratio; including the top-k trades `GWAS_Neff`
-(`4 / (1/n_case + 1/n_control)`) against `PC12_RGV` (residual genetic spread,
-`det(Sigma)**0.25` on PC1–PC2). `rank_selection` tabulates and plots the whole
-frontier; `params.REFINED_RANK_K` and `params.EXPANDED_RANK_K` record the chosen
-cuts. Set either to `"pareto"` to delegate the choice to the Pareto optimum, in
-which case the notebook prints the chosen rank instead of asserting one.
 
 ---
 
 ## Inputs
 
-| File | Format |
+| Input | Expected content |
 |---|---|
-| `data/bbj.pca_base.eigenval` | plain text, one eigenvalue per line; must cover every PC in the score file |
-| `data/*.sscore` | PLINK2 `--score` output: `#FID IID PHENO1 ALLELE_CT NAMED_ALLELE_DOSAGE_SUM PC1_AVG … PCn_AVG` |
+| PCA eigenvalue file | One eigenvalue per line, used to annotate explained variance |
+| PLINK2 `--score` file (`.sscore`) | `FID`, `IID`, phenotype, and numerically ordered PC score columns |
 
-Cohorts are split by `params.REFERENCE_IID_PREFIX` on `IID`; case/control comes
-from the phenotype column. PC columns are auto-detected (`PC<n>` or
-`PC<n>_AVG`), so the PC count is whatever the input provides. `data/` is not
-tracked in git.
+PC columns are detected automatically as `PC<n>` or `PC<n>_AVG`. The essential
+requirement is that study scores were projected from the same reference loadings
+that define the reference scores — PopGMM does not repair incompatible PCA
+coordinate systems.
+
+Inputs live under `data/` and are not tracked here. Paths, cohort labels, seeds,
+and selection choices are centralized in
+[`scripts/params.py`](scripts/params.py).
 
 ---
 
-## Key results
-
-| Stage | Value |
-|---|---|
-| Reference panel loaded | 183,013 |
-| After denoising | 181,815 (1,198 noise, 0.65 %) |
-| Selected mixture | **k = 26** by minimum BIC (BIC = −2,682,560.08) |
-| After merging at threshold 6.0 | 6 clusters |
-| Major cluster | 16 components, 92.2 % of the panel |
-
-| Keep list | Rank | Components | n | Cases | Controls | GWAS_Neff | PC12_RGV |
-|---|---|---|---|---|---|---|---|
-| `full` | — | 16 | 3,099 | 434 | 2,665 | 1492.88 | 0.006962 |
-| `refined` | 9 | 9 | 2,138 | 408 | 1,730 | 1320.56 | 0.005040 |
-| `expanded` | 12 | 12 | 2,637 | 430 | 2,207 | 1439.53 | 0.005864 |
-
----
-
-## Configuration
-
-Every path, seed, label and cut lives in [`scripts/params.py`](scripts/params.py).
-Two things are deliberately **not** constants there, because they are properties
-of the fitted model and go stale the moment it changes: which components form
-the major cluster, and how many there are.
-
-Two environment overrides, both pure path substitutions:
+## Running the workflow
 
 ```bash
-POPGMM_RESULTS_ROOT=results_verify   # write a run somewhere other than results/
+conda env create -f environment.yml
+conda activate popgmm
+python -m ipykernel install --user --name popgmm --display-name popgmm
+```
+
+Open [`workflow.ipynb`](workflow.ipynb), select the `popgmm` kernel, and run all
+cells top to bottom from the repository root. The notebook orchestrates; the
+modules in `scripts/` implement the stages.
+
+Two environment variables redirect a run without editing source:
+
+```bash
 POPGMM_DATA_ROOT=/path/to/data
+POPGMM_RESULTS_ROOT=/path/to/results
 ```
 
-### Run modes
-
-`RUN_MODE` at the top of the notebook:
-
-- `"fresh"` (default) — execute every stage and write all output. **The only mode
-  valid for publication or verification.**
-- `"resume"` — reuse cached upstream artifacts to skip the mixture search while
-  iterating. Two measured consequences: the cached stages write nothing, and the
-  **figures of later stages change** (data stays byte-identical, but skipping
-  them means their plotting code never runs, so later stages inherit a different
-  global `rcParams` state). Never publish figures from a resume run;
-  `verify_results.py` refuses to verify such a tree.
-
-The cache lives in `.cache/popgmm/` (untracked), keyed on the stage config,
-upstream keys, input fingerprints and library versions.
+`RUN_MODE` selects `"fresh"` or `"resume"`. Use `"fresh"` for any final analysis:
+resume reuses cached upstream computations, which leaves numeric results
+unchanged but not the figures, since a stage that never executes cannot restore
+the global plotting state the next one inherits.
 
 ---
 
-## Verification
+## Interpretation and limitations
 
-The pipeline is deterministic, so re-run-and-diff is a valid acceptance test
-with **no numeric tolerance**:
-
-```bash
-POPGMM_RESULTS_ROOT=results_verify jupyter nbconvert --to notebook --execute \
-    --ExecutePreprocessor.kernel_name=python3 --output-dir=/tmp workflow.ipynb
-python -m tools.verify_results --baseline results --candidate results_verify
-
-# without a baseline tree present (e.g. a fresh clone):
-python -m tools.verify_results --manifest tools/baseline_manifest.json \
-       --candidate results_verify
-```
-
-Exit code 0 means nothing failed. Any difference in a numeric artifact or a
-figure is a failure; only embedded timestamps and the results-root path are
-normalised away. One extra invariant is asserted for free: the k minimising BIC
-must not move.
-
-Two independent full runs agree on every numeric artifact and every figure — the
-only files that differ carry a timestamp or the output path. Measurement and the
-float32 → float64 history are in
-[`docs/reproducibility_probe.md`](docs/reproducibility_probe.md); the previous
-float32 analysis is preserved at the git tag `results-float32-final`.
+- PopGMM describes structure *within a supplied reference PCA space*. It does not
+  establish ethnicity, identity, or ancestry independently of that reference.
+- The major cluster is defined algorithmically. Its display name is an analyst's
+  interpretation, requiring validation against the reference-panel design and
+  prior population knowledge — not a model-discovered label.
+- Responsibilities quantify uncertainty *under the fitted mixture*, not
+  uncertainty in genotype processing, panel construction, or PCA projection.
+- The refined and expanded cuts are analysis choices on a power-versus-homogeneity
+  curve, not biological boundaries.
+- A more homogeneous set removes one source of stratification, not all residual
+  structure. Association-model covariates, relatedness handling, and sensitivity
+  analyses may still be required.
+- Case/control labels are excluded from model fitting but used afterwards to
+  assess balance and effective sample size: ancestry learning is unsupervised,
+  the final subset design is study-aware.
 
 ---
 
-## Environment
+## Documentation and implementation
 
-Pinned in [`environment.yml`](environment.yml);
-the machine that produced `results/` is recorded in
-[`docs/environment_snapshot.txt`](docs/environment_snapshot.txt), and every run
-writes its own `results/provenance/run_environment.json`.
+| Document | Contents |
+|---|---|
+| [`gmm_convergence_diagram.EN.md`](gmm_convergence_diagram.EN.md) | EM updates, convergence, BIC, component distance, merging, symbol definitions |
+| [`gmm_convergence_diagram.CN.md`](gmm_convergence_diagram.CN.md) | Chinese version of the same document |
+| [`docs/reproducibility_probe.md`](docs/reproducibility_probe.md) | Numerical reproducibility investigation |
+| [`docs/environment_snapshot.txt`](docs/environment_snapshot.txt) | Environment used to produce the committed artifacts |
 
-Python 3.12.6 · numpy 2.4.2 · pandas 2.2.3 · scikit-learn 1.8.0 · scipy 1.17.0 ·
-hdbscan 0.8.42 · matplotlib 3.9.2 · seaborn 0.13.2
-
-Two pins are load-bearing rather than hygiene:
-
-- **`hdbscan` is required, not optional.** `hdbscan_filtering` is pinned to
-  python-hdbscan and raises rather than falling back to
-  `sklearn.cluster.HDBSCAN`: the two disagree on the noise set, so a silent
-  substitution would change the cohort while the summary still reported the
-  requested parameters. Every configured parameter is verified against the
-  constructed estimator for the same reason.
-- **`scikit-learn`** drives `GaussianMixture` with `init_params="kmeans"`, whose
-  RNG stream and `n_init` defaults have changed across minor releases — that
-  would move the selected component count and renumber every component.
-
-Computation is float64 throughout. Under float32 the log-likelihood sum was
-sensitive to BLAS reduction order and the mixture search log was not reproducible
-between runs even with the seed fixed.
-
----
-
-## Repository layout
-
-```
-workflow.ipynb              the pipeline; run top to bottom
-scripts/
-  params.py                 all paths, labels, seeds, rank cuts
-  common.py                 shared helpers (PC columns, palettes, BH-FDR, Neff, RGV)
-  artifacts.py              content-addressed cache for the upstream stages
-  keep_lists.py             emits the deliverable
-  data_loading.py           cohort split
-  hdbscan_filtering.py      reference-panel denoising
-  gmm_clustering.py         mixture fit + BIC selection
-  gmm_search_audit.py       search audit trail
-  gmm_component_merging.py  merging, major cluster, threshold robustness
-  cohort_assignment.py      posterior assignment of the study cohort
-  major_cluster_all_pcs_kde.py   all-PC case/control comparison
-  rank_selection.py         Neff vs RGV trade-off
-  subcluster_assignment.py  composite-group reassignment
-  subcluster_view.py        PC1-PC2 view
-  subcluster_all_pcs_kde.py all-PC comparison per variant
-tools/
-  verify_results.py         result-comparison oracle
-  baseline_manifest.json    committed fingerprints of results/
-docs/
-  reproducibility_probe.md  determinism measurement and dtype history
-  environment_snapshot.txt  interpreter, BLAS and package provenance
-results/                    see note below
-data/                       inputs (not tracked)
-```
-
-Large regenerable intermediates under `results/` are untracked — several
-redundant copies of the same PC matrix plus the posterior arrays. They are
-reproduced exactly by re-running, and their checksums are in
-`tools/baseline_manifest.json`, so `verify_results --manifest` validates a run
-without them.
-
----
-
-## Known issues
-
-- **The plotting modules mutate global `plt.rcParams` without restoring them**,
-  and several call `plt.style.use()` without setting the shared style dict, so
-  they inherit whatever the previously executed cell left behind. Figures
-  therefore depend on *which stages ran before them*, not only on their own data
-  — demonstrated by the `RUN_MODE="resume"` measurement above. Deliberately not
-  fixed: the committed figures encode the current state. Run the notebook top to
-  bottom in `"fresh"` mode and they reproduce exactly. If the figures are ever
-  regenerated for publication, fix this first and regenerate all of them together.
-- **The rank cut is a human override, not the model's own choice.**
-  `params.REFINED_RANK_K = 10` forces `rank_selection`'s recommendation, whereas
-  the current model's Pareto analysis points to rank 5. This is deliberate, but
-  it means the decision table and the applied cut disagree — state the override
-  explicitly in Methods. Setting it to `"pareto"` hands the choice back.
-- `GMMConfig.use_zscale=True` is not usable end to end — `cohort_assignment`
-  raises because the training scaler is never persisted. The committed run uses
-  `use_zscale=False`.
+| Stage | Module |
+|---|---|
+| — | `scripts/data_loading.py` — input loading, cohort separation |
+| **2** | `scripts/hdbscan_filtering.py` — reference denoising |
+| **3** | `scripts/gmm_clustering.py` — mixture fitting and order selection |
+| **4** | `scripts/gmm_component_merging.py` — merging and robustness |
+| **5** | `scripts/cohort_assignment.py` — posterior assignment |
+| **6** | `scripts/rank_selection.py` — $N_{\mathrm{eff}}$ vs RGV assessment |
+| **7** | `scripts/subcluster_assignment.py` — composite-group reassignment |
+| **8** | `scripts/major_cluster_all_pcs_kde.py`, `scripts/subcluster_all_pcs_kde.py` — all-PC diagnostics |
+| — | `scripts/keep_lists.py` — PLINK keep-list generation |
