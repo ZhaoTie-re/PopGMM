@@ -130,12 +130,28 @@ def _standardize_inplace(x: np.ndarray) -> None:
     x /= stds.astype(np.float32)
 
 
-def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any] | None = None):
-    """Build an HDBSCAN estimator with backend-compatible parameters.
+#: The one supported HDBSCAN backend. This pipeline is pinned to
+#: python-hdbscan (see requirements.txt) rather than accepting whichever
+#: implementation happens to be importable.
+#:
+#: There used to be a fallback to sklearn.cluster.HDBSCAN behind a bare
+#: `except Exception`. That was a trap: the two backends do not agree on the
+#: noise set, sklearn silently ignores approx_min_span_tree/gen_min_span_tree
+#: and needs algorithm="auto" where python-hdbscan wants "best" -- and any
+#: exception at all, not just a missing package, would switch implementations
+#: without a word. Worse, hdbscan_summary.json reports config values rather
+#: than what the estimator received, so the audit trail would have asserted
+#: parameters that were never applied. A reproducer would silently get a
+#: different cohort. Now it is an error.
+HDBSCAN_BACKEND = "hdbscan (python-hdbscan)"
 
-    Tries python-hdbscan first, then falls back to sklearn.cluster.HDBSCAN.
-    Unsupported parameters are filtered by constructor signature to keep
-    behavior stable across environments.
+
+def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any] | None = None):
+    """Build the pinned python-hdbscan estimator.
+
+    Raises ImportError if python-hdbscan is unavailable, and ValueError if it
+    would not accept one of the configured parameters -- silently dropping a
+    parameter is the same class of bug as silently swapping the backend.
     """
 
     model_kwargs: dict[str, Any] = {
@@ -152,45 +168,46 @@ def _make_hdbscan_estimator(config: HDBSCANConfig, metric_kwargs: dict[str, Any]
         "gen_min_span_tree": config.gen_min_span_tree,
     }
 
-    def _filtered_kwargs(cls_or_fn: Any, kwargs_in: dict[str, Any]) -> dict[str, Any]:
-        params = inspect.signature(cls_or_fn).parameters
-        accepts_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
-        if accepts_var_kwargs:
-            return dict(kwargs_in)
-        return {k: v for k, v in kwargs_in.items() if k in params}
-
     try:
         import hdbscan  # type: ignore
+    except ImportError as exc:
+        raise ImportError(
+            "python-hdbscan is required and is not installed. This pipeline is "
+            "pinned to it (requirements.txt: hdbscan==0.8.42); "
+            "sklearn.cluster.HDBSCAN is NOT an acceptable substitute because it "
+            "produces a different noise set. Install it with "
+            "`pip install hdbscan==0.8.42`."
+        ) from exc
 
-        kwargs = _filtered_kwargs(hdbscan.HDBSCAN, model_kwargs)
-        if metric_kwargs:
-            kwargs.update(metric_kwargs)
-        if kwargs.get("algorithm") == "auto":
-            # python-hdbscan expects values like "best", not "auto".
-            kwargs["algorithm"] = "best"
-        kwargs["prediction_data"] = False
-        kwargs["core_dist_n_jobs"] = 1
-        return hdbscan.HDBSCAN(**kwargs)
-    except Exception:
-        try:
-            from sklearn.cluster import HDBSCAN as SklearnHDBSCAN  # type: ignore
+    kwargs = dict(model_kwargs)
+    if metric_kwargs:
+        kwargs.update(metric_kwargs)
+    if kwargs.get("algorithm") == "auto":
+        # python-hdbscan expects values like "best", not "auto".
+        kwargs["algorithm"] = "best"
+    kwargs["prediction_data"] = False
+    kwargs["core_dist_n_jobs"] = 1
 
-            kwargs = _filtered_kwargs(SklearnHDBSCAN, model_kwargs)
-            if metric_kwargs:
-                sklearn_params = inspect.signature(SklearnHDBSCAN).parameters
-                if "metric_params" in sklearn_params:
-                    kwargs["metric_params"] = metric_kwargs
-                else:
-                    kwargs.update(metric_kwargs)
-            if kwargs.get("algorithm") == "best":
-                # sklearn backend accepts "auto" rather than "best".
-                kwargs["algorithm"] = "auto"
-            kwargs["n_jobs"] = 1
-            return SklearnHDBSCAN(**kwargs)
-        except Exception as exc:
-            raise ImportError(
-                "HDBSCAN backend not available. Install 'hdbscan' or a scikit-learn version that provides sklearn.cluster.HDBSCAN."
-            ) from exc
+    estimator = hdbscan.HDBSCAN(**kwargs)
+
+    # hdbscan.HDBSCAN takes **kwargs, so inspecting its signature can never
+    # reveal a dropped parameter -- an unrecognised keyword is swallowed
+    # silently. Verify against the constructed object instead: every configured
+    # value must actually have landed on it.
+    missing = [
+        f"{key}={value!r} (estimator has {getattr(estimator, key, '<absent>')!r})"
+        for key, value in kwargs.items()
+        if getattr(estimator, key, object()) != value
+    ]
+    if missing:
+        raise ValueError(
+            f"Installed hdbscan "
+            f"{getattr(hdbscan, '__version__', '(version not exposed)')} did not "
+            f"apply these configured parameters: {missing}. Silently ignoring them "
+            f"would change the denoising result, so this is an error. Pin "
+            f"hdbscan==0.8.42 or update HDBSCANConfig to match the installed API."
+        )
+    return estimator
 
 
 def _plot_hdbscan_overview(

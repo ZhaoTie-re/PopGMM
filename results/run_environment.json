@@ -1,4 +1,5 @@
 {
+  "hdbscan_backend": "hdbscan (python-hdbscan)",
   "libraries": {
     "hdbscan": "0.8.42",
     "joblib": "1.5.3",
