@@ -16,6 +16,7 @@ from matplotlib.lines import Line2D
 from matplotlib.transforms import Bbox
 from sklearn.mixture import GaussianMixture
 
+from scripts.common import STORE_DTYPE
 from scripts.common import build_distinct_palette as _build_distinct_palette
 
 
@@ -207,7 +208,7 @@ def run_customize_cluster_assignment(
         [(custom_group_label if int(i) == 0 else f"Cluster {remaining_component_ids[int(i) - 1]}") for i in assigned_idx],
         dtype=object,
     )
-    assignment_conf = np.max(probs_customize, axis=1).astype(np.float32)
+    assignment_conf = np.max(probs_customize, axis=1).astype(STORE_DTYPE)
 
     fid_col = "#FID" if "#FID" in our_samples.columns else ("FID" if "FID" in our_samples.columns else None)
     meta_cols = [c for c in [fid_col, "IID"] if c is not None and c in our_samples.columns]
@@ -220,7 +221,7 @@ def run_customize_cluster_assignment(
     df_results["Assigned_Mainland_Subcluster_Group"] = assigned_group
     df_results["Assigned_Component_ID_If_Not_Subcluster"] = assigned_customize
     # Merged-group posterior: P(sample belongs to Mainland Subcluster) under recomputed model.
-    df_results["Prob_Mainland_Subcluster"] = probs_customize[:, 0].astype(np.float32)
+    df_results["Prob_Mainland_Subcluster"] = probs_customize[:, 0].astype(STORE_DTYPE)
 
     # Backward-compatible fields.
     df_results["Assigned_Customize_Group"] = assigned_group
@@ -228,10 +229,10 @@ def run_customize_cluster_assignment(
     df_results["Assigned_Customize_ClusterID"] = assigned_customize
     # Confidence = max posterior under recomputed (merged) model.
     df_results["Assignment_Confidence"] = assignment_conf
-    df_results["Prob_Customize_Cluster"] = probs_customize[:, 0].astype(np.float32)
-    df_results[f"Prob_{custom_group_slug}"] = probs_customize[:, 0].astype(np.float32)
+    df_results["Prob_Customize_Cluster"] = probs_customize[:, 0].astype(STORE_DTYPE)
+    df_results[f"Prob_{custom_group_slug}"] = probs_customize[:, 0].astype(STORE_DTYPE)
     for i, cid in enumerate(remaining_component_ids, start=1):
-        df_results[f"Prob_Cluster_{cid}"] = probs_customize[:, i].astype(np.float32)
+        df_results[f"Prob_Cluster_{cid}"] = probs_customize[:, i].astype(STORE_DTYPE)
 
     out_dir = Path(str(config.output_dir))
     out_dir.mkdir(parents=True, exist_ok=True)

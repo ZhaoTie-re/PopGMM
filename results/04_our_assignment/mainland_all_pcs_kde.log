@@ -1,6 +1,6 @@
 >>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND SAMPLES...
    -> output_dir = results/04_our_assignment
-   -> mainland clusters = [0, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 25]
+   -> mainland clusters = [0, 2, 4, 5, 6, 8, 10, 11, 12, 13, 16, 18, 19, 20, 21, 22]
    -> Mainland samples: 3099 / 3571
    -> Case samples (Mainland): 434
    -> Control samples (Mainland): 2665

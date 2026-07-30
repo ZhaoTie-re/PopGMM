@@ -34,13 +34,20 @@ class Step4TmpMainlandRankProgressionConfig:
     figure_file: str = "mainland_rank_progression_metrics.png"
     figure_pdf_file: str = "mainland_rank_progression_metrics.pdf"
 
-    max_rank: int = 17
+    # How many of the ranked mainland components to walk. None means "all of
+    # them", discovered from the mainland component list rather than stated as a
+    # literal -- the count is a property of the fitted model (17 under the
+    # previous float32 run, 16 under float64), so hard-coding it goes stale
+    # silently every time the model changes.
+    max_rank: int | None = None
+
     case_label: str = "Case"
     control_label: str = "Control"
 
     # Override the Pareto-detected recommended rank.  When set, the figure
     # annotation and decision-table Is_Recommended column will use this value
-    # instead of the automatically computed optimum.
+    # instead of the automatically computed optimum. None => use the Pareto
+    # optimum, i.e. let the data choose the cut.
     forced_recommended_rank: int | None = None
 
     save_plot: bool = True
@@ -272,7 +279,8 @@ def run_step4_tmp_mainland_rank_progression(
         key=lambda cid: (-float(ratio_map[cid]), int(cid)),
     )
 
-    max_rank = min(int(config.max_rank), len(ranked_mainland_clusters))
+    n_mainland = len(ranked_mainland_clusters)
+    max_rank = n_mainland if config.max_rank is None else min(int(config.max_rank), n_mainland)
     if max_rank <= 0:
         raise ValueError("No mainland clusters available for ranking.")
 

@@ -29,6 +29,8 @@ import time
 from scripts.gmm_search_audit import GMMAuditLogger
 
 from scripts.common import (
+    COMPUTE_DTYPE,
+    STORE_DTYPE,
     build_distinct_palette as _build_distinct_palette,
     format_pc_axis_label as _format_pc_axis_label,
     pc_index_from_col as _pc_index_from_col,
@@ -169,7 +171,7 @@ def _standardize(x: np.ndarray) -> np.ndarray:
     means = x.mean(axis=0, dtype=np.float64)
     stds = x.std(axis=0, dtype=np.float64)
     stds[stds == 0] = 1.0
-    return ((x - means.astype(np.float32)) / stds.astype(np.float32)).astype(np.float32)
+    return ((x - means) / stds).astype(COMPUTE_DTYPE)
 
 
 def _build_gmm(n_components: int, config: GMMConfig) -> GaussianMixture:
@@ -414,7 +416,7 @@ def _plot_gmm_overview(
 
     # D) Assignment confidence.
     ax3 = axes[1, 1]
-    confidence = np.max(probabilities, axis=1).astype(np.float32, copy=False)
+    confidence = np.max(probabilities, axis=1).astype(STORE_DTYPE, copy=False)
     sort_idx = np.argsort(-confidence)
     sc = ax3.scatter(
         pc1[sort_idx],
@@ -491,7 +493,7 @@ def run_gmm_fixed_pcs(
     n_pcs = min(max(2, int(config.fixed_n_pcs)), len(pc_cols))
     selected_pc_cols = pc_cols[:n_pcs]
 
-    x = bbj_samples_filtered[selected_pc_cols].to_numpy(dtype=np.float32, copy=True)
+    x = bbj_samples_filtered[selected_pc_cols].to_numpy(dtype=COMPUTE_DTYPE, copy=True)
     if config.use_zscale:
         x = _standardize(x)
 
@@ -660,7 +662,7 @@ def run_gmm_fixed_pcs(
     audit.finalize()
 
     probabilities_raw = final_model.predict_proba(x)
-    probabilities = np.asarray(probabilities_raw, dtype=np.float32)
+    probabilities = np.asarray(probabilities_raw, dtype=STORE_DTYPE)
 
     bbj_samples_with_cluster = bbj_samples_filtered.copy()
     bbj_samples_with_cluster["GMM_Cluster"] = labels

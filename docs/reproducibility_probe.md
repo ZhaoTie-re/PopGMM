@@ -1,137 +1,158 @@
-# Reproducibility probe
+# Reproducibility
 
-**Date:** 2026-07-30
-**Verdict:** reproducible — the selected model and every downstream deliverable are bit-identical across independent runs. A non-propagating numerical wobble exists in the BIC search log; it is characterised below over three run pairs and bounded by an explicit guard in the verification tool.
+**Verdict:** the pipeline is fully deterministic. Two independent full runs in
+the same environment agree on every numeric artifact and every figure; the only
+differences are embedded timestamps and the results-root path a run was written
+to.
 
-## Why this exists
+This was not true of the original float32 pipeline. The measurement that
+established the difference, and the reason for the switch, are recorded below —
+they are the justification for the dtype change and for the numbers in the
+manuscript having moved.
 
-The scientific results in `results/` are final. Before refactoring `scripts/` or
-`workflow.ipynb` for maintainability, we had to establish that "re-run and diff"
-is a valid oracle — otherwise there is no way to prove a refactor changed
-nothing. This document records that check. It is also the provenance record for
-the version pins in `requirements.txt`: those pins are only defensible in a
-Methods section because this probe passed.
+---
 
-## Method
+## Current state (float64)
 
-No code was modified. The committed tree was moved aside and the unmodified
-notebook was executed end-to-end into a clean directory:
-
-```bash
-git status                      # clean
-mv results results_baseline
-jupyter nbconvert --to notebook --execute \
-    --ExecutePreprocessor.timeout=3600 \
-    --ExecutePreprocessor.kernel_name=python3 \
-    --output-dir=<scratch> --output probe_run.ipynb workflow.ipynb
-python -m tools.verify_results --baseline results_baseline --candidate results
-```
-
-Wall time: **6 min 53 s** (01:40:58 → 01:47:51), exit code 0, 58 artifacts
-produced — the same count as the baseline. Environment as recorded in
-`docs/environment_snapshot.txt` (Python 3.12.6, numpy 2.4.2, scikit-learn 1.8.0,
-hdbscan 0.8.42, OpenBLAS 0.3.31, macOS arm64).
-
-Afterwards `results_baseline` was restored as `results`, so the committed tree
-is still the original one that the manuscript refers to. The probe run was
-discarded once compared.
-
-## Result
+Two independent full runs, `RUN_MODE="fresh"`, default multi-threaded BLAS:
 
 | | |
 |---|---|
-| Artifacts compared | 58 |
-| Byte-identical | 54 |
-| Differing | 3 files + 1 figure, all inside the STEP2 BIC search log |
+| Artifacts compared | 60 |
+| Verification result | **60 pass, 0 warn, 0 fail — with no numeric tolerance of any kind** |
+| Raw byte-identical | 52 / 60 |
+| Figures byte-identical | **12 / 12** |
 
-**Bit-identical across runs**, i.e. the things that matter:
+The 8 artifacts that are not raw byte-identical differ *only* in:
 
-- `gmm_summary.json` — `best_k = 26`, `best_bic = -2682580.328806532` (identical to the last bit)
-- `bbj_samples_gmm_clustered.tsv` — every BBJ sample's component assignment
-- `hdbscan_summary.json` and the denoised sample table (183,013 → 181,817; 1,196 noise / 0.65 %)
-- all of STEP3–STEP9: merge map, Mahalanobis distances, posterior `.npy` arrays,
-  the rank progression tables, and **all seven `*.fid_iid.txt` keep-lists** —
-  the actual deliverables consumed by `plink --keep`
+- embedded UTC timestamps — the four `02_gmm_clustering/tmp/` audit files
+  (`timestamp_utc`, `generated_at_utc`, `elapsed_seconds`, and the
+  `- Generated (UTC):` line of the report) and `/CreationDate` in
+  `STEP4_tmp/mainland_rank_progression_metrics.pdf`;
+- the results-root path they record — the two `*_all_pcs_kde.log` files echo
+  their own `output_dir`, and `run_config_snapshot.json` stores it per step.
 
-**Differing:** `02_gmm_clustering/gmm_bic_search.tsv`, the two
-`tmp/gmm_search_*.jsonl` audit logs, and `gmm_fixed_pcs_overview.png`
-(0.001 % of pixels, max channel delta 6 — the BIC curve redrawn through the
-perturbed points).
+No numeric value differs anywhere. `tools/verify_results.py` normalises exactly
+those two things and nothing else.
 
-## Diagnosis of the wobble
+**Cost:** float64 makes the `k = 2..100` search about 2.3× more compute; a full
+run went from ~7 min to ~13 min. Determinism does *not* require pinning BLAS
+thread counts — parallelism stays on.
 
-Three independent run pairs have now been measured (the probe above, and two
-verification runs of the refactored pipeline). In each, 15–18 of the 99
-candidate fits report a slightly different BIC:
+---
+
+## Why the switch happened (float32, tag `results-float32-final`)
+
+The original pipeline cast its inputs to float32
+(`gmm_clustering.py` and `hdbscan_filtering.py`). float32 carries ~7 decimal
+digits, so summing 181,817 per-sample log-likelihoods surfaced the reduction
+order used by multi-threaded OpenBLAS across the 6-process search pool. Fixing
+`random_state=42` did not help: the seed governs which random choices the
+algorithm makes, not the order in which floats are added, and floating-point
+addition is not associative.
+
+Across three measured run pairs, 15–18 of the 99 candidate fits disagreed:
 
 | run pair | candidates differing | max \|d\| | relative |
 |---|---|---|---|
 | probe vs committed | 15 / 99 | 1.387154 | 5.2e-07 |
 | verify 1 vs committed | 16 / 99 | 1.21 | 4.5e-07 |
-| verify 2 vs committed | 18 / 99 | **11.2706** (at k=58) | 4.2e-06 |
+| verify 2 vs committed | 18 / 99 | **11.2706** (k=58) | 4.2e-06 |
 
-**Two distinct mechanisms**, which the first measurement alone did not reveal:
+Two mechanisms, only the first of which is bounded by ULP analysis:
 
-1. *Float-floor quantisation.* Most perturbations are exact multiples of
-   **0.173394** BIC units. That number is not arbitrary: the convergence log
-   shows `average_log_likelihood` differing as `7.382948398590088` vs
-   `7.382948875427246` — 4.77e-7, which is **one float32 ULP** at that
-   magnitude. Multiplied by 2 × 181,817 samples it is exactly 0.1734. The cause
-   is float reduction order varying between runs: the search runs `k=2..100`
-   across a 6-process pool over OpenBLAS-backed operations, and neither the
-   process-to-k assignment nor the BLAS thread count is pinned.
-2. *Restart selection flipping.* Occasionally a single candidate jumps by an
-   order of magnitude more — 11.27 units at k=58 in the third run pair. This is
-   not ULP noise: with `n_init=3`, EM is restarted three times and the best fit
-   kept, so a small float difference can flip **which restart wins**, landing
-   the candidate in a different local optimum.
+1. **Float-floor quantisation.** Most differences were exact multiples of
+   **0.173394** BIC units — one float32 ULP of `average_log_likelihood`
+   (4.77e-7 at magnitude 7.38) times 2 × 181,817 samples.
+2. **Restart selection flipping.** With `n_init=3`, EM is restarted three times
+   and the best kept, so a last-bit difference could flip *which restart wins*,
+   producing the ~11-unit jumps.
 
-The first version of this document reported a maximum of 1.39 units based on a
-single comparison. That understated the effect; 11.27 is the measured maximum
-over three pairs, and the second mechanism means the bound is statistical rather
-than structural.
+It never propagated: `best_k`, the fitted model and all downstream artifacts
+were byte-identical in every float32 run pair. But it forced the verification
+tool to carry a per-file tolerance and a "drift budget" tied to the
+winner-to-runner-up margin, plus a written argument for why the selection could
+not move. Removing that machinery was the point of the change.
 
-## Why it does not propagate
+Direct isolation of the cause (5 independent processes per condition, same seed,
+same data, k=29 and k=35):
 
-- The margin between the winner (k=26) and the runner-up (k=29) is **155.92 BIC
-  units** — still a **14× margin** over the largest wobble observed.
-- The most-perturbed candidate, k=58, sits **1,759 BIC units** away from the
-  winner. It is not competing for the selection under any plausible noise.
-- Empirically, across all three run pairs: `best_k = 26` and
-  `best_bic = -2682580.328806532` are identical to the last bit,
-  `bbj_samples_gmm_clustered.tsv` is byte-identical (so the fitted model and
-  every sample's component assignment are identical), and **all 57 downstream
-  artifacts including every keep-list are byte-identical**.
+| | result |
+|---|---|
+| float32, multi-threaded | **not reproducible** — runs disagreed (e.g. k=35 gave two different values) |
+| float32, `OMP_NUM_THREADS=1` | reproducible, but ~5% slower **and it changes `best_bic`** |
+| **float64, multi-threaded** | **reproducible, 5/5 bit-identical** |
 
-The wobble is confined to the diagnostic log of the search itself.
+---
 
-## How this is encoded in the verification tool
+## What the dtype change did to the results
 
-`tools/verify_results.py` does not paper over this with an arbitrary relative
-tolerance. For the BIC search table it checks what actually carries the science:
+This was a re-analysis, not a refactor.
 
-1. `argmin(BIC)` — which k is selected — must not move;
-2. the winning BIC value must be identical;
-3. no candidate may drift by more than **10 % of the winner-to-runner-up
-   margin**, which the tool derives from the baseline at comparison time. At the
-   observed 155.92-unit margin that admits 15.59 units — above the 11.27 seen in
-   practice, and far below anything that could reorder the top of the ranking.
+| | float32 (`results-float32-final`) | float64 (current) |
+|---|---|---|
+| Denoised | 181,817 / 183,013 (1,196 noise) | **181,815** (1,198 noise) |
+| `best_k` | 26 | **26** (unchanged) |
+| `best_bic` | −2,682,580.328806532 | **−2,682,560.0780631886** |
+| Merged clusters | 6 | 6 |
+| Mainland components | 17 | **16** |
+| Mainland component ids | 0,2,3,4,7,8,11,12,13,14,15,16,18,20,22,24,25 | 0,2,4,5,6,8,10,11,12,13,16,18,19,20,21,22 |
+| Subcluster (rank ≤ 9) | 2,193 samples | **2,138** |
+| Cohort | 411 CTEPH / 1,782 AGP3K | **408 / 1,730** |
+| Retained at 0.90 | 300 / 890 | **272 / 650** |
+| Case-minimum threshold | 0.423998624086 | **0.357533** |
 
-The two JSONL audit logs carry the same quantities under a matching 1e-5
-relative tolerance. All three guards were tested in both directions: a change
-letting k=29 overtake k=26 fails, a 20-unit drift at an unrelated k fails, and a
-10-unit drift within budget passes. No other file in the tree is given any
-tolerance.
+Component ids are renumbered wholesale, so the hand-picked rank selection refers
+to entirely different components. At threshold 0.90 the retained control group is
+27% smaller — a real difference in statistical power, not a relabelling.
 
-## If exact search-log reproduction is ever needed
+Retrieve the previous analysis with:
 
-Set `OMP_NUM_THREADS=1` and `search_workers=1`. This costs roughly 6× wall time
-and changes nothing about the selected model, so it is not enabled by default.
+```bash
+git show results-float32-final:results/02_gmm_clustering/gmm_summary.json
+```
+
+---
+
+## Two claims made during the investigation that were wrong
+
+Recorded because both are the kind of thing that would otherwise be rediscovered:
+
+1. **"float64 moves `best_k` from 26 to 25."** That came from running a float64
+   GMM on the *float32-denoised* sample table — a mixed-precision configuration
+   the pipeline never produces. In the coherent float64 pipeline, HDBSCAN is also
+   float64, retains 181,815 samples, and `best_k` remains 26.
+2. **"PNGs cannot be compared byte-for-byte because of embedded matplotlib
+   metadata."** The metadata is stable within a pinned environment. Under float32
+   the figures differed because the *plotted data* differed. All 12 figures are
+   now byte-identical across runs, and `verify_results.py` treats any pixel
+   difference as a failure.
+
+---
+
+## Method
+
+```bash
+git status                       # clean
+rm -rf results_run_a .cache
+POPGMM_RESULTS_ROOT=results_run_a jupyter nbconvert --to notebook --execute \
+    --ExecutePreprocessor.timeout=7200 \
+    --ExecutePreprocessor.kernel_name=python3 \
+    --output-dir=<scratch> --output run_a.ipynb workflow.ipynb
+# repeat into results_run_b, then:
+python -m tools.verify_results --baseline results_run_a --candidate results_run_b
+```
+
+Environment as recorded in `docs/environment_snapshot.txt` and
+`results/run_environment.json` (Python 3.12.6, numpy 2.4.2, scikit-learn 1.8.0,
+hdbscan 0.8.42 via python-hdbscan, OpenBLAS 0.3.31, macOS arm64).
 
 ## Implications
 
-1. Refactoring may proceed with re-run-and-diff as the acceptance test. It has:
-   the config/caching/notebook refactor and the deduplication of `scripts/` were
-   both accepted on this basis, each reproducing all 57 pre-existing artifacts.
+1. Re-run-and-diff is a valid acceptance test, with **no tolerance** — a
+   stronger claim than the float32 pipeline could support.
 2. The version pins in `requirements.txt` are backed by evidence and can be
    cited in Methods.
+3. `verify_results.py` keeps one zero-cost invariant beyond exact comparison:
+   the k minimising BIC must not move. It costs nothing and is the single thing
+   most worth failing loudly on if numeric behaviour ever changes again.
