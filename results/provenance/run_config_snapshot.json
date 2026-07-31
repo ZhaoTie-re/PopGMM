@@ -27,7 +27,7 @@
       4.5,
       8.0
     ],
-    "recommended_rank": 10,
+    "recommended_rank": 9,
     "subcluster_variants": {
       "expanded": {
         "components": [
@@ -73,7 +73,6 @@
           1,
           3,
           6,
-          10,
           11,
           16,
           17,
@@ -81,7 +80,7 @@
           21,
           26
         ],
-        "rank": 10
+        "rank": 9
       }
     }
   },
@@ -196,7 +195,7 @@
     "decision_table_file": "rank_decision_table.tsv",
     "figure_dpi": 600,
     "figure_file": "rank_selection_tradeoff.png",
-    "forced_recommended_rank": 10,
+    "forced_recommended_rank": 9,
     "max_rank": null,
     "output_dir": "results/03_rank_selection",
     "rank_table_file": "component_rank_table.tsv",

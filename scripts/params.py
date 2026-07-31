@@ -138,8 +138,7 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 RankCut = int | Literal["full", "pareto"]
 
 #: Primary analysis set. Currently a deliberate override: under this model the
-#: Pareto analysis would pick rank 5.
-REFINED_RANK_K: RankCut = 10
+REFINED_RANK_K: RankCut = 9
 
 #: Sensitivity set, between refined and full.
 EXPANDED_RANK_K: RankCut = 12

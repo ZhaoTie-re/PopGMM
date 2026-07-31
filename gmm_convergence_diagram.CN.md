@@ -70,67 +70,67 @@ flowchart LR
 
 **记号与目标**
 
-- 数据：$X=\{x_n\}_{n=1}^{N}$，$x_n\in\mathbb{R}^d$（这里 $d$ 通常对应 `fixed_n_pcs`）。
-- 参数：$\theta = \{\pi_k,\mu_k,\Sigma_k\}_{k=1}^{K}$，$\sum_k\pi_k=1$。
+- 数据：$X=\lbrace x_n\rbrace _{n=1}^{N}$，$x_n\in\mathbb{R}^d$（这里 $d$ 通常对应 `fixed_n_pcs`）。
+- 参数：$\theta = \lbrace \pi_k,\mu_k,\Sigma_k\rbrace _{k=1}^{K}$，$\sum_k\pi_k=1$。
 - 高斯密度：
-$$
+```math
 \mathcal{N}(x\mid\mu,\Sigma)=(2\pi)^{-d/2}|\Sigma|^{-1/2}\exp\Big(-\tfrac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)\Big).
-$$
+```
 - 对数似然：
-$$
+```math
 \ell(\theta)=\sum_{n=1}^{N} \log\Big(\sum_{k=1}^{K} \pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big).
-$$
+```
 
 **EM 的核心（用 $Q$ 函数组织推导）**
 
-引入隐变量 $z_n\in\{1,\dots,K\}$，EM 迭代最大化
-$$
+引入隐变量 $z_n\in\lbrace 1,\dots,K\rbrace$，EM 迭代最大化
+```math
 Q(\theta,\theta^{old}) = \mathbb{E}_{Z\mid X,\theta^{old}}\big[\log p(X,Z\mid\theta)\big].
-$$
+```
 
 将 $Q$ 写成可计算的求和形式：
-$$
+```math
 Q(\theta,\theta^{old})=\sum_{n=1}^{N}\sum_{k=1}^{K} r_{nk}\Big(\log\pi_k + \log\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big),
 \quad r_{nk}=p(z_n=k\mid x_n,\theta^{old}).
-$$
+```
 
 **E-step（责任度 / 后验概率，软分配）**
-$$
+```math
 r_{nk} \equiv p(z_n=k\mid x_n,\theta^{old})
 = \frac{\pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(x_n\mid\mu_j,\Sigma_j)}.
-$$
+```
 
 **M-step（加权极大似然更新）**
 令 $N_k=\sum_{n=1}^{N} r_{nk}$：
-$$
+```math
 \begin{aligned}
 \pi_k &\leftarrow \frac{N_k}{N},\\
 \mu_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}x_n,\\
 \Sigma_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}(x_n-\mu_k)(x_n-\mu_k)^T + \lambda I.
 \end{aligned}
-$$
+```
 其中 $\lambda I$ 是数值稳定项（对应 `reg_covar`）。
 
 **收敛（停止条件）**
 
 - 本项目审计日志显示：sklearn 在每次 EM 迭代记录 `lower_bound`（记作 $LB$），其数值可理解为平均对数似然估计（每样本平均对数似然）$LB=\ell(\theta)/N$。
 - 停止判据为相邻迭代的改变量：
-$$
+```math
 \Delta LB = LB^{(t)}-LB^{(t-1)} < \mathrm{tol}.
-$$
+```
 - 本项目的 `tol=0.001` 与 sklearn 默认一致（代码中未显式传入 `tol`）。
 - `max_iter` 由配置给定。
 - 由于似然非凸，常用 `n_init` 多次初始化，取 $LB$ 最大者（等价于取对数似然最高的初始化）。
 
 **模型选择（BIC）**
-$$
+```math
 \mathrm{BIC}(K) = -2\,\ell(\hat\theta_K) + p_K\log N.
-$$
+```
 
 若采用 full covariance（`covariance_type=full`），参数量常写为：
-$$
+```math
 p_K = (K-1) + K\,d + K\,\frac{d(d+1)}{2}.
-$$
+```
 （不同 `covariance_type` 时 $p_K$ 形式会随协方差约束改变。）
 
 **组件距离与合并（Mahalanobis + H-cluster）**
@@ -138,10 +138,10 @@ $$
 对已拟合的 $K$ 个 GMM 组分，取每个组分的均值向量与协方差矩阵：$\mu_k,\Sigma_k$。
 
 1) 组分均值的 pooled Mahalanobis 距离（代码实现）
-$$
+```math
 S_{ij}=\tfrac{1}{2}\Sigma_i+\tfrac{1}{2}\Sigma_j,\qquad
 d_{ij}=\sqrt{(\mu_i-\mu_j)^T S_{ij}^{-1} (\mu_i-\mu_j)}.
-$$
+```
 
 2) 基于距离矩阵 $D=[d_{ij}]$ 做层次聚类（hierarchical clustering）并按阈值切分
 - `linkage_method` 用于构建 linkage
@@ -150,10 +150,10 @@ $$
 3) 合并后后验与标签
 
 将旧组分集合按合并映射 $c=\mathrm{map}(k)$ 聚合：
-$$
+```math
 r_{n c}=\sum_{k\,:\,\mathrm{map}(k)=c} r_{n k},\qquad
 \hat y_n=\arg\max_c r_{n c}.
-$$
+```
 
 ## 参数与符号对照
 
