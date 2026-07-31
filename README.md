@@ -77,10 +77,10 @@ the choice behind one threshold.
 
 ```mermaid
 flowchart TB
-    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:2px;
-    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:2px;
-    classDef model fill:#fff7e6,stroke:#b26a00,stroke-width:2px;
-    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:2px;
+    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:2px,color:#10314d;
+    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:2px,color:#1f2328;
+    classDef model fill:#fff7e6,stroke:#b26a00,stroke-width:2px,color:#6b3d00;
+    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
 
     X0["<b>Reference panel</b><br/>PCA scores"]:::in
     X1["<b>Study cohort</b><br/>projected on the same loadings"]:::in
@@ -112,6 +112,9 @@ flowchart TB
     X1 --> B1
     B3 --> OUT
     B3 --> DIAG
+
+    style LEARN fill:#fbfbfb,stroke:#c9c9c9,color:#1f2328;
+    style ASSIGN fill:#fbfbfb,stroke:#c9c9c9,color:#1f2328;
 ```
 
 ### 1. A shared PCA coordinate system
