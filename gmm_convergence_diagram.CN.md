@@ -8,14 +8,14 @@ PopGMM 中参考面板的建模过程：用 EM 把高斯混合模型拟合到样
 > 见 [`README.md`](README.md)。
 
 ```mermaid
-%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif'}}}%%
+%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif', 'lineColor': '#6e7781', 'edgeLabelBackground': '#ffffff'}}}%%
 flowchart LR
     %% PPT main figure: compact, parameter-aligned, big-font friendly
-    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:4px,font-size:24px,padding:16px;
-    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:3px,font-size:24px,padding:16px;
-    classDef decision fill:#fff7e6,stroke:#b26a00,stroke-width:3px,font-size:22px,padding:16px;
-    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:4px,font-size:24px,padding:16px;
-    classDef param fill:#f7f7f7,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 4,font-size:20px,padding:12px;
+    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:4px,font-size:24px,padding:16px,color:#10314d;
+    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:3px,font-size:24px,padding:16px,color:#1f2328;
+    classDef decision fill:#fff7e6,stroke:#b26a00,stroke-width:3px,font-size:22px,padding:16px,color:#6b3d00;
+    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:4px,font-size:24px,padding:16px,color:#1b5e20;
+    classDef param fill:#f7f7f7,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 4,font-size:20px,padding:12px,color:#3b3b3b;
 
     A0["<b>输入特征层</b><br/>输入矩阵 X (N × d)"]:::in
     A3["<b>模型结构探索</b><br/>对每个候选 K 独立做 EM 拟合"]:::step
@@ -46,20 +46,22 @@ flowchart LR
     P -. "控制" .-> A3
     P -. "控制" .-> A4
     M -. "控制" .-> A8
+
+    style EMmini fill:#fffdf5,stroke:#d8c9a3,color:#1f2328;
 ```
 
 ## 符号说明
 
 | 符号 | 在流程中的含义 |
 |---|---|
-| $X \in \mathbb{R}^{N \times d}$ | **输入矩阵** —— $N$ 个样本、$d$ 个特征维度（主成分）。 |
+| $X \in \mathbb{R}^{N \times d}$ | **输入矩阵** —— $N$ 个样本，每个样本有 $d$ 个特征维度（主成分）。 |
 | $K$ | **候选成分数** —— 结构探索阶段逐一评估的成分数量。 |
 | $K_{\mathrm{opt}}$ | **选定成分数** —— 使 BIC 最小的模型复杂度。 |
 | $\pi_k, \mu_k, \Sigma_k$ | **成分参数** —— 第 $k$ 个高斯的混合权重、均值向量、协方差矩阵。 |
 | $r_{nk}$ | **责任度** —— 样本 $n$ 属于成分 $k$ 的后验概率（E 步，软分配）。 |
 | $y_n$ | **基线标签** —— 合并之前，直接由 $r_{nk}$ 取最大后验得到的离散分配。 |
 | $\lambda I$ | **协方差正则项** —— 即 `reg_covar`；保证每个 $\Sigma_k$ 可逆且数值稳定。 |
-| $LB$ | **下界** —— sklearn 记录的每样本平均对数似然，$LB = \ell(\theta)/N$。 |
+| $LB$ | **下界** —— sklearn 记录的每样本平均对数似然 $LB = \ell(\theta)/N$。 |
 | $\Delta LB < \mathrm{tol}$ | **收敛判据** —— 单次迭代的 $LB$ 增量低于 `tol` 时停止。 |
 | $S_{ij},\ d_{ij},\ D$ | **距离度量** —— 合并协方差、成分间马氏距离、以及完整距离矩阵。 |
 | $c = \mathrm{map}(k)$ | **合并映射** —— 层次聚类把成分 $k$ 归入宏观聚类 $c$。 |
@@ -70,7 +72,7 @@ flowchart LR
 
 混合模型是若干高斯的加权和，用隐变量 $z$ 表示成分归属。每一轮 EM 交替做两件事：
 算出每个样本属于各成分的概率（E 步，**软**分配），再以 $r_{nk}$ 为权重重新估计
-$\pi, \mu, \Sigma$（M 步）。外层循环对每个候选 $K$ 重复这一过程并保留 BIC 最小的
+$\pi, \mu, \Sigma$ （M 步）。外层循环对每个候选 $K$ 重复这一过程并保留 BIC 最小的
 模型；合并阶段再把选定的模型粗化为祖源聚类。
 
 ## 公式面板
@@ -106,7 +108,7 @@ Q\!\left(\theta, \theta^{(t)}\right)
 = \mathbb{E}_{Z \mid X, \theta^{(t)}}\!\left[\log p(X, Z \mid \theta)\right]
 ```
 
-由于期望是对离散隐变量取的，$Q$ 可化为以责任度为权重的双重求和，从而可计算：
+期望是对离散隐变量取的，因此 $Q$ 可化为以责任度为权重的双重求和，从而可计算：
 
 ```math
 Q\!\left(\theta, \theta^{(t)}\right)
@@ -165,7 +167,7 @@ p_K \;=\; \underbrace{(K-1)}_{\text{权重}} \;+\; \underbrace{K\,d}_{\text{均�
 ```
 
 即 $p_K$ 随 $d$ 二次增长 —— 这正是要在低维主成分空间而非完整特征上拟合混合模型的原因。
-其他 `covariance_type` 会约束 $\Sigma_k$，$p_K$ 的形式随之改变。留有空成分的模型在取
+其他 `covariance_type` 会约束 $\Sigma_k$，而 $p_K$ 的形式随之改变。留有空成分的模型在取
 最小值之前会被剔除。
 
 ### 成分距离与合并

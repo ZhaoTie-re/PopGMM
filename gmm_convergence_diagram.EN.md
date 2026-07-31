@@ -11,14 +11,14 @@ components are merged into ancestry clusters by Mahalanobis distance.
 > deliverable are described in [`README.md`](README.md).
 
 ```mermaid
-%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif'}}}%%
+%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif', 'lineColor': '#6e7781', 'edgeLabelBackground': '#ffffff'}}}%%
 flowchart LR
     %% PPT main figure: compact, parameter-aligned, big-font friendly
-    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:4px,font-size:24px,padding:16px;
-    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:3px,font-size:24px,padding:16px;
-    classDef decision fill:#fff7e6,stroke:#b26a00,stroke-width:3px,font-size:22px,padding:16px;
-    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:4px,font-size:24px,padding:16px;
-    classDef param fill:#f7f7f7,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 4,font-size:20px,padding:12px;
+    classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:4px,font-size:24px,padding:16px,color:#10314d;
+    classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:3px,font-size:24px,padding:16px,color:#1f2328;
+    classDef decision fill:#fff7e6,stroke:#b26a00,stroke-width:3px,font-size:22px,padding:16px,color:#6b3d00;
+    classDef out fill:#e9f7ef,stroke:#2e7d32,stroke-width:4px,font-size:24px,padding:16px,color:#1b5e20;
+    classDef param fill:#f7f7f7,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 4,font-size:20px,padding:12px,color:#3b3b3b;
 
     A0["<b>Input Feature Layer</b><br/>Input Matrix X (N × d)"]:::in
     A3["<b>Model Structure Exploration</b><br/>Independent EM Fitting for Candidate K"]:::step
@@ -49,6 +49,8 @@ flowchart LR
     P -. "Controls" .-> A3
     P -. "Controls" .-> A4
     M -. "Controls" .-> A8
+
+    style EMmini fill:#fffdf5,stroke:#d8c9a3,color:#1f2328;
 ```
 
 ## Notation
@@ -58,7 +60,7 @@ flowchart LR
 | $X \in \mathbb{R}^{N \times d}$ | **Input matrix** — $N$ samples in $d$ feature dimensions (principal components). |
 | $K$ | **Candidate order** — the component count evaluated during structure exploration. |
 | $K_{\mathrm{opt}}$ | **Selected order** — the model complexity minimising BIC. |
-| $\pi_k, \mu_k, \Sigma_k$ | **Component parameters** — mixing weight, mean vector, and covariance of the $k$-th Gaussian. |
+| $\pi_k, \mu_k, \Sigma_k$ | **Component parameters** — mixing weight, mean vector, and covariance of Gaussian component $k$. |
 | $r_{nk}$ | **Responsibility** — posterior probability that sample $n$ belongs to component $k$ (E-step, soft assignment). |
 | $y_n$ | **Baseline label** — maximum a posteriori assignment taken from $r_{nk}$, before merging. |
 | $\lambda I$ | **Covariance regularization** — the `reg_covar` term; keeps every $\Sigma_k$ invertible and numerically stable. |
@@ -74,7 +76,7 @@ flowchart LR
 The mixture is a weighted sum of Gaussians with a latent variable $z$ indicating
 component membership. Each EM iteration alternates between computing every
 sample's membership probabilities (E-step, a *soft* assignment) and re-estimating
-$\pi, \mu, \Sigma$ as $r_{nk}$-weighted averages (M-step). The outer loop repeats
+$\pi, \mu, \Sigma$ as averages weighted by $r_{nk}$ (M-step). The outer loop repeats
 this for each candidate $K$ and keeps the model with the lowest BIC; the merging
 stage then coarsens the selected model into ancestry clusters.
 

@@ -76,6 +76,7 @@ the choice behind one threshold.
 ## Workflow
 
 ```mermaid
+%%{init: {'themeVariables': {'lineColor': '#6e7781', 'edgeLabelBackground': '#ffffff'}}}%%
 flowchart TB
     classDef in fill:#eef5ff,stroke:#1f4e79,stroke-width:2px,color:#10314d;
     classDef step fill:#ffffff,stroke:#4a4a4a,stroke-width:2px,color:#1f2328;
@@ -139,13 +140,13 @@ propagates through merging and assignment. HDBSCAN removes them: dense reference
 structure is retained, sparse off-manifold observations are marked as noise.
 
 Density clustering compares distances across axes and is scale-sensitive, so it
-runs on $z$-scaled PCs; the mixture is fitted on raw PCs, where a full covariance
+runs on z-scaled PCs; the mixture is fitted on raw PCs, where a full covariance
 absorbs any per-axis rescaling. Only the reference panel is denoised — study
 samples keep their place until their probabilities have been evaluated.
 
 ### 3. Learning the reference density
 
-The denoised panel is modelled as a $K$-component mixture with full covariances,
+The denoised panel is modelled as a mixture of $K$ components with full covariances,
 
 ```math
 p(x \mid \theta) \;=\; \sum_{k=1}^{K} \pi_k \, \mathcal{N}(x \mid \mu_k, \Sigma_k),
