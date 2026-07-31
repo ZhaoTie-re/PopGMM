@@ -70,67 +70,67 @@ flowchart LR
 
 **Notation and Objective**
 
-- Data: $X=\{x_n\}_{n=1}^{N}$, $x_n\in\mathbb{R}^d$ (here $d$ usually corresponds to `fixed_n_pcs`).
-- Parameters: $\theta = \{\pi_k,\mu_k,\Sigma_k\}_{k=1}^{K}$, with $\sum_k\pi_k=1$.
+- Data: $X=\lbrace x_n\rbrace _{n=1}^{N}$, $x_n\in\mathbb{R}^d$ (here $d$ usually corresponds to `fixed_n_pcs`).
+- Parameters: $\theta = \lbrace \pi_k,\mu_k,\Sigma_k\rbrace _{k=1}^{K}$, with $\sum_k\pi_k=1$.
 - Gaussian density:
-$$
+```math
 \mathcal{N}(x\mid\mu,\Sigma)=(2\pi)^{-d/2}|\Sigma|^{-1/2}\exp\Big(-\tfrac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)\Big).
-$$
+```
 - Log-likelihood:
-$$
+```math
 \ell(\theta)=\sum_{n=1}^{N} \log\Big(\sum_{k=1}^{K} \pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big).
-$$
+```
 
 **Core of EM (organized via the $Q$ function)**
 
-Introduce latent variable $z_n\in\{1,\dots,K\}$. EM iteratively maximizes
-$$
+Introduce latent variable $z_n\in\lbrace 1,\dots,K\rbrace$. EM iteratively maximizes
+```math
 Q(\theta,\theta^{old}) = \mathbb{E}_{Z\mid X,\theta^{old}}\big[\log p(X,Z\mid\theta)\big].
-$$
+```
 
 Rewrite $Q$ into a computable summation:
-$$
+```math
 Q(\theta,\theta^{old})=\sum_{n=1}^{N}\sum_{k=1}^{K} r_{nk}\Big(\log\pi_k + \log\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big),
 \quad r_{nk}=p(z_n=k\mid x_n,\theta^{old}).
-$$
+```
 
 **E-step (responsibility / posterior probability, soft assignment)**
-$$
+```math
 r_{nk} \equiv p(z_n=k\mid x_n,\theta^{old})
 = \frac{\pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(x_n\mid\mu_j,\Sigma_j)}.
-$$
+```
 
 **M-step (weighted maximum-likelihood updates)**
 Let $N_k=\sum_{n=1}^{N} r_{nk}$:
-$$
+```math
 \begin{aligned}
 \pi_k &\leftarrow \frac{N_k}{N},\\
 \mu_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}x_n,\\
 \Sigma_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}(x_n-\mu_k)(x_n-\mu_k)^T + \lambda I.
 \end{aligned}
-$$
+```
 where $\lambda I$ is a numerical stabilization term (corresponding to `reg_covar`).
 
 **Convergence (stopping condition)**
 
 - Audit logs in this project show that sklearn records `lower_bound` at each EM iteration (denoted as $LB$), which can be interpreted as an average log-likelihood estimate (per-sample average), i.e., $LB=\ell(\theta)/N$.
 - Stopping criterion uses change between adjacent iterations:
-$$
+```math
 \Delta LB = LB^{(t)}-LB^{(t-1)} < \mathrm{tol}.
-$$
+```
 - In this project, `tol=0.001`, consistent with sklearn's default (not explicitly passed in code).
 - `max_iter` is set by configuration.
 - Because the likelihood is non-convex, `n_init` with multiple starts is commonly used; select the run with the largest $LB$ (equivalently highest log-likelihood).
 
 **Model Selection (BIC)**
-$$
+```math
 \mathrm{BIC}(K) = -2\,\ell(\hat\theta_K) + p_K\log N.
-$$
+```
 
 For full covariance (`covariance_type=full`), parameter count is commonly written as:
-$$
+```math
 p_K = (K-1) + K\,d + K\,\frac{d(d+1)}{2}.
-$$
+```
 (Under other `covariance_type` settings, the form of $p_K$ changes with covariance constraints.)
 
 **Component Distance and Merging (Mahalanobis + Hierarchical Clustering)**
@@ -138,10 +138,10 @@ $$
 For fitted $K$ GMM components, use each component's mean vector and covariance matrix: $\mu_k,\Sigma_k$.
 
 1) Pooled Mahalanobis distance between component means (as implemented in code)
-$$
+```math
 S_{ij}=\tfrac{1}{2}\Sigma_i+\tfrac{1}{2}\Sigma_j,\qquad
 d_{ij}=\sqrt{(\mu_i-\mu_j)^T S_{ij}^{-1} (\mu_i-\mu_j)}.
-$$
+```
 
 2) Perform hierarchical clustering on distance matrix $D=[d_{ij}]$, then cut by threshold
 - `linkage_method` is used to build linkage
@@ -150,10 +150,10 @@ $$
 3) Post-merge posterior and labels
 
 Aggregate old components by merge map $c=\mathrm{map}(k)$:
-$$
+```math
 r_{n c}=\sum_{k\,:\,\mathrm{map}(k)=c} r_{n k},\qquad
 \hat y_n=\arg\max_c r_{n c}.
-$$
+```
 
 ## Parameter-to-Symbol Mapping
 

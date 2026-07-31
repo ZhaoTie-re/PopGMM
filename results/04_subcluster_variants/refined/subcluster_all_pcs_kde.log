@@ -1,9 +1,9 @@
 >>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND_SUBCLUSTER SAMPLES...
    -> output_dir = results/04_subcluster_variants/refined
    -> mainland label = Mainland Subcluster
-   -> mainland_subcluster samples = 2326 / 3569
-   -> Case samples: 425
-   -> Control samples: 1901
+   -> mainland_subcluster samples = 2195 / 3569
+   -> Case samples: 419
+   -> Control samples: 1776
    -> Total PCs to analyze: 20
    -> Running statistical tests...
    -> Applying FDR correction (Benjamini-Hochberg method) to all tests...
