@@ -48,6 +48,7 @@ flowchart LR
     M -. "控制" .-> A8
 
     style EMmini fill:#fffdf5,stroke:#d8c9a3,color:#1f2328;
+    linkStyle default stroke:#6e7781,stroke-width:3px;
 ```
 
 ## 符号说明
