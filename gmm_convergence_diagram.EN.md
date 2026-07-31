@@ -1,6 +1,14 @@
 # GMM (EM) Principles and Convergence Diagram
 
-Objective: Use GMM to perform unsupervised modeling on low-dimensional sample features (for example, the first several PCs); use EM to maximize the log-likelihood and estimate parameters; and use BIC for model selection across different values of $K$ (number of components).
+Reference-panel modelling in PopGMM: a Gaussian mixture is fitted to
+low-dimensional sample features by expectation–maximization, the number of
+components is chosen by the Bayesian Information Criterion, and the fitted
+components are merged into ancestry clusters by Mahalanobis distance.
+
+> **Scope.** This document covers the reference-model mathematics only — the EM
+> iteration, model selection, and component merging. Denoising, projection of a
+> study cohort into the fitted mixture, subset selection, and the keep-list
+> deliverable are described in [`README.md`](README.md).
 
 ```mermaid
 %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif'}}}%%
@@ -43,129 +51,180 @@ flowchart LR
     M -. "Controls" .-> A8
 ```
 
-| Diagram Notation / Variable | Interpretation and Functional Role in the Pipeline |
+## Notation
+
+| Symbol | Role in the pipeline |
 |---|---|
-| $X (N \times d)$ | **Input Matrix**: Subject feature matrix comprising $N$ samples and $d$ feature dimensions (e.g., PCs). |
-| $K$ | **Candidate Components**: Number of GMM components evaluated during model structure exploration. |
-| $K_{\mathrm{opt}}$ | **Optimal Components**: Final model complexity selected by minimizing the Bayesian Information Criterion (BIC). |
-| $\text{K-Means}$ | **Initialization Strategy**: Seeds robust starting parameters ($\mu, \Sigma, \pi$) to mitigate local optima entrapment. |
-| $r_{nk}$ | **Posterior Probability**: Baseline probability of a sample belonging to component $k$ (E-step responsibility). |
-| $y_n$ | **Baseline Assignment**: Maximum a posteriori (MAP) discrete label derived directly from $r_{nk}$ before merging. |
-| $\pi_k, \mu_k, \Sigma_k$ | **Component Parameters**: The prior weight, mean vector, and covariance matrix defining the $k$-th Gaussian. |
-| $\lambda I$ | **Covariance Regularization**: Corresponds to `reg_covar`; ensures numerical stability and invertible matrices in the M-step. |
-| $\Delta LB < \mathrm{tol}$ | **Convergence Criterion**: EM iteration stops when the increment of the average log-likelihood bound ($\Delta LB$) falls below $\mathrm{tol}$. |
-| $S_{ij}, d_{ij}, D$ | **Distance Metrics**: Pooled covariance ($S_{ij}$), pairwise Mahalanobis distance ($d_{ij}$), and the full distance matrix ($D$). |
-| $c, \mathrm{linkage}, \mathrm{threshold}$ | **Agglomeration Logic**: Target macro-cluster $c$ formed via hierarchical clustering with specified `linkage` and `threshold`. |
-| $r_{nc}$ | **Aggregated Probability**: Cumulative probability of a sample belonging to macro-cluster $c$ (sum of intra-cluster $r_{nk}$). |
-| $\hat{y}_n$ (`ŷ_n`) | **Final Inferred Label**: Final discrete classification output obtained by maximizing the macro-cluster probabilities ($r_{nc}$). |
+| $X \in \mathbb{R}^{N \times d}$ | **Input matrix** — $N$ samples in $d$ feature dimensions (principal components). |
+| $K$ | **Candidate order** — the component count evaluated during structure exploration. |
+| $K_{\mathrm{opt}}$ | **Selected order** — the model complexity minimising BIC. |
+| $\pi_k, \mu_k, \Sigma_k$ | **Component parameters** — mixing weight, mean vector, and covariance of the $k$-th Gaussian. |
+| $r_{nk}$ | **Responsibility** — posterior probability that sample $n$ belongs to component $k$ (E-step, soft assignment). |
+| $y_n$ | **Baseline label** — maximum a posteriori assignment taken from $r_{nk}$, before merging. |
+| $\lambda I$ | **Covariance regularization** — the `reg_covar` term; keeps every $\Sigma_k$ invertible and numerically stable. |
+| $LB$ | **Lower bound** — sklearn's per-sample average log-likelihood, $LB = \ell(\theta)/N$. |
+| $\Delta LB < \mathrm{tol}$ | **Convergence criterion** — EM stops when the per-iteration gain in $LB$ falls below `tol`. |
+| $S_{ij},\ d_{ij},\ D$ | **Distance metrics** — pooled covariance, pairwise Mahalanobis distance, and the full distance matrix. |
+| $c = \mathrm{map}(k)$ | **Merge map** — assignment of component $k$ to macro-cluster $c$ by hierarchical clustering. |
+| $r_{nc}$ | **Aggregated probability** — probability of belonging to macro-cluster $c$, summed over its components. |
+| $\hat{y}_n$ | **Final label** — discrete assignment obtained by maximising $r_{nc}$. |
 
-## Key Points in the Diagram
+## How to read the diagram
 
-- GMM is a weighted sum of multiple Gaussians, with latent variable $z$ indicating component membership.
-- The E-step computes each sample's probability of belonging to each component (soft assignment $r_{nk}$).
-- The M-step uses weighted averages based on $r_{nk}$ to update $\pi,\mu,\Sigma$; `reg_covar` can be interpreted as $\lambda I$ to improve stability.
-- Convergence follows audit logs: compare iteration-to-iteration change in `lower_bound` (denoted as $LB$) against `tol`; multiple initializations (`n_init`) help reduce local-optimum risk.
+The mixture is a weighted sum of Gaussians with a latent variable $z$ indicating
+component membership. Each EM iteration alternates between computing every
+sample's membership probabilities (E-step, a *soft* assignment) and re-estimating
+$\pi, \mu, \Sigma$ as $r_{nk}$-weighted averages (M-step). The outer loop repeats
+this for each candidate $K$ and keeps the model with the lowest BIC; the merging
+stage then coarsens the selected model into ancestry clusters.
 
-## Formula Panel
+## Formula panel
 
-**Notation and Objective**
+### Notation and objective
 
-- Data: $X=\lbrace x_n\rbrace _{n=1}^{N}$, $x_n\in\mathbb{R}^d$ (here $d$ usually corresponds to `fixed_n_pcs`).
-- Parameters: $\theta = \lbrace \pi_k,\mu_k,\Sigma_k\rbrace _{k=1}^{K}$, with $\sum_k\pi_k=1$.
-- Gaussian density:
+Data $X = \lbrace x_n \rbrace_{n=1}^{N}$ with $x_n \in \mathbb{R}^{d}$, where $d$
+is set by `fixed_n_pcs`. Parameters
+$\theta = \lbrace \pi_k, \mu_k, \Sigma_k \rbrace_{k=1}^{K}$ subject to
+$\sum_k \pi_k = 1$.
+
+Gaussian density:
+
 ```math
-\mathcal{N}(x\mid\mu,\Sigma)=(2\pi)^{-d/2}|\Sigma|^{-1/2}\exp\Big(-\tfrac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)\Big).
-```
-- Log-likelihood:
-```math
-\ell(\theta)=\sum_{n=1}^{N} \log\Big(\sum_{k=1}^{K} \pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big).
-```
-
-**Core of EM (organized via the $Q$ function)**
-
-Introduce latent variable $z_n\in\lbrace 1,\dots,K\rbrace$. EM iteratively maximizes
-```math
-Q(\theta,\theta^{old}) = \mathbb{E}_{Z\mid X,\theta^{old}}\big[\log p(X,Z\mid\theta)\big].
+\mathcal{N}(x \mid \mu, \Sigma)
+= (2\pi)^{-d/2}\,\lvert\Sigma\rvert^{-1/2}
+\exp\!\left(-\tfrac{1}{2}(x-\mu)^{\top}\Sigma^{-1}(x-\mu)\right)
 ```
 
-Rewrite $Q$ into a computable summation:
+Log-likelihood of the mixture:
+
 ```math
-Q(\theta,\theta^{old})=\sum_{n=1}^{N}\sum_{k=1}^{K} r_{nk}\Big(\log\pi_k + \log\mathcal{N}(x_n\mid\mu_k,\Sigma_k)\Big),
-\quad r_{nk}=p(z_n=k\mid x_n,\theta^{old}).
+\ell(\theta) \;=\; \sum_{n=1}^{N} \log\!\left(\sum_{k=1}^{K} \pi_k\,\mathcal{N}(x_n \mid \mu_k, \Sigma_k)\right)
 ```
 
-**E-step (responsibility / posterior probability, soft assignment)**
+### Core of EM (via the $Q$ function)
+
+Introduce a latent variable $z_n \in \lbrace 1, \dots, K \rbrace$ indicating
+which component generated $x_n$. Writing $\theta^{(t)}$ for the current estimate,
+EM iteratively maximises the expected complete-data log-likelihood:
+
 ```math
-r_{nk} \equiv p(z_n=k\mid x_n,\theta^{old})
-= \frac{\pi_k\,\mathcal{N}(x_n\mid\mu_k,\Sigma_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(x_n\mid\mu_j,\Sigma_j)}.
+Q\!\left(\theta, \theta^{(t)}\right)
+= \mathbb{E}_{Z \mid X, \theta^{(t)}}\!\left[\log p(X, Z \mid \theta)\right]
 ```
 
-**M-step (weighted maximum-likelihood updates)**
-Let $N_k=\sum_{n=1}^{N} r_{nk}$:
+Because the expectation is taken over a discrete latent variable, $Q$ reduces to
+a computable double sum weighted by the responsibilities:
+
+```math
+Q\!\left(\theta, \theta^{(t)}\right)
+= \sum_{n=1}^{N}\sum_{k=1}^{K} r_{nk}\left(\log \pi_k + \log \mathcal{N}(x_n \mid \mu_k, \Sigma_k)\right),
+\qquad r_{nk} = p\!\left(z_n = k \mid x_n, \theta^{(t)}\right)
+```
+
+### E-step — responsibilities
+
+```math
+r_{nk} \;\equiv\; p\!\left(z_n = k \mid x_n, \theta^{(t)}\right)
+\;=\; \frac{\pi_k\,\mathcal{N}(x_n \mid \mu_k, \Sigma_k)}
+{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(x_n \mid \mu_j, \Sigma_j)}
+```
+
+Each sample contributes fractionally to every component, which is what preserves
+the uncertainty that a hard nearest-centroid rule would discard.
+
+### M-step — weighted maximum-likelihood updates
+
+With the effective component size $N_k = \sum_{n=1}^{N} r_{nk}$:
+
 ```math
 \begin{aligned}
-\pi_k &\leftarrow \frac{N_k}{N},\\
-\mu_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}x_n,\\
-\Sigma_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}(x_n-\mu_k)(x_n-\mu_k)^T + \lambda I.
+\pi_k &\leftarrow \frac{N_k}{N}, \\[2pt]
+\mu_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}\,x_n, \\[2pt]
+\Sigma_k &\leftarrow \frac{1}{N_k}\sum_{n=1}^{N} r_{nk}\,(x_n-\mu_k)(x_n-\mu_k)^{\top} \;+\; \lambda I
 \end{aligned}
 ```
-where $\lambda I$ is a numerical stabilization term (corresponding to `reg_covar`).
 
-**Convergence (stopping condition)**
+The ridge $\lambda I$ is `reg_covar`; without it a component collapsing onto a
+few points yields a singular covariance and an unbounded likelihood.
 
-- Audit logs in this project show that sklearn records `lower_bound` at each EM iteration (denoted as $LB$), which can be interpreted as an average log-likelihood estimate (per-sample average), i.e., $LB=\ell(\theta)/N$.
-- Stopping criterion uses change between adjacent iterations:
+### Convergence
+
+sklearn records `lower_bound` at every EM iteration — the per-sample average
+log-likelihood $LB = \ell(\theta)/N$ — and stops when its increment falls below
+the tolerance:
+
 ```math
-\Delta LB = LB^{(t)}-LB^{(t-1)} < \mathrm{tol}.
-```
-- In this project, `tol=0.001`, consistent with sklearn's default (not explicitly passed in code).
-- `max_iter` is set by configuration.
-- Because the likelihood is non-convex, `n_init` with multiple starts is commonly used; select the run with the largest $LB$ (equivalently highest log-likelihood).
-
-**Model Selection (BIC)**
-```math
-\mathrm{BIC}(K) = -2\,\ell(\hat\theta_K) + p_K\log N.
+\Delta LB \;=\; LB^{(t)} - LB^{(t-1)} \;<\; \mathrm{tol}
 ```
 
-For full covariance (`covariance_type=full`), parameter count is commonly written as:
+- `tol` is sklearn's default $10^{-3}$; `GMMConfig` does not expose it, so it is
+  never passed explicitly in this project.
+- `max_iter` bounds the iteration count when the tolerance is not reached.
+- The likelihood is non-convex, so `n_init` restarts are run from independent
+  initializations and the one with the largest $LB$ is kept.
+
+### Model selection (BIC)
+
 ```math
-p_K = (K-1) + K\,d + K\,\frac{d(d+1)}{2}.
-```
-(Under other `covariance_type` settings, the form of $p_K$ changes with covariance constraints.)
-
-**Component Distance and Merging (Mahalanobis + Hierarchical Clustering)**
-
-For fitted $K$ GMM components, use each component's mean vector and covariance matrix: $\mu_k,\Sigma_k$.
-
-1) Pooled Mahalanobis distance between component means (as implemented in code)
-```math
-S_{ij}=\tfrac{1}{2}\Sigma_i+\tfrac{1}{2}\Sigma_j,\qquad
-d_{ij}=\sqrt{(\mu_i-\mu_j)^T S_{ij}^{-1} (\mu_i-\mu_j)}.
+\mathrm{BIC}(K) \;=\; -2\,\ell(\hat{\theta}_K) \;+\; p_K \log N
 ```
 
-2) Perform hierarchical clustering on distance matrix $D=[d_{ij}]$, then cut by threshold
-- `linkage_method` is used to build linkage
-- `merge_threshold` is used as the distance-criterion cut threshold
+For an unconstrained covariance (`covariance_type="full"`) the free-parameter
+count is
 
-3) Post-merge posterior and labels
-
-Aggregate old components by merge map $c=\mathrm{map}(k)$:
 ```math
-r_{n c}=\sum_{k\,:\,\mathrm{map}(k)=c} r_{n k},\qquad
-\hat y_n=\arg\max_c r_{n c}.
+p_K \;=\; \underbrace{(K-1)}_{\text{weights}} \;+\; \underbrace{K\,d}_{\text{means}} \;+\; \underbrace{K\,\frac{d(d+1)}{2}}_{\text{covariances}}
 ```
 
-## Parameter-to-Symbol Mapping
+so $p_K$ grows quadratically in $d$ — the reason a mixture is fitted in a low
+dimensional PC space rather than on the full feature set. Other
+`covariance_type` settings constrain $\Sigma_k$ and change $p_K$ accordingly.
+Models that leave a component empty are rejected before the minimum is taken.
 
-| config | Mathematical Symbol | Role |
-|---|---|---|
-| `fixed_n_pcs` | $d$ | Feature dimensionality (number of PCs) |
-| `k_min..k_max` | Candidate range of $K$ | Component-count search range for BIC |
-| `covariance_type` | Structure of $\Sigma_k$ | Covariance-form constraint |
-| `n_init` + `init_params` | Initialization | Mitigates local optima. The committed run uses `n_init=3`, `init_params="kmeans"` (the notebook overrides the class default of `k-means++`) |
-| `tol` | Convergence threshold | Stop when $\Delta LB$ is below `tol` (sklearn default $10^{-3}$) |
-| `max_iter` | Iteration upper bound | Maximum EM iteration count |
-| `reg_covar` | $\lambda I$ | Covariance numerical stabilization |
-| `search_workers` | Parallelism | Accelerates K search |
-| `merge_threshold` | Threshold $t$ | Dendrogram cut threshold; merges components by distance criterion |
-| `linkage_method` | linkage | Linkage method for hierarchical clustering |
+### Component distance and merging
+
+The selected model describes the density well but over-segments it: one
+ancestry region is typically represented by several Gaussians. Merging recovers
+the regions.
+
+**Pairwise distance.** Components are compared by the Mahalanobis distance
+between their means under their pooled covariance, which — unlike a Euclidean
+distance between centroids — accounts for the scale, elongation, and orientation
+of the two components being compared:
+
+```math
+S_{ij} \;=\; \tfrac{1}{2}\Sigma_i + \tfrac{1}{2}\Sigma_j,
+\qquad
+d_{ij} \;=\; \sqrt{(\mu_i-\mu_j)^{\top} S_{ij}^{-1} (\mu_i-\mu_j)}
+```
+
+**Hierarchical cut.** The matrix $D = [d_{ij}]$ is clustered with
+`linkage_method` and cut at `merge_threshold` under the distance criterion,
+yielding the merge map $c = \mathrm{map}(k)$.
+
+**Posterior aggregation.** Probability mass follows the map, so no sample is
+reassigned by fiat and the aggregated posteriors remain a proper distribution:
+
+```math
+r_{nc} \;=\; \sum_{k \,:\, \mathrm{map}(k) = c} r_{nk},
+\qquad
+\hat{y}_n \;=\; \arg\max_{c}\; r_{nc}
+```
+
+## Parameter-to-symbol mapping
+
+| Config | Symbol | Role | Committed run |
+|---|---|---|---|
+| `fixed_n_pcs` | $d$ | Feature dimensionality | `2` |
+| `k_min` … `k_max` | range of $K$ | Search range for the BIC minimum | `2` … `100` |
+| `covariance_type` | form of $\Sigma_k$ | Covariance constraint; sets $p_K$ | `full` |
+| `n_init` | — | Independent restarts; largest $LB$ wins | `3` |
+| `init_params` | — | Seeding strategy for $\mu, \Sigma, \pi$ | `kmeans` (overrides the class default `k-means++`) |
+| `tol` | $\mathrm{tol}$ | Stop when $\Delta LB <$ `tol` | sklearn default $10^{-3}$, not passed explicitly |
+| `max_iter` | — | Iteration upper bound | `200` |
+| `reg_covar` | $\lambda$ | Covariance ridge for numerical stability | `1e-6` |
+| `random_state` | — | Seed for initialization; fixes the fit | `42` |
+| `require_non_empty_clusters` | — | Reject models with an empty component | `True` |
+| `search_workers` | — | Parallelism across candidate $K$ | configured per run |
+| `merge_threshold` | $t$ | Dendrogram cut height | `6.0` |
+| `linkage_method` | — | Linkage rule for hierarchical clustering | `average` |
