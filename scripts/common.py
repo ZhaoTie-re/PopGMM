@@ -6,6 +6,10 @@ previous tangle in which one KDE module had become an accidental utility
 library for the others while itself importing the shared plot style back out of
 the assignment module.
 
+Figure styling is **not** here -- it lives in ``scripts.plotting.style``, which
+also holds the frozen cohort palette. This module keeps only helpers that a
+non-plotting caller could want.
+
 Only helpers that were verified to be behaviourally identical across their
 copies live here. Two deliberate exceptions are recorded so the next person does
 not "finish the job" and change a figure:
@@ -14,7 +18,7 @@ not "finish the job" and change a figure:
   ``gmm_component_merging`` formatted variance as ``.1f`` while
   ``gmm_clustering`` and ``hdbscan_filtering`` used ``.2f`` -- i.e. it drew
   ``PC1 (39.2%)`` where the others drew ``PC1 (39.24%)``. The call site in
-  the merging module must pass ``decimals=1``.
+  ``scripts/plotting/merging.py`` must pass ``decimals=1``.
 * ``resolve_pc_columns`` returns *all* PC columns.
   ``subcluster_view`` needs a 2-PC variant that raises when fewer than two are
   present, so it keeps a thin local wrapper rather than changing this one.
@@ -36,30 +40,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import f as _f_dist
-
-# ---------------------------------------------------------------------------
-# Plot style
-# ---------------------------------------------------------------------------
-
-#: Shared rcParams for publication figures (dpi=400, large type).
-PLOT_STYLE_RC: dict[str, object] = {
-    "figure.dpi": 400,
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-    "font.size": 22,
-    "axes.titlesize": 30,
-    "axes.labelsize": 26,
-    "axes.linewidth": 2.0,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "xtick.labelsize": 22,
-    "ytick.labelsize": 22,
-    "xtick.major.width": 2.0,
-    "ytick.major.width": 2.0,
-    "legend.fontsize": 22,
-    "legend.title_fontsize": 24,
-    "figure.titlesize": 40,
-}
 
 _PC_RE = re.compile(r"^PC(\d+)(?:_AVG)?$")
 
@@ -150,6 +130,35 @@ def format_pc_axis_label(
     return f"{base} ({float(row.iloc[0]) * 100.0:.{decimals}f}%)"
 
 
+def format_sigfig(value: float, sig: int = 2) -> str:
+    """Format a number with a fixed number of significant digits.
+
+    Uses fixed-point formatting where appropriate to preserve trailing zeros
+    (e.g., 5.0 for 2 sig figs), and rounds to tens/hundreds for large values.
+    """
+
+    v = float(value)
+    if not np.isfinite(v):
+        return str(v)
+    if v == 0.0:
+        return "0"
+
+    sig_i = int(sig)
+    if sig_i <= 0:
+        sig_i = 1
+
+    abs_v = abs(v)
+    exp = int(np.floor(np.log10(abs_v)))
+    decimals = sig_i - 1 - exp
+
+    if decimals >= 0:
+        return f"{v:.{decimals}f}"
+
+    # decimals < 0 -> round to nearest 10/100/... and print as integer.
+    rounded = round(v, -decimals)
+    return f"{rounded:.0f}"
+
+
 # ---------------------------------------------------------------------------
 # Palettes
 # ---------------------------------------------------------------------------
@@ -232,32 +241,58 @@ def gwas_neff(case_n: int, control_n: int) -> float:
     return float(4.0 / ((1.0 / float(case_n)) + (1.0 / float(control_n))))
 
 
-def pc12_rgv(xy: np.ndarray) -> float:
-    """Residual genetic spread of a sample set on PC1-PC2.
+def rgv(coords: np.ndarray) -> float:
+    """Residual genetic spread of a sample set over however many axes it carries.
 
-    Root generalized variance: ``det(Sigma) ** (1/4)`` for two dimensions, which
-    captures both the variance magnitude and the covariance structure in one
-    number, unlike a per-axis variance. Lower means a more homogeneous set.
+    Root generalized variance, ``det(Sigma) ** (1 / 2d)`` -- the geometric mean
+    of the per-axis standard deviations. It captures the variance magnitude and
+    the covariance structure in one number, unlike a per-axis variance, and lower
+    means a more homogeneous set. The ``1 / 2d`` exponent keeps the value in the
+    units of a standard deviation at every ``d``, so an isotropic cloud of width
+    ``s`` scores ``s`` whether it is measured on two axes or ten.
 
-    Returns NaN for fewer than two samples or a degenerate covariance.
+    Two values are still only comparable when they share a basis *and* a ``d``:
+    different PCA bases put different amounts of structure on their leading axes.
+
+    Requires more samples than axes -- at ``n <= d`` the sample covariance is
+    singular and the result would be an artefact of the stabilising ridge rather
+    than of the data. Returns NaN there, and for a degenerate covariance.
     """
-    xy = np.asarray(xy, dtype=np.float64)
-    if xy.ndim != 2 or xy.shape[1] != 2 or int(xy.shape[0]) < 2:
+    coords = np.asarray(coords, dtype=np.float64)
+    if coords.ndim != 2:
+        return float("nan")
+    n_samples, d = int(coords.shape[0]), int(coords.shape[1])
+    if d < 1 or n_samples <= d:
         return float("nan")
 
-    cov = np.asarray(np.cov(xy, rowvar=False), dtype=np.float64)
+    cov = np.atleast_2d(np.asarray(np.cov(coords, rowvar=False), dtype=np.float64))
     if not np.all(np.isfinite(cov)):
         return float("nan")
 
     # Small ridge for numerical stability under near-collinearity.
     trace = float(np.trace(cov))
-    scale = trace / 2.0 if np.isfinite(trace) else 1.0
-    cov = cov + np.eye(2, dtype=np.float64) * (1e-8 * max(1.0, scale))
+    scale = trace / d if np.isfinite(trace) else 1.0
+    cov = cov + np.eye(d, dtype=np.float64) * (1e-8 * max(1.0, scale))
 
-    det = float(np.linalg.det(cov))
-    if not np.isfinite(det) or det <= 0.0:
+    sign, logdet = np.linalg.slogdet(cov)
+    if sign <= 0 or not np.isfinite(logdet):
         return float("nan")
-    return float(det**0.25)
+    # Via the log determinant: at d = 10 a raw det() underflows long before the
+    # spread itself is degenerate.
+    return float(np.exp(logdet / (2.0 * d)))
+
+
+def pc12_rgv(xy: np.ndarray) -> float:
+    """``rgv`` on exactly two axes, rejecting anything else.
+
+    The global-PCA spread is defined on PC1-PC2 and nothing else, so callers of
+    that specific quantity go through this wrapper rather than passing whatever
+    width the frame happens to have.
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    if xy.ndim != 2 or xy.shape[1] != 2:
+        return float("nan")
+    return rgv(xy)
 
 
 class CaseControlSeparation(NamedTuple):

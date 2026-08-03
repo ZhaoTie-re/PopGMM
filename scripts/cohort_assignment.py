@@ -31,23 +31,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple, cast
 
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.colors import to_hex, to_rgba
-from matplotlib.lines import Line2D
-from matplotlib.transforms import Bbox
+from matplotlib.colors import to_hex
 from sklearn.mixture import GaussianMixture
 
 from scripts.common import (
     to_numeric_series,
     STORE_DTYPE,
-    PLOT_STYLE_RC as _PLOT_STYLE_RC,
     build_distinct_palette as _build_distinct_palette,
 )
+from scripts.plotting.assignment import (
+    PCWindow,
+    ReferenceCloud,
+    plot_cohort_assignment,
+)
+from scripts.plotting.style import THEME_ASSIGNMENT, figure_context, save_figure
 
 
 class CohortAssignmentOutput(NamedTuple):
@@ -104,6 +105,9 @@ class CohortAssignmentConfig:
 
     output_file: str = "cohort_posterior_probabilities.tsv"
     component_rank_file: str = "major_cluster_component_ranks.tsv"
+    #: Per-cluster case/control counts and ranks. Previously these existed
+    #: only as a rendered table panel inside the figure.
+    statistics_file: str = "cohort_cluster_statistics.tsv"
     figure_file: str = "cohort_assignment_overview.png"
 
     reference_color: str = "#B0B0B0"
@@ -220,6 +224,100 @@ def _extract_major_cluster_component_ids(merge_map: pd.DataFrame | None) -> list
     return sorted(set(int(v) for v in vals.tolist()))
 
 
+@dataclass(frozen=True)
+class ClusterRanking:
+    """Per-cluster case/control counts and the case-ratio ranking derived from them.
+
+    Computed from the assignment alone -- no figure involved. It used to live
+    inside the plotting branch, which meant ``save_plot=False`` returned empty
+    statistics and skipped writing ``major_cluster_component_ranks.tsv``
+    entirely, even with ``save_tables=True``.
+    """
+
+    stats: pd.DataFrame
+    ratio_map: dict[int, float]
+    rank_map: dict[int, int]
+    priority_ids: list[int]
+    priority_set: set[int]
+    ordered_cluster_ids: list[int]
+    case_counts_by_cluster: dict[int, Any]
+    control_counts_by_cluster: dict[int, Any]
+    total_counts_by_cluster: dict[int, Any]
+    all_cluster_ids: list[int]
+    major_cluster_component_ids: list[int]
+
+
+def compute_cluster_ranking(
+    *,
+    assigned_merged: np.ndarray,
+    is_case: np.ndarray,
+    is_ctrl: np.ndarray,
+    new_k: int,
+    merge_map: pd.DataFrame,
+) -> ClusterRanking:
+    """Rank the major cluster's components by case/control ratio, descending."""
+    df_cc = pd.DataFrame({"Cluster": assigned_merged.astype(int), "Case": is_case.astype(int), "Control": is_ctrl.astype(int)})
+    stats = pd.DataFrame(index=range(int(new_k)))
+    stats["Case"] = df_cc.groupby("Cluster")["Case"].sum().reindex(range(int(new_k))).fillna(0).astype(int)
+    stats["Control"] = df_cc.groupby("Cluster")["Control"].sum().reindex(range(int(new_k))).fillna(0).astype(int)
+    stats["Total"] = df_cc.groupby("Cluster").size().reindex(range(int(new_k))).fillna(0).astype(int)
+
+    case_counts_arr = stats["Case"].to_numpy(dtype=np.int64, copy=False)
+    control_counts_arr = stats["Control"].to_numpy(dtype=np.int64, copy=False)
+    total_counts_arr = stats["Total"].to_numpy(dtype=np.int64, copy=False)
+
+    case_counts_by_cluster = {cid: case_counts_arr[cid] for cid in range(int(new_k))}
+    control_counts_by_cluster = {cid: control_counts_arr[cid] for cid in range(int(new_k))}
+    total_counts_by_cluster = {cid: total_counts_arr[cid] for cid in range(int(new_k))}
+    all_cluster_ids = list(range(int(new_k)))
+
+    major_cluster_component_ids = _extract_major_cluster_component_ids(merge_map)
+    priority_ids = [cid for cid in major_cluster_component_ids if cid in case_counts_by_cluster]
+    priority_set = set(priority_ids)
+
+    # Compute Case/Control ratio for mainland ordering and ranking.
+    ratio_map: dict[int, float] = {}
+    for cid in range(int(new_k)):
+        case_n = int(case_counts_by_cluster[cid])
+        ctrl_n = int(control_counts_by_cluster[cid])
+        if ctrl_n > 0:
+            ratio = float(case_n) / float(ctrl_n)
+        elif case_n > 0:
+            ratio = float("inf")
+        else:
+            ratio = 0.0
+        ratio_map[cid] = ratio
+
+    # Mainland clusters are sorted by Case/Ctrl ratio (descending);
+    # Rank follows this order as 1, 2, 3, ... (ascending).
+    mainland_ratio_sorted = sorted(
+        priority_ids,
+        key=lambda cid: (-float(ratio_map[cid]), int(cid)),
+    )
+    rank_map: dict[int, int] = {}
+    for rank, cid in enumerate(mainland_ratio_sorted, start=1):
+        rank_map[cid] = rank
+
+    # Sort mainland clusters by Rank (ascending: 1, 2, 3, ...).
+    priority_ids_sorted_by_rank = sorted(priority_ids, key=lambda cid: (rank_map[cid], int(cid)))
+    all_cluster_ids = list(range(int(new_k)))
+    ordered_cluster_ids = priority_ids_sorted_by_rank + [cid for cid in all_cluster_ids if cid not in priority_set]
+
+    return ClusterRanking(
+        stats=stats,
+        ratio_map=ratio_map,
+        rank_map=rank_map,
+        priority_ids=priority_ids,
+        priority_set=priority_set,
+        ordered_cluster_ids=ordered_cluster_ids,
+        case_counts_by_cluster=case_counts_by_cluster,
+        control_counts_by_cluster=control_counts_by_cluster,
+        total_counts_by_cluster=total_counts_by_cluster,
+        all_cluster_ids=all_cluster_ids,
+        major_cluster_component_ids=major_cluster_component_ids,
+    )
+
+
 def run_cohort_assignment(
     *,
     gmm_model: GaussianMixture,
@@ -297,535 +395,147 @@ def run_cohort_assignment(
         assignment_tsv = out_dir / str(config.output_file)
         df_results.to_csv(assignment_tsv, sep="\t", index=False)
 
-    # ===== Plot =====
+    # Setup and ranking run unconditionally. Both feed data deliverables, and
+    # both used to sit inside `if save_plot or show_plot:`.
+    reference_pc1 = reference_samples_gmm[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    reference_pc2 = reference_samples_gmm[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+
+    # The background shows every reference sample, including the ones HDBSCAN
+    # removed. The axes are still framed on the modelled panel above, so the
+    # few far outliers fall outside the view instead of shrinking the
+    # structure the figure exists to show.
+    _background = reference_samples_gmm if reference_samples_background is None else reference_samples_background
+    background_pc1 = _background[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    background_pc2 = _background[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+    study_pc1 = study_samples[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    study_pc2 = study_samples[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+
+    study_iid = study_samples["IID"].astype(str)
+    case_set = set(str(x) for x in case_iids)
+    ctrl_set = set(str(x) for x in control_iids)
+    is_case = study_iid.isin(list(case_set)).to_numpy()
+    is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
+    is_other = ~(is_case | is_ctrl)
+
+    try:
+        var1 = float(eigenval.loc[eigenval["PC"] == 1, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
+        var2 = float(eigenval.loc[eigenval["PC"] == 2, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
+    except Exception:
+        var1, var2 = 0.0, 0.0
+
+    if is_premerge_identity_mode:
+        merged_cluster_palette = _build_premerge_component_palette(
+            reference_samples_gmm=reference_samples_gmm,
+            n_clusters=int(new_k),
+        )
+    else:
+        merged_cluster_palette = _build_merged_cluster_palette(merge_map=merge_map, new_k=int(new_k))
+    hue_order = list(range(int(new_k)))
+
+    all_x = np.concatenate([reference_pc1, study_pc1])
+    all_y = np.concatenate([reference_pc2, study_pc2])
+    x_min, x_max = float(np.nanmin(all_x)), float(np.nanmax(all_x))
+    y_min, y_max = float(np.nanmin(all_y)), float(np.nanmax(all_y))
+    max_span = max(x_max - x_min, y_max - y_min)
+    if max_span == 0:
+        max_span = 1.0
+    view_span = max_span * 1.05
+    x_center = (x_max + x_min) / 2.0
+    y_center = (y_max + y_min) / 2.0
+
+
+    window = PCWindow.from_points(all_x, all_y, pad=1.05, var1=var1, var2=var2)
+    reference = ReferenceCloud(
+        pc1=background_pc1,
+        pc2=background_pc2,
+        color=str(config.reference_color),
+        alpha=float(config.reference_alpha),
+    )
+
+    ranking = compute_cluster_ranking(
+        assigned_merged=assigned_merged,
+        is_case=is_case,
+        is_ctrl=is_ctrl,
+        new_k=int(new_k),
+        merge_map=merge_map,
+    )
+    stats = ranking.stats
+    priority_set = ranking.priority_set
+    rank_map = ranking.rank_map
+    ordered_cluster_ids = ranking.ordered_cluster_ids
+    cluster_stats = stats.loc[ordered_cluster_ids].reset_index().rename(columns={"index": "Cluster"})
+
     figure_path: Path | None = None
-    cluster_stats: pd.DataFrame = pd.DataFrame()
-
+    mainland_cluster_rank_tsv: Path | None = None
     if bool(config.save_plot) or bool(config.show_plot):
-        plt.style.use("seaborn-v0_8-whitegrid")
-        sns.set_context("paper", font_scale=2.5)
-        plt.rcParams.update(dict(_PLOT_STYLE_RC))
-
-        reference_pc1 = reference_samples_gmm[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        reference_pc2 = reference_samples_gmm[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-
-        # The background shows every reference sample, including the ones HDBSCAN
-        # removed. The axes are still framed on the modelled panel above, so the
-        # few far outliers fall outside the view instead of shrinking the
-        # structure the figure exists to show.
-        _background = reference_samples_gmm if reference_samples_background is None else reference_samples_background
-        background_pc1 = _background[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        background_pc2 = _background[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-        study_pc1 = study_samples[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        study_pc2 = study_samples[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-
-        study_iid = study_samples["IID"].astype(str)
-        case_set = set(str(x) for x in case_iids)
-        ctrl_set = set(str(x) for x in control_iids)
-        is_case = study_iid.isin(list(case_set)).to_numpy()
-        is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
-        is_other = ~(is_case | is_ctrl)
-
-        try:
-            var1 = float(eigenval.loc[eigenval["PC"] == 1, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
-            var2 = float(eigenval.loc[eigenval["PC"] == 2, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
-        except Exception:
-            var1, var2 = 0.0, 0.0
-
-        if is_premerge_identity_mode:
-            merged_cluster_palette = _build_premerge_component_palette(
-                reference_samples_gmm=reference_samples_gmm,
-                n_clusters=int(new_k),
+        with figure_context(THEME_ASSIGNMENT):
+            fig = plot_cohort_assignment(
+                study_pc1=study_pc1,
+                study_pc2=study_pc2,
+                is_case=is_case,
+                is_ctrl=is_ctrl,
+                is_other=is_other,
+                assigned_merged=assigned_merged,
+                assignment_conf=assignment_conf,
+                merged_cluster_palette=merged_cluster_palette,
+                hue_order=hue_order,
+                is_premerge_identity_mode=is_premerge_identity_mode,
+                stats=stats,
+                ratio_map=ranking.ratio_map,
+                rank_map=rank_map,
+                priority_set=priority_set,
+                ordered_cluster_ids=ordered_cluster_ids,
+                case_counts_by_cluster=ranking.case_counts_by_cluster,
+                control_counts_by_cluster=ranking.control_counts_by_cluster,
+                total_counts_by_cluster=ranking.total_counts_by_cluster,
+                var1=var1,
+                var2=var2,
+                window=window,
+                reference=reference,
+                config=config,
             )
-        else:
-            merged_cluster_palette = _build_merged_cluster_palette(merge_map=merge_map, new_k=int(new_k))
-        hue_order = list(range(int(new_k)))
-
-        all_x = np.concatenate([reference_pc1, study_pc1])
-        all_y = np.concatenate([reference_pc2, study_pc2])
-        x_min, x_max = float(np.nanmin(all_x)), float(np.nanmax(all_x))
-        y_min, y_max = float(np.nanmin(all_y)), float(np.nanmax(all_y))
-        max_span = max(x_max - x_min, y_max - y_min)
-        if max_span == 0:
-            max_span = 1.0
-        view_span = max_span * 1.05
-        x_center = (x_max + x_min) / 2.0
-        y_center = (y_max + y_min) / 2.0
-
-        def _apply_equal_centered_limits(ax) -> None:
-            ax.set_xlim(x_center - view_span / 2.0, x_center + view_span / 2.0)
-            ax.set_ylim(y_center - view_span / 2.0, y_center + view_span / 2.0)
-            ax.set_aspect("equal", adjustable="box")
-            ax.set_box_aspect(1)
-            ax.set_anchor("C")
-
-        def _add_reference_background(ax, label: str = "BBJ") -> None:
-            ax.scatter(
-                background_pc1,
-                background_pc2,
-                c=str(config.reference_color),
-                s=20,
-                alpha=float(config.reference_alpha),
-                label=label,
-                rasterized=True,
-                zorder=0,
-            )
-
-        fig = plt.figure(figsize=(26, 24))
-        fig.patch.set_facecolor("white")
-        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 1.2])
-        # Reserve figure margin for outside legends and the colorbar.
-        fig.subplots_adjust(left=0.07, right=0.88, bottom=0.07, top=0.88, wspace=0.28, hspace=0.55)
-
-        # A
-        ax1 = fig.add_subplot(gs[0, 0])
-        _add_reference_background(ax1, label="BBJ")
-
-        ctrl_color = "#1F78B4"
-        case_color = "#E31A1C"
-        other_color = "#33A02C"
-        s_study = float(config.study_point_size)
-
-        if bool(is_ctrl.any()):
-            ax1.scatter(
-                study_pc1[is_ctrl],
-                study_pc2[is_ctrl],
-                c=ctrl_color,
-                s=s_study,
-                alpha=0.85,
-                edgecolor="white",
-                linewidth=0.3,
-                label=str(config.control_label),
-                rasterized=True,
-                zorder=2,
-            )
-        if bool(is_case.any()):
-            ax1.scatter(
-                study_pc1[is_case],
-                study_pc2[is_case],
-                c=case_color,
-                s=s_study,
-                alpha=0.90,
-                edgecolor="white",
-                linewidth=0.3,
-                label=str(config.case_label),
-                rasterized=True,
-                zorder=3,
-            )
-        if bool(is_other.any()):
-            ax1.scatter(
-                study_pc1[is_other],
-                study_pc2[is_other],
-                c=other_color,
-                s=s_study,
-                alpha=0.85,
-                edgecolor="white",
-                linewidth=0.3,
-                label="Other",
-                rasterized=True,
-                zorder=1,
-            )
-
-        _apply_equal_centered_limits(ax1)
-        ax1.set_title("A. Study Cohort", loc="left", pad=25, fontweight="bold")
-        ax1.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax1.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-        ax1.grid(True, linestyle="--", alpha=0.35, color="#C3C3C3")
-        ax1.tick_params(axis="both", which="major", length=4.8, width=1.1)
-        for spine in ax1.spines.values():
-            spine.set_visible(True)
-            spine.set_color("#4A4A4A")
-            spine.set_linewidth(1.1)
-        handles_a, labels_a = ax1.get_legend_handles_labels()
-        if "BBJ" in labels_a:
-            reference_handle_a = Line2D(
-                [0],
-                [0],
-                marker="o",
-                linestyle="none",
-                markerfacecolor=str(config.reference_color),
-                markeredgecolor="#4A4A4A",
-                markeredgewidth=0.8,
-                alpha=1.0,
-                markersize=float(np.sqrt(s_study)),
-            )
-            handles_a = [reference_handle_a if lab == "BBJ" else h for h, lab in zip(handles_a, labels_a)]
-
-        ax1.legend(
-            handles_a,
-            labels_a,
-            loc="upper left",
-            bbox_to_anchor=(1.02, 1.0),
-            frameon=True,
-            fontsize=18,
-            markerscale=1.4,
-        )
-
-        # B
-        ax2 = fig.add_subplot(gs[0, 1])
-        _add_reference_background(ax2, label="BBJ")
-
-        df_plot_b = pd.DataFrame({"PC1": study_pc1, "PC2": study_pc2, "Cluster": assigned_merged.astype(int)})
-        sns.scatterplot(
-            data=df_plot_b,
-            x="PC1",
-            y="PC2",
-            hue="Cluster",
-            hue_order=hue_order,
-            palette=merged_cluster_palette,
-            s=s_study,
-            alpha=0.90,
-            edgecolor="white",
-            linewidth=0.3,
-            ax=ax2,
-            zorder=2,
-        )
-
-        _apply_equal_centered_limits(ax2)
-        panel_b_title = "B. Assigned Pre-merge Cluster" if is_premerge_identity_mode else "B. Assigned Merged Cluster"
-        ax2.set_title(panel_b_title, loc="left", pad=25, fontweight="bold")
-        ax2.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax2.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-        ax2.grid(True, linestyle="--", alpha=0.35, color="#C3C3C3")
-        ax2.tick_params(axis="both", which="major", length=4.8, width=1.1)
-        for spine in ax2.spines.values():
-            spine.set_visible(True)
-            spine.set_color("#4A4A4A")
-            spine.set_linewidth(1.1)
-
-        handles_b, labels_b = ax2.get_legend_handles_labels()
-        reference_handle_b = Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="none",
-            markerfacecolor=str(config.reference_color),
-            markeredgecolor="#4A4A4A",
-            markeredgewidth=0.8,
-            alpha=1.0,
-            markersize=float(np.sqrt(s_study)),
-        )
-
-        new_handles_b: list[Any] = []
-        new_labels_b: list[str] = []
-        for h, lab in zip(handles_b, labels_b):
-            if lab == "BBJ":
-                new_handles_b.append(reference_handle_b)
-                new_labels_b.append("BBJ")
+            if bool(config.save_plot):
+                figure_path = out_dir / str(config.figure_file)
+                save_figure(fig, figure_path, dpi=400)
+            if bool(config.show_plot):
+                plt.show()
             else:
-                new_handles_b.append(h)
-                try:
-                    new_labels_b.append(f"Cluster {int(lab)}")
-                except Exception:
-                    new_labels_b.append(str(lab))
+                plt.close(fig)
 
-        ax2.legend(
-            new_handles_b,
-            new_labels_b,
-            title=None,
-            bbox_to_anchor=(1.02, 1),
-            loc="upper left",
-            frameon=True,
-            fontsize=18,
-            markerscale=1.4,
+    if bool(config.save_tables):
+        # Per-sample component ranking, restricted to the major cluster and
+        # ordered as in the assignment figure's ranking panel.
+        #
+        # This used to be nested inside `if save_plot or show_plot:`, so a run
+        # with save_tables=True but save_plot=False wrote no ranking table at
+        # all and returned an empty cluster_stats. It depends on the ranking,
+        # not on the figure.
+        major_cluster_mask = (
+            np.isin(assigned_merged, np.array(sorted(priority_set), dtype=int))
+            if priority_set
+            else np.zeros_like(assigned_merged, dtype=bool)
         )
-
-        # C
-        ax3 = fig.add_subplot(gs[1, 0])
-        _add_reference_background(ax3, label="BBJ")
-
-        sort_idx = np.argsort(assignment_conf)[::-1]
-        # Use the same colormap family as run_gmm_fixed_pcs (cividis), but
-        # do not use the same percentile-based scaling.
-        vmin = float(np.nanmin(assignment_conf))
-        vmax = float(np.nanmax(assignment_conf))
-        if not np.isfinite(vmin) or not np.isfinite(vmax):
-            vmin, vmax = 0.0, 1.0
-        if vmax <= vmin:
-            vmax = min(1.0, vmin + 1e-6)
-        sc = ax3.scatter(
-            study_pc1[sort_idx],
-            study_pc2[sort_idx],
-            c=assignment_conf[sort_idx],
-            cmap="cividis",
-            vmin=vmin,
-            vmax=vmax,
-            s=s_study,
-            alpha=0.90,
-            edgecolors="none",
-            zorder=2,
-        )
-
-        _apply_equal_centered_limits(ax3)
-        ax3.set_title("C. Assignment Confidence", loc="left", pad=25, fontweight="bold")
-        ax3.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax3.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-        ax3.grid(True, linestyle="--", alpha=0.35, color="#C3C3C3")
-        ax3.tick_params(axis="both", which="major", length=4.8, width=1.1)
-        for spine in ax3.spines.values():
-            spine.set_visible(True)
-            spine.set_color("#4A4A4A")
-            spine.set_linewidth(1.1)
-
-        pos = ax3.get_position()
-        cax = fig.add_axes(
-            (
-                float(pos.x1 + 0.015),
-                float(pos.y0 + pos.height * 0.04),
-                0.010,
-                float(pos.height * 0.92),
+        mainland_cluster_rank_tsv = out_dir / str(config.component_rank_file)
+        sample_id_col = "IID" if "IID" in df_results.columns else ("FID" if "FID" in df_results.columns else None)
+        if sample_id_col is not None:
+            mainland_cluster_rank_df = pd.DataFrame(
+                {
+                    "Sample_ID": df_results.loc[major_cluster_mask, sample_id_col].astype(str).to_numpy(),
+                    "Original_Cluster": [f"Cluster {int(cid)}" for cid in assigned_merged[major_cluster_mask]],
+                    "Rank": [int(rank_map[int(cid)]) for cid in assigned_merged[major_cluster_mask]],
+                }
             )
-        )
-        cbar = fig.colorbar(sc, cax=cax)
-        cbar.set_label("Max Posterior Probability (Confidence)", fontsize=20)
-        cbar.ax.tick_params(labelsize=16)
-        cbar.ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
-        cbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
+            mainland_cluster_rank_df["_cluster_id"] = [int(cid) for cid in assigned_merged[major_cluster_mask]]
+            mainland_cluster_rank_df = mainland_cluster_rank_df.sort_values(
+                by=["Rank", "_cluster_id", "Sample_ID"],
+                ascending=[True, True, True],
+                kind="stable",
+            ).drop(columns=["_cluster_id"])
+            mainland_cluster_rank_df.to_csv(mainland_cluster_rank_tsv, sep="\t", index=False)
 
-        # D
-        ax4 = fig.add_subplot(gs[1, 1])
-        ax4.axis("off")
-        ax4.set_title("D. Statistics by Cluster", loc="center", pad=40, fontweight="bold")
-
-        df_cc = pd.DataFrame({"Cluster": assigned_merged.astype(int), "Case": is_case.astype(int), "Control": is_ctrl.astype(int)})
-        stats = pd.DataFrame(index=range(int(new_k)))
-        stats["Case"] = df_cc.groupby("Cluster")["Case"].sum().reindex(range(int(new_k))).fillna(0).astype(int)
-        stats["Control"] = df_cc.groupby("Cluster")["Control"].sum().reindex(range(int(new_k))).fillna(0).astype(int)
-        stats["Total"] = df_cc.groupby("Cluster").size().reindex(range(int(new_k))).fillna(0).astype(int)
-
-        case_counts_arr = stats["Case"].to_numpy(dtype=np.int64, copy=False)
-        control_counts_arr = stats["Control"].to_numpy(dtype=np.int64, copy=False)
-        total_counts_arr = stats["Total"].to_numpy(dtype=np.int64, copy=False)
-
-        case_counts_by_cluster = {cid: case_counts_arr[cid] for cid in range(int(new_k))}
-        control_counts_by_cluster = {cid: control_counts_arr[cid] for cid in range(int(new_k))}
-        total_counts_by_cluster = {cid: total_counts_arr[cid] for cid in range(int(new_k))}
-        all_cluster_ids = list(range(int(new_k)))
-
-        major_cluster_component_ids = _extract_major_cluster_component_ids(merge_map)
-        priority_ids = [cid for cid in major_cluster_component_ids if cid in case_counts_by_cluster]
-        priority_set = set(priority_ids)
-
-        # Compute Case/Control ratio for mainland ordering and ranking.
-        ratio_map: dict[int, float] = {}
-        for cid in range(int(new_k)):
-            case_n = int(case_counts_by_cluster[cid])
-            ctrl_n = int(control_counts_by_cluster[cid])
-            if ctrl_n > 0:
-                ratio = float(case_n) / float(ctrl_n)
-            elif case_n > 0:
-                ratio = float("inf")
-            else:
-                ratio = 0.0
-            ratio_map[cid] = ratio
-
-        # Mainland clusters are sorted by Case/Ctrl ratio (descending);
-        # Rank follows this order as 1, 2, 3, ... (ascending).
-        mainland_ratio_sorted = sorted(
-            priority_ids,
-            key=lambda cid: (-float(ratio_map[cid]), int(cid)),
-        )
-        rank_map: dict[int, int] = {}
-        for rank, cid in enumerate(mainland_ratio_sorted, start=1):
-            rank_map[cid] = rank
-
-        # Sort mainland clusters by Rank (ascending: 1, 2, 3, ...).
-        priority_ids_sorted_by_rank = sorted(priority_ids, key=lambda cid: (rank_map[cid], int(cid)))
-        all_cluster_ids = list(range(int(new_k)))
-        ordered_cluster_ids = priority_ids_sorted_by_rank + [cid for cid in all_cluster_ids if cid not in priority_set]
-
-        columns = ["Cluster", f"{config.case_label}*", f"{config.control_label}*", "Total*", "Case/Ctrl", "Rank"]
-        cell_text: list[list[str]] = []
-        for cid in ordered_cluster_ids:
-            ratio = ratio_map[cid]
-            rank_str = str(rank_map[cid]) if cid in priority_set else "-"
-            if cid in priority_set:
-                ratio_str = "inf" if np.isinf(ratio) else f"{ratio:.3f}"
-            else:
-                ratio_str = "-"
-            cell_text.append([
-                f"Cluster {cid}",
-                f"{case_counts_by_cluster[cid]:,}",
-                f"{control_counts_by_cluster[cid]:,}",
-                f"{total_counts_by_cluster[cid]:,}",
-                ratio_str,
-                rank_str,
-            ])
-
-        cell_text.append([
-            "Grand Total",
-            f"{cast(int, stats['Case'].sum()):,}",
-            f"{cast(int, stats['Control'].sum()):,}",
-            f"{cast(int, stats['Total'].sum()):,}",
-            "-",
-            "-",
-        ])
-
-        # Adaptive typography/geometry to keep dense cluster tables readable.
-        n_cluster_rows = int(len(ordered_cluster_ids))
-        if n_cluster_rows >= 30:
-            table_fontsize = 15
-            header_fontsize = 17
-            row_label_fontsize = 15
-        elif n_cluster_rows >= 22:
-            table_fontsize = 17
-            header_fontsize = 19
-            row_label_fontsize = 17
-        else:
-            table_fontsize = 20
-            header_fontsize = 22
-            row_label_fontsize = 20
-
-        the_table = ax4.table(
-            cellText=cell_text,
-            colLabels=columns,
-            colWidths=[0.24, 0.18, 0.18, 0.18, 0.12, 0.10],
-            loc="center",
-            cellLoc="center",
-            bbox=Bbox.from_bounds(0.02, 0.05, 0.96, 0.86),
-        )
-        the_table.auto_set_font_size(False)
-        the_table.set_fontsize(table_fontsize)
-
-        cells = the_table.get_celld()
-        n_rows_table = len(cell_text) + 1
-        row_height = 0.84 / n_rows_table
-        for (row, col), cell in cells.items():
-            if row == 0:
-                cell.set_height(row_height * 1.20)
-                cell.set_text_props(weight="bold", color="white", size=header_fontsize)
-                cell.set_facecolor("#4C72B0")
-                cell.set_linewidth(1.5)
-                cell.set_edgecolor("white")
-            else:
-                cell.set_height(row_height)
-                cell.set_text_props(size=table_fontsize)
-                cell.set_linewidth(0.5)
-                cell.set_edgecolor("#dddddd")
-                if row == len(cell_text):
-                    cell.set_facecolor("#e6f3ff")
-                    cell.set_text_props(weight="bold")
-                elif col == 0:
-                    cid = ordered_cluster_ids[row - 1]
-                    base_color = merged_cluster_palette.get(int(cid), "#f2f2f2")
-                    cell.set_facecolor(to_rgba(base_color, alpha=0.38))
-                    cell.set_text_props(weight="bold", size=row_label_fontsize)
-                elif col == 4:  # Case/Ctrl column
-                    cid = ordered_cluster_ids[row - 1]
-                    if cid in priority_set:
-                        cell.set_text_props(weight="bold", color="#D32F2F")
-                        cell.set_facecolor("#FFF3E0")
-                    else:
-                        if row % 2 == 0:
-                            cell.set_facecolor("#fbfbfb")
-                        else:
-                            cell.set_facecolor("white")
-                elif col == 5:  # Rank column
-                    cid = ordered_cluster_ids[row - 1]
-                    if cid in priority_set:
-                        cell.set_text_props(weight="bold", color="#1565C0")
-                        cell.set_facecolor("#E3F2FD")
-                    else:
-                        if row % 2 == 0:
-                            cell.set_facecolor("#fbfbfb")
-                        else:
-                            cell.set_facecolor("white")
-                elif row % 2 == 0:
-                    cell.set_facecolor("#fbfbfb")
-                else:
-                    cell.set_facecolor("white")
-
-        # Counting method footnote below the table.
-        ax4.text(
-            0.02, 0.038,
-            f"* Per-component argmax (MAP) assignment. "
-            f"Cumulative rank analysis uses composite posterior recomputation.",
-            transform=ax4.transAxes,
-            fontsize=max(9, table_fontsize - 9),
-            color="#757575",
-            fontstyle="italic",
-            va="top", ha="left",
-            clip_on=False,
-        )
-
-        # Mainland annotation bracket for the prioritized pre-merge rows.
-        mainland_rows = [i + 1 for i, cid in enumerate(ordered_cluster_ids) if cid in priority_set]
-        if mainland_rows:
-            # Ensure table cell geometry is finalized before querying coordinates.
-            fig.canvas.draw()
-
-            first_row = min(mainland_rows)
-            last_row = max(mainland_rows)
-
-            x_last, y_last = cells[(last_row, 0)].get_xy()
-            _x_first, y_first = cells[(first_row, 0)].get_xy()
-            h_first = cells[(first_row, 0)].get_height()
-            y_top = float(y_first + h_first)
-            y_bot = float(y_last)
-
-            brace_x = float(max(0.01, x_last - 0.020))
-            tick_x = float(x_last - 0.003)
-            ax4.plot([brace_x, brace_x], [y_bot, y_top], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
-            ax4.plot([brace_x, tick_x], [y_top, y_top], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
-            ax4.plot([brace_x, tick_x], [y_bot, y_bot], color="#4A4A4A", lw=2.0, transform=ax4.transAxes, clip_on=False)
-            ax4.text(
-                float(brace_x - 0.010),
-                float((y_top + y_bot) / 2.0),
-                "Mainland",
-                rotation=90,
-                va="center",
-                ha="right",
-                fontsize=max(12, table_fontsize - 1),
-                fontweight="bold",
-                color="#4A4A4A",
-                transform=ax4.transAxes,
-                clip_on=False,
-            )
-
-        cohort_title = f"{str(config.case_label)} & {str(config.control_label)}"
-        fig.suptitle(
-            f"Bayesian Ancestry Inference Results ({cohort_title})",
-            fontsize=34,
-            fontweight="bold",
-            y=0.965,
-        )
-
-        if bool(config.save_plot):
-            figure_path = out_dir / str(config.figure_file)
-            fig.savefig(figure_path, bbox_inches="tight", dpi=400)
-
-        if bool(config.show_plot):
-            plt.show()
-        else:
-            plt.close(fig)
-
-        cluster_stats = stats.loc[ordered_cluster_ids].reset_index().rename(columns={"index": "Cluster"})
-
-        if bool(config.save_tables):
-            # Per-sample component ranking, restricted to the major cluster and
-            # ordered as in the assignment figure's ranking panel.
-            major_cluster_mask = (
-                np.isin(assigned_merged, np.array(sorted(priority_set), dtype=int))
-                if priority_set
-                else np.zeros_like(assigned_merged, dtype=bool)
-            )
-            mainland_cluster_rank_tsv = out_dir / str(config.component_rank_file)
-            sample_id_col = "IID" if "IID" in df_results.columns else ("FID" if "FID" in df_results.columns else None)
-            if sample_id_col is not None:
-                mainland_cluster_rank_df = pd.DataFrame(
-                    {
-                        "Sample_ID": df_results.loc[major_cluster_mask, sample_id_col].astype(str).to_numpy(),
-                        "Original_Cluster": [f"Cluster {int(cid)}" for cid in assigned_merged[major_cluster_mask]],
-                        "Rank": [int(rank_map[int(cid)]) for cid in assigned_merged[major_cluster_mask]],
-                    }
-                )
-                mainland_cluster_rank_df["_cluster_id"] = [int(cid) for cid in assigned_merged[major_cluster_mask]]
-                mainland_cluster_rank_df = mainland_cluster_rank_df.sort_values(
-                    by=["Rank", "_cluster_id", "Sample_ID"],
-                    ascending=[True, True, True],
-                    kind="stable",
-                ).drop(columns=["_cluster_id"])
-                mainland_cluster_rank_df.to_csv(mainland_cluster_rank_tsv, sep="\t", index=False)
+        # The per-cluster statistics themselves, previously only ever rendered
+        # as a table panel inside the figure at roughly 3 pt on a printed page.
+        cluster_stats.to_csv(out_dir / str(config.statistics_file), sep="\t", index=False)
 
     if bool(getattr(config, "verbose", True)):
         print("\n" + "=" * 80)

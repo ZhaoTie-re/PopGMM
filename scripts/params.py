@@ -58,6 +58,21 @@ SSCORE_PATH = DATA_ROOT / "cteph_agp3k_v6_wgs_merged.sample_qc.variant_qc.bbjpro
 #: are the study cohort.
 REFERENCE_IID_PREFIX = "bbj_"
 
+#: A second PCA, built on the major cluster alone, with the major-cluster study
+#: samples projected into it. Optional: absent, the pipeline reports residual
+#: spread on the global PCA only.
+#:
+#: The global PCA's leading axes separate the major cluster from the other
+#: regions, so they are nearly constant *within* it and resolve residual
+#: heterogeneity poorly -- which is exactly what the rank cut trades against. A
+#: PCA fitted to the major cluster spends its axes on the structure that remains
+#: (PC1 explains 13.2% here against the global 39.2%).
+#:
+#: Same format as SSCORE_PATH, and it must cover every sample the rank walk can
+#: retain; the stage raises rather than dropping a sample it cannot place.
+MAINLAND_SSCORE_PATH = DATA_ROOT / "mainland" / "mainland.bbjproj.sscore"
+MAINLAND_EIGENVAL_PATH = DATA_ROOT / "mainland" / "mainland.pca_base.eigenval"
+
 # ---------------------------------------------------------------------------
 # Cohort labels
 # ---------------------------------------------------------------------------
@@ -121,8 +136,14 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 # The major cluster is split into nested variants by a rank cut. Components are
 # ranked by case/control ratio; including the top-k of them trades effective
 # sample size (GWAS_Neff) against residual genetic spread (RGV, the root
-# generalized variance of the retained samples on PC1-PC2). The rank-selection
-# stage tabulates and plots that trade-off; the cut itself is a human decision.
+# generalized variance of the retained samples). The rank-selection stage
+# tabulates and plots that trade-off; the cut itself is a human decision.
+#
+# RGV is reported in two bases, side by side and never compared with each other:
+# RGV_Global on the global PCA's PC1-PC2 (always two axes, so the number stays
+# comparable with earlier runs), and RGV_Mainland on the major-cluster PCA over
+# MAINLAND_RGV_N_PCS axes. RGV_BASIS picks which one the Pareto front and the
+# recommendation are computed from.
 #
 #   full     -- every major-cluster component. No cut.
 #   refined  -- the primary analysis set.
@@ -142,6 +163,25 @@ REFINED_RANK_K: RankCut = 9
 
 #: Sensitivity set, between refined and full.
 EXPANDED_RANK_K: RankCut = 12
+
+#: Leading axes of the major-cluster PCA that RGV_Mainland is computed over,
+#: as ``det(Sigma)**(1/2d)`` with ``d = MAINLAND_RGV_N_PCS``. RGV_Global is fixed
+#: at PC1-PC2; only this one is configurable.
+#:
+#: At d = 2 the mainland axes still track the global PC1-PC2 residual almost
+#: proportionally (ratio 1.07-1.27 across every rank), so the two bases rank the
+#: cuts identically and the second basis adds nothing. More axes take in the
+#: weaker structure that the leading pair misses, which is the point of fitting a
+#: PCA to the major cluster at all.
+#:
+#: The value is not comparable across settings of this parameter: it is a
+#: geometric-mean SD over however many axes are included, so it falls as d rises
+#: (0.00744 / 0.00654 / 0.00551 / 0.00466 at d = 2 / 3 / 5 / 10 for the full set).
+MAINLAND_RGV_N_PCS: int = 4
+
+#: Which basis the Pareto front and the recommended rank are computed from.
+#: "mainland" needs MAINLAND_SSCORE_PATH to be present and loaded.
+RGV_BASIS: Literal["global", "mainland"] = "mainland"
 
 #: Variant name -> rank cut. Drives the subcluster stage and the keep-list names.
 SUBCLUSTER_VARIANTS: dict[str, RankCut] = {
@@ -164,6 +204,16 @@ MAJOR_CLUSTER_DISPLAY_NAME = "Mainland"
 def subcluster_dir(variant: str) -> Path:
     """Output directory for one subcluster variant."""
     return SUBCLUSTER_DIR / variant
+
+
+def pc_space_dir(stage_dir: Path, basis: str) -> Path:
+    """Output directory for one PC basis under a stage directory.
+
+    The analyses that can be computed in more than one PCA basis live in sibling
+    directories named for the basis; anything basis-independent, and anything
+    that exists only in the fitted model's own space, stays at the stage root.
+    """
+    return stage_dir / f"pc_space_{basis}"
 
 
 def threshold_robustness_dir(threshold: float) -> Path:

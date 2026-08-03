@@ -1,5 +1,6 @@
->>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND_SUBCLUSTER SAMPLES...
-   -> output_dir = results/04_subcluster_variants/expanded
+>>> ALL-PC DISTRIBUTIONS FOR MAINLAND SUBCLUSTER SAMPLES (global PCA)...
+   -> output_dir = results/04_subcluster_variants/expanded/pc_space_global
+   -> basis = global PCA
    -> mainland label = Mainland Subcluster
    -> mainland_subcluster samples = 2508 / 3569
    -> Case samples: 429

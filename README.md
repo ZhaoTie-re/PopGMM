@@ -233,13 +233,28 @@ complementary quantities — effective sample size and residual genetic spread:
 ```math
 N_{\mathrm{eff}} \;=\; \frac{4}{n_{\mathrm{case}}^{-1} + n_{\mathrm{ctrl}}^{-1}},
 \qquad
-\mathrm{RGV} \;=\; \left(\det \Sigma_{\mathrm{PC}_{1,2}}\right)^{1/4}
+\mathrm{RGV} \;=\; \left(\det \Sigma\right)^{1/2d}
 ```
 
 $N_{\mathrm{eff}}$ is the harmonic form that association power actually scales
 with, so an unbalanced set is penalised against its raw total. $\mathrm{RGV}$,
-the root generalized variance, summarises dispersion while accounting for
-correlation between the leading axes, which a per-axis variance would miss.
+the root generalized variance over $d$ axes, is the geometric mean of the
+per-axis standard deviations; it accounts for correlation between the axes,
+which a per-axis variance would miss.
+
+RGV is reported in two bases, never compared with each other:
+
+| Column | Basis | Axes |
+|---|---|---|
+| `RGV_Global` | the global PCA | PC1–PC2, always |
+| `RGV_Mainland` | a PCA fitted to the major cluster | `params.MAINLAND_RGV_N_PCS` |
+
+The global PCA's leading axes are what separate the major cluster from the other
+regions, so *within* it they are nearly constant and resolve residual
+heterogeneity poorly — exactly the quantity the cut trades against. A PCA fitted
+to the major cluster spends its axes on the structure that actually remains.
+`params.RGV_BASIS` selects which column the Pareto front and the recommendation
+are computed from.
 
 The resulting curve does not name a correct subset; it prices the exchange — how
 much effective sample size is gained as the region broadens, and how much
@@ -273,6 +288,19 @@ After assignment, case and control distributions are compared across all
 available PCs, not only the two used for fitting. These checks surface residual
 structure invisible in the fitting view; they are reported for quality control
 and never redefine the model.
+
+Each PC-space diagnostic is produced in **both bases** of §6 and written to a
+directory named for the basis. The global PCA's leading axes separate the major
+cluster from the other regions, so within it they are close to constant and
+resolve its residual structure poorly; a PCA fitted to the major cluster spends
+its axes on the structure that remains. The two are never compared with each
+other — they are different coordinate systems, and each figure names the one it
+is drawn in.
+
+A basis is a single coordinate source: study samples and reference cloud are
+resolved through the same lookup. Both projections name their columns
+identically, so a frame cannot be asked which basis it belongs to, and mixing
+one basis with another would render without error.
 
 ---
 
@@ -308,11 +336,18 @@ results/
 │   ├── denoising/           [2]   noise labels, retained panel, figures
 │   ├── mixture_model/       [3]   BIC search, fitted components, audit logs
 │   └── component_merging/   [4]   merge map, distances, major cluster, robustness
-├── 02_cohort_assignment/    [5,8] per-sample posteriors, confidence, diagnostics
+├── 02_cohort_assignment/    [5]   per-sample posteriors, confidence, cluster statistics
+│   ├── pc_space_global/     [8]   all-PC case/control comparison, global PCA
+│   └── pc_space_mainland/   [8]   the same comparison, major-cluster PCA
 ├── 03_rank_selection/       [6]   cumulative subset metrics and trade-off figure
-├── 04_subcluster_variants/  [7,8] full/refined/expanded reassignment and diagnostics
+├── 04_subcluster_variants/  [7]   full/refined/expanded reassignment
+│   └── <variant>/pc_space_{global,mainland}/   [8]  per-basis view and all-PC diagnostics
 └── provenance/                    configuration and environment snapshots
 ```
+
+Anything computable in more than one PC basis lives under `pc_space_<basis>/`;
+anything basis-independent, and anything that exists only in the fitted model's
+own space, stays at the stage root.
 
 ---
 
@@ -360,7 +395,7 @@ the global plotting state the next one inherits.
 
 ---
 
-## Interpretation and limitations
+<!-- ## Interpretation and limitations
 
 - PopGMM describes structure *within a supplied reference PCA space*. It does not
   establish ethnicity, identity, or ancestry independently of that reference.
@@ -378,7 +413,7 @@ the global plotting state the next one inherits.
   assess balance and effective sample size: ancestry learning is unsupervised,
   the final subset design is study-aware.
 
----
+--- -->
 
 ## Documentation and implementation
 
@@ -398,5 +433,17 @@ the global plotting state the next one inherits.
 | **5** | `scripts/cohort_assignment.py` — posterior assignment |
 | **6** | `scripts/rank_selection.py` — $N_{\mathrm{eff}}$ vs RGV assessment |
 | **7** | `scripts/subcluster_assignment.py` — composite-group reassignment |
-| **8** | `scripts/major_cluster_all_pcs_kde.py`, `scripts/subcluster_all_pcs_kde.py` — all-PC diagnostics |
+| **8** | `scripts/subcluster_view.py`, `scripts/major_cluster_all_pcs_kde.py`, `scripts/subcluster_all_pcs_kde.py` — per-basis views and all-PC diagnostics |
 | — | `scripts/keep_lists.py` — PLINK keep-list generation |
+
+Each module computes; none of them draws. Figure code lives in
+`scripts/plotting/`, one module per figure plus `style.py` (the cohort palette
+and the per-figure themes) and `panels.py` (helpers shared between figures).
+
+The split is not cosmetic. A figure's style is applied through a context that
+reseeds from matplotlib's defaults and reverts on exit, so a figure looks the
+same regardless of what was drawn before it — previously style was applied by
+mutating global state inside each plot block, and a measured 27 of 28 renders
+inherited settings from whichever figure ran first. The separation also removed
+a defect in which a data table was written from inside the plotting branch, so
+disabling figures silently dropped it.

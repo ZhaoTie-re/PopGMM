@@ -43,6 +43,8 @@ results/01_reference_model/component_merging/merged_posterior_probabilities.npy
 
 # Verification scratch trees and the artifact cache
 results_verify/
+results_verify2/
 results_baseline/
 results_probe/
+results_fig/
 .cache/

@@ -30,18 +30,21 @@ from pathlib import Path
 from typing import Any, NamedTuple, cast
 import json
 
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.colors import to_hex, to_rgba
-from matplotlib.transforms import Bbox
+from matplotlib.colors import to_hex
 from sklearn.mixture import GaussianMixture
 
 from scripts.common import STORE_DTYPE
 from scripts.common import build_distinct_palette as _build_distinct_palette
+from scripts.plotting.assignment import (
+    PCWindow,
+    ReferenceCloud,
+    plot_subcluster_assignment,
+)
+from scripts.plotting.style import THEME_SUBCLUSTER, figure_context, save_figure
 
 
 class SubclusterAssignmentOutput(NamedTuple):
@@ -66,6 +69,9 @@ class SubclusterAssignmentConfig:
 
     output_file: str = "subcluster_posterior_probabilities.tsv"
     figure_file: str = "subcluster_assignment_overview.png"
+    #: Per-group case/control counts. Previously these existed only as a
+    #: rendered table inside the figure, at roughly 3 pt on a printed page.
+    statistics_file: str = "subcluster_group_statistics.tsv"
 
     # Display name/color for the merged customize cluster.
     group_label: str = "Mainland Subcluster"
@@ -270,218 +276,98 @@ def run_subcluster_assignment(
         with (out_dir / "subcluster_summary.json").open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
+    # Computed unconditionally: the group statistics are a deliverable, not a
+    # drawing detail. They used to live inside `if save_plot or show_plot:`,
+    # so turning plotting off silently returned an empty cluster_stats.
+    reference_pc1 = reference_samples_gmm[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    reference_pc2 = reference_samples_gmm[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+
+    # The background shows every reference sample, including the ones HDBSCAN
+    # removed. The axes are still framed on the modelled panel above, so the
+    # few far outliers fall outside the view instead of shrinking the
+    # structure the figure exists to show.
+    _background = reference_samples_gmm if reference_samples_background is None else reference_samples_background
+    background_pc1 = _background[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    background_pc2 = _background[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+    study_pc1 = study_samples[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
+    study_pc2 = study_samples[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
+
+    study_iid = study_samples["IID"].astype(str)
+    case_set = set(str(x) for x in case_iids)
+    ctrl_set = set(str(x) for x in control_iids)
+    is_case = study_iid.isin(list(case_set)).to_numpy()
+    is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
+    is_other = ~(is_case | is_ctrl)
+
+    try:
+        var1 = float(eigenval.loc[eigenval["PC"] == 1, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
+        var2 = float(eigenval.loc[eigenval["PC"] == 2, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
+    except Exception:
+        var1, var2 = 0.0, 0.0
+
+    full_palette = _build_premerge_component_palette(reference_samples_gmm=reference_samples_gmm, n_clusters=int(old_k))
+    group_order = [group_label] + [f"Cluster {cid}" for cid in remaining_component_ids]
+    group_palette: dict[str, str] = {group_label: str(config.group_color)}
+    for cid in remaining_component_ids:
+        group_palette[f"Cluster {cid}"] = full_palette.get(int(cid), "#999999")
+
+    all_x = np.concatenate([reference_pc1, study_pc1])
+    all_y = np.concatenate([reference_pc2, study_pc2])
+    x_min, x_max = float(np.nanmin(all_x)), float(np.nanmax(all_x))
+    y_min, y_max = float(np.nanmin(all_y)), float(np.nanmax(all_y))
+    max_span = max(x_max - x_min, y_max - y_min)
+    if max_span == 0:
+        max_span = 1.0
+    view_span = max_span * 1.05
+    x_center = (x_max + x_min) / 2.0
+    y_center = (y_max + y_min) / 2.0
+
+    window = PCWindow.from_points(all_x, all_y, pad=1.05, var1=var1, var2=var2)
+    reference = ReferenceCloud(
+        pc1=background_pc1,
+        pc2=background_pc2,
+        color=str(config.reference_color),
+        alpha=float(config.reference_alpha),
+    )
+
+    df_cc = pd.DataFrame({"Group": assigned_group, "Case": is_case.astype(int), "Control": is_ctrl.astype(int)})
+    stats = pd.DataFrame(index=group_order)  # pyright: ignore[reportArgumentType]
+    stats["Case"] = df_cc.groupby("Group")["Case"].sum().reindex(group_order).fillna(0).astype(int)
+    stats["Control"] = df_cc.groupby("Group")["Control"].sum().reindex(group_order).fillna(0).astype(int)
+    stats["Total"] = df_cc.groupby("Group").size().reindex(group_order).fillna(0).astype(int)
+    cluster_stats = stats.reset_index().rename(columns={"index": "Group"})
+    if bool(config.save_tables):
+        cluster_stats.to_csv(out_dir / str(config.statistics_file), sep="\t", index=False)
+
     figure_path: Path | None = None
-    cluster_stats = pd.DataFrame()
-
     if bool(config.save_plot) or bool(config.show_plot):
-        plt.style.use("seaborn-v0_8-whitegrid")
-        sns.set_context("paper", font_scale=2.5)
-
-        reference_pc1 = reference_samples_gmm[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        reference_pc2 = reference_samples_gmm[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-
-        # The background shows every reference sample, including the ones HDBSCAN
-        # removed. The axes are still framed on the modelled panel above, so the
-        # few far outliers fall outside the view instead of shrinking the
-        # structure the figure exists to show.
-        _background = reference_samples_gmm if reference_samples_background is None else reference_samples_background
-        background_pc1 = _background[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        background_pc2 = _background[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-        study_pc1 = study_samples[pc_cols_used[0]].to_numpy(dtype=np.float64, copy=False)
-        study_pc2 = study_samples[pc_cols_used[1]].to_numpy(dtype=np.float64, copy=False)
-
-        study_iid = study_samples["IID"].astype(str)
-        case_set = set(str(x) for x in case_iids)
-        ctrl_set = set(str(x) for x in control_iids)
-        is_case = study_iid.isin(list(case_set)).to_numpy()
-        is_ctrl = study_iid.isin(list(ctrl_set)).to_numpy()
-        is_other = ~(is_case | is_ctrl)
-
-        try:
-            var1 = float(eigenval.loc[eigenval["PC"] == 1, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
-            var2 = float(eigenval.loc[eigenval["PC"] == 2, "variance_explained"].iloc[0]) if eigenval is not None else 0.0
-        except Exception:
-            var1, var2 = 0.0, 0.0
-
-        full_palette = _build_premerge_component_palette(reference_samples_gmm=reference_samples_gmm, n_clusters=int(old_k))
-        group_order = [group_label] + [f"Cluster {cid}" for cid in remaining_component_ids]
-        group_palette: dict[str, str] = {group_label: str(config.group_color)}
-        for cid in remaining_component_ids:
-            group_palette[f"Cluster {cid}"] = full_palette.get(int(cid), "#999999")
-
-        all_x = np.concatenate([reference_pc1, study_pc1])
-        all_y = np.concatenate([reference_pc2, study_pc2])
-        x_min, x_max = float(np.nanmin(all_x)), float(np.nanmax(all_x))
-        y_min, y_max = float(np.nanmin(all_y)), float(np.nanmax(all_y))
-        max_span = max(x_max - x_min, y_max - y_min)
-        if max_span == 0:
-            max_span = 1.0
-        view_span = max_span * 1.05
-        x_center = (x_max + x_min) / 2.0
-        y_center = (y_max + y_min) / 2.0
-
-        def _apply_equal_centered_limits(ax) -> None:
-            ax.set_xlim(x_center - view_span / 2.0, x_center + view_span / 2.0)
-            ax.set_ylim(y_center - view_span / 2.0, y_center + view_span / 2.0)
-            ax.set_aspect("equal", adjustable="box")
-            ax.set_box_aspect(1)
-            ax.set_anchor("C")
-
-        def _add_reference_background(ax, label: str = "BBJ") -> None:
-            ax.scatter(
-                background_pc1,
-                background_pc2,
-                c=str(config.reference_color),
-                s=20,
-                alpha=float(config.reference_alpha),
-                label=label,
-                rasterized=True,
-                zorder=0,
+        with figure_context(THEME_SUBCLUSTER):
+            fig = plot_subcluster_assignment(
+                study_pc1=study_pc1,
+                study_pc2=study_pc2,
+                is_case=is_case,
+                is_ctrl=is_ctrl,
+                is_other=is_other,
+                assigned_group=assigned_group,
+                assignment_conf=assignment_conf,
+                stats=stats,
+                group_order=group_order,
+                group_palette=group_palette,
+                group_label=group_label,
+                subcluster_component_ids=list(subcluster_component_ids),
+                var1=var1,
+                var2=var2,
+                window=window,
+                reference=reference,
+                config=config,
             )
-
-        fig = plt.figure(figsize=(26, 24))
-        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 1.2])
-        fig.subplots_adjust(left=0.07, right=0.88, bottom=0.07, top=0.88, wspace=0.28, hspace=0.55)
-
-        ax1 = fig.add_subplot(gs[0, 0])
-        _add_reference_background(ax1, label="BBJ")
-
-        s_study = float(config.study_point_size)
-        if bool(is_ctrl.any()):
-            ax1.scatter(study_pc1[is_ctrl], study_pc2[is_ctrl], c="#1F78B4", s=s_study, alpha=0.85, edgecolor="white", linewidth=0.3, label=str(config.control_label), rasterized=True, zorder=2)
-        if bool(is_case.any()):
-            ax1.scatter(study_pc1[is_case], study_pc2[is_case], c="#E31A1C", s=s_study, alpha=0.90, edgecolor="white", linewidth=0.3, label=str(config.case_label), rasterized=True, zorder=3)
-        if bool(is_other.any()):
-            ax1.scatter(study_pc1[is_other], study_pc2[is_other], c="#33A02C", s=s_study, alpha=0.85, edgecolor="white", linewidth=0.3, label="Other", rasterized=True, zorder=1)
-
-        _apply_equal_centered_limits(ax1)
-        ax1.set_title("A. Study Cohort", loc="left", pad=25, fontweight="bold")
-        ax1.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax1.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-        ax1.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=True, fontsize=18, markerscale=1.3)
-
-        ax2 = fig.add_subplot(gs[0, 1])
-        _add_reference_background(ax2, label="BBJ")
-        plot_b = pd.DataFrame({"PC1": study_pc1, "PC2": study_pc2, "Group": assigned_group})
-        sns.scatterplot(
-            data=plot_b,
-            x="PC1",
-            y="PC2",
-            hue="Group",
-            hue_order=group_order,
-            palette=group_palette,
-            s=s_study,
-            alpha=0.90,
-            edgecolor="white",
-            linewidth=0.3,
-            ax=ax2,
-            zorder=2,
-        )
-        _apply_equal_centered_limits(ax2)
-        ax2.set_title("B. Assignment Under Recomputed Posterior", loc="left", pad=25, fontweight="bold")
-        ax2.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax2.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-        legend_b = ax2.legend(bbox_to_anchor=(1.02, 1), loc="upper left", frameon=True, fontsize=18, markerscale=1.3)
-        for t in legend_b.get_texts():
-            t.set_fontweight("bold")
-
-        ax3 = fig.add_subplot(gs[1, 0])
-        _add_reference_background(ax3, label="BBJ")
-        sort_idx = np.argsort(assignment_conf)[::-1]
-        vmin = float(np.nanmin(assignment_conf))
-        vmax = float(np.nanmax(assignment_conf))
-        if vmax <= vmin:
-            vmax = min(1.0, vmin + 1e-6)
-        sc = ax3.scatter(study_pc1[sort_idx], study_pc2[sort_idx], c=assignment_conf[sort_idx], cmap="cividis", vmin=vmin, vmax=vmax, s=s_study, alpha=0.90, edgecolors="none", zorder=2)
-        _apply_equal_centered_limits(ax3)
-        ax3.set_title("C. Assignment Confidence", loc="left", pad=25, fontweight="bold")
-        ax3.set_xlabel(f"PC1 ({var1:.1%})", labelpad=15)
-        ax3.set_ylabel(f"PC2 ({var2:.1%})", labelpad=15)
-
-        pos = ax3.get_position()
-        cax = fig.add_axes((float(pos.x1 + 0.015), float(pos.y0 + pos.height * 0.04), 0.010, float(pos.height * 0.92)))
-        cbar = fig.colorbar(sc, cax=cax)
-        cbar.set_label("Max Posterior Probability (Confidence)", fontsize=20)
-        cbar.ax.tick_params(labelsize=16)
-        cbar.ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
-        cbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
-
-        ax4 = fig.add_subplot(gs[1, 1])
-        ax4.axis("off")
-        ax4.set_title("D. Assignment Statistics (Recomputed Posterior)", loc="center", pad=40, fontweight="bold")
-
-        df_cc = pd.DataFrame({"Group": assigned_group, "Case": is_case.astype(int), "Control": is_ctrl.astype(int)})
-        stats = pd.DataFrame(index=group_order)  # pyright: ignore[reportArgumentType]
-        stats["Case"] = df_cc.groupby("Group")["Case"].sum().reindex(group_order).fillna(0).astype(int)
-        stats["Control"] = df_cc.groupby("Group")["Control"].sum().reindex(group_order).fillna(0).astype(int)
-        stats["Total"] = df_cc.groupby("Group").size().reindex(group_order).fillna(0).astype(int)
-
-        case_counts = stats["Case"].to_numpy(dtype=np.int64, copy=False)
-        control_counts = stats["Control"].to_numpy(dtype=np.int64, copy=False)
-        total_counts = stats["Total"].to_numpy(dtype=np.int64, copy=False)
-        case_count_map = {group_order[i]: case_counts[i] for i in range(len(group_order))}
-        control_count_map = {group_order[i]: control_counts[i] for i in range(len(group_order))}
-        total_count_map = {group_order[i]: total_counts[i] for i in range(len(group_order))}
-
-        rows = [[group, f"{case_count_map[group]:,}", f"{control_count_map[group]:,}", f"{total_count_map[group]:,}"] for group in group_order]
-        rows.append(["Grand Total", f"{int(case_counts.sum()):,}", f"{int(control_counts.sum()):,}", f"{int(total_counts.sum()):,}"])
-
-        table = ax4.table(cellText=rows, colLabels=["Cluster", str(config.case_label), str(config.control_label), "Total"], loc="center", cellLoc="center", bbox=Bbox.from_bounds(0.05, 0.05, 0.90, 0.86))
-        table.auto_set_font_size(False)
-        table.set_fontsize(16)
-
-        cells = table.get_celld()
-        n_rows_table = len(rows) + 1
-        row_h = 0.84 / n_rows_table
-        for (row, col), cell in cells.items():
-            if row == 0:
-                cell.set_height(row_h * 1.2)
-                cell.set_text_props(weight="bold", color="white", size=17)
-                cell.set_facecolor("#4C72B0")
-                cell.set_edgecolor("white")
-                cell.set_linewidth(1.2)
+            if bool(config.save_plot):
+                figure_path = out_dir / str(config.figure_file)
+                save_figure(fig, figure_path, dpi=400)
+            if bool(config.show_plot):
+                plt.show()
             else:
-                cell.set_height(row_h)
-                cell.set_edgecolor("#dddddd")
-                cell.set_linewidth(0.5)
-                if row == len(rows):
-                    cell.set_facecolor("#e6f3ff")
-                    cell.set_text_props(weight="bold")
-                elif col == 0:
-                    group_name = str(rows[row - 1][0])
-                    cell.set_text_props(weight="bold")
-                    if group_name == group_label:
-                        cell.set_facecolor(to_rgba(str(config.group_color), alpha=0.35))
-                    elif row % 2 == 0:
-                        cell.set_facecolor("#f7f7f7")
-                    else:
-                        cell.set_facecolor("white")
-                elif row % 2 == 0:
-                    cell.set_facecolor("#fbfbfb")
-                else:
-                    cell.set_facecolor("white")
-
-        included_txt = ", ".join(str(int(x)) for x in sorted(subcluster_component_ids))
-        fig.suptitle(
-            (
-                "Global Posterior Reassignment with Mainland Subcluster as a Composite Group "
-                f"(Subcluster definition includes mainland components: {included_txt})"
-            ),
-            fontsize=34,
-            fontweight="bold",
-            y=0.965,
-        )
-
-        if bool(config.save_plot):
-            figure_path = out_dir / str(config.figure_file)
-            fig.savefig(figure_path, bbox_inches="tight", dpi=400)
-
-        if bool(config.show_plot):
-            plt.show()
-        else:
-            plt.close(fig)
-
-        cluster_stats = stats.reset_index().rename(columns={"index": "Group"})
+                plt.close(fig)
 
     if bool(config.verbose):
         print("\n" + "=" * 80)

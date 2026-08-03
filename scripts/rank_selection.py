@@ -6,10 +6,16 @@ posteriors are recomputed and renormalized, and samples are reassigned by argmax
 -- the same operation the subcluster stage performs, so the reported metrics
 describe the sets that would actually be produced.
 
-Two quantities are traded off. ``GWAS_Neff`` is the effective sample size,
-which rises as more components are included. ``PC12_RGV`` is the residual
-genetic spread of the retained samples, which rises too. The Pareto front and a
-distance-to-ideal score summarise the frontier.
+Two quantities are traded off. ``GWAS_Neff`` is the effective sample size, which
+rises as more components are included. Residual genetic spread rises too, and is
+reported in two bases that are never compared with each other: ``RGV_Global`` on
+the global PCA's PC1-PC2, and ``RGV_Mainland`` on a PCA fitted to the major
+cluster, over as many axes as the caller asks for. ``rgv_basis`` picks which one
+the Pareto front and the distance-to-ideal score are computed from.
+
+The global PCA's leading axes separate the major cluster from the other regions,
+so within it they are nearly constant; a major-cluster PCA spends its axes on the
+structure that actually remains. That is the reason for the second basis.
 
 This module produces evidence, not a decision. A cut may be forced by the
 caller; otherwise the Pareto optimum is reported.
@@ -28,16 +34,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from scripts.plotting.rank import plot_rank_tradeoff
+from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
 from scripts.common import pc12_case_ctrl_separation as _case_ctrl_separation_pc12
-from scripts.common import pc12_rgv as _overall_heterogeneity_pc12
+from scripts.common import pc12_rgv as _global_rgv_pc12
+from scripts.common import resolve_pc_columns, rgv as _rgv
 
 
 class RankSelectionOutput(NamedTuple):
@@ -73,6 +82,17 @@ class RankSelectionConfig:
 
     case_label: str = "Case"
     control_label: str = "Control"
+
+    # Residual spread is reported in two bases. RGV_Global is fixed at the global
+    # PCA's PC1-PC2 so it stays comparable with earlier runs; RGV_Mainland is
+    # computed over this many leading axes of the major-cluster PCA, and only
+    # exists when `mainland_coordinates` is supplied.
+    mainland_rgv_n_pcs: int = 2
+
+    # Which basis the Pareto front, the normalised utility and the recommended
+    # rank are computed from. Defaults to "global" so the stage behaves exactly
+    # as before unless a caller opts in.
+    rgv_basis: Literal["global", "mainland"] = "global"
 
     # Override the Pareto-detected recommended rank.  When set, the figure
     # annotation and decision-table Is_Recommended column will use this value
@@ -137,6 +157,43 @@ def _resolve_model_pc_columns(
     return any_pc
 
 
+def _mainland_axes(
+    mainland_coordinates: pd.DataFrame,
+    n_pcs: int,
+) -> list[str]:
+    """The leading `n_pcs` PC columns of the major-cluster projection."""
+    if "IID" not in mainland_coordinates.columns:
+        raise KeyError("mainland_coordinates must contain an IID column.")
+    axes = resolve_pc_columns(mainland_coordinates)
+    if len(axes) < n_pcs:
+        raise ValueError(
+            f"mainland_coordinates carries {len(axes)} PC columns but "
+            f"mainland_rgv_n_pcs is {n_pcs}."
+        )
+    return axes[:n_pcs]
+
+
+def _align_mainland(
+    df: pd.DataFrame,
+    mainland_coordinates: pd.DataFrame,
+    axes: list[str],
+) -> np.ndarray:
+    """Mainland coordinates as an array row-aligned with `df`, NaN where absent.
+
+    A left merge on IID rather than a reindex: the projection covers only the
+    major cluster, so it is expected to be missing rows, and the caller checks
+    that the missing ones are never retained.
+    """
+    right = mainland_coordinates.loc[:, ["IID", *axes]].copy()
+    right["IID"] = right["IID"].astype(str)
+    if right["IID"].duplicated().any():
+        n_dup = int(right["IID"].duplicated().sum())
+        raise ValueError(f"mainland_coordinates has {n_dup} duplicated IIDs.")
+
+    merged = df.loc[:, ["IID"]].merge(right, on="IID", how="left", validate="one_to_one")
+    return merged[axes].to_numpy(dtype=np.float64, copy=False)
+
+
 def _pareto_front_indices(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Return indices of Pareto-optimal points for minimizing x and maximizing y."""
     n = int(len(x))
@@ -168,6 +225,7 @@ def run_rank_selection(
     control_iids: list[Any],
     gmm_model: Any,
     gmm_summary: dict[str, Any] | None = None,
+    mainland_coordinates: pd.DataFrame | None = None,
     config: RankSelectionConfig | None = None,
 ) -> RankSelectionOutput:
     """Walk the cumulative sets of major-cluster components ranked by case/control ratio.
@@ -175,7 +233,11 @@ def run_rank_selection(
     Per-cluster ranking uses direct pre-merge MAP assignment from df_results
     (Assigned_Merged_Cluster) to compute case/ctrl ratios for sorting.
 
-    Cumulative trade-off metrics (case/ctrl counts, Neff, heterogeneity) use
+    `mainland_coordinates` is an optional frame carrying IID plus the PC columns
+    of a major-cluster PCA; supplying it adds the RGV_Mainland column. It is a
+    frame rather than a path because every other input to this stage is one.
+
+    Cumulative trade-off metrics (case/ctrl counts, Neff, residual spread) use
     the same composite posterior recomputation the subcluster stage performs: for each k,
     the top-k clusters are merged into a composite group, posteriors are
     re-normalized, and assignment is via argmax.  This ensures consistency
@@ -272,6 +334,16 @@ def run_rank_selection(
     pc1_arr = to_numeric_array(df[pc1_col])
     pc2_arr = to_numeric_array(df[pc2_col])
 
+    mainland_axes: list[str] = []
+    mainland_xy: np.ndarray | None = None
+    if mainland_coordinates is not None:
+        mainland_axes = _mainland_axes(mainland_coordinates, int(config.mainland_rgv_n_pcs))
+        mainland_xy = _align_mainland(df, mainland_coordinates, mainland_axes)
+    elif config.rgv_basis == "mainland":
+        raise ValueError(
+            'rgv_basis="mainland" needs mainland_coordinates; none was supplied.'
+        )
+
     for k in range(1, max_rank + 1):
         included_clusters = selected_clusters[:k]
         included_set = set(int(c) for c in included_clusters)
@@ -298,7 +370,24 @@ def run_rank_selection(
 
         finite_mask = in_sub & np.isfinite(pc1_arr) & np.isfinite(pc2_arr)
         all_xy = np.stack([pc1_arr[finite_mask], pc2_arr[finite_mask]], axis=1)
-        heterogeneity = _overall_heterogeneity_pc12(all_xy)
+        rgv_global = _global_rgv_pc12(all_xy)
+
+        rgv_mainland = float("nan")
+        if mainland_xy is not None:
+            covered = np.isfinite(mainland_xy).all(axis=1)
+            # The projection covers the major cluster, and the retained set is
+            # nested inside it, so a retained sample without coordinates means the
+            # two files disagree. Dropping it would compute the spread and Neff on
+            # different sample sets, which is exactly the kind of silent mismatch
+            # this stage exists to avoid.
+            missing = int((in_sub & ~covered).sum())
+            if missing:
+                raise ValueError(
+                    f"rank {k}: {missing} of {int(in_sub.sum())} retained samples have no "
+                    f"mainland coordinates. The projection must cover every sample the "
+                    f"walk can retain."
+                )
+            rgv_mainland = _rgv(mainland_xy[in_sub])
 
         # Diagnostic only -- reported next to the two selection metrics, never
         # optimised against. See scripts.common.pc12_case_ctrl_separation for
@@ -318,7 +407,8 @@ def run_rank_selection(
                 "Case_Control_Ratio": (float(case_n) / float(ctrl_n)) if ctrl_n > 0 else np.nan,
                 "Total_Count": int(total_n),
                 "GWAS_Neff": float(neff),
-                "PC12_AllSample_Heterogeneity": float(heterogeneity),
+                "RGV_Global": float(rgv_global),
+                "RGV_Mainland": float(rgv_mainland),
                 "PC12_CaseCtrl_Mahalanobis": float(separation.mahalanobis),
                 "PC12_CaseCtrl_HotellingT2": float(separation.hotelling_t2),
                 "PC12_CaseCtrl_P": float(separation.p_value),
@@ -331,8 +421,12 @@ def run_rank_selection(
     decision_table = cumulative_metrics.copy()
     decision_table = decision_table.sort_values("Included_Max_Rank").reset_index(drop=True)
 
+    # The Pareto front, the normalisation and the recommendation all read one
+    # basis; the other is carried alongside for reference only. The two are on
+    # different scales and must never be mixed within a comparison.
+    rgv_column = "RGV_Mainland" if config.rgv_basis == "mainland" else "RGV_Global"
     neff_arr = decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False)
-    het_arr = decision_table["PC12_AllSample_Heterogeneity"].to_numpy(dtype=np.float64, copy=False)
+    het_arr = decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False)
 
     delta_neff = np.diff(neff_arr, prepend=np.nan)
     delta_het = np.diff(het_arr, prepend=np.nan)
@@ -382,11 +476,11 @@ def run_rank_selection(
         recommended_rank = forced
 
     decision_table["Delta_Neff"] = delta_neff
-    decision_table["Delta_Heterogeneity"] = delta_het
-    decision_table["Neff_Gain_per_Heterogeneity"] = neff_gain_per_het
+    decision_table["Delta_RGV"] = delta_het
+    decision_table["Neff_Gain_per_RGV"] = neff_gain_per_het
     decision_table["Neff_Norm"] = neff_norm
-    decision_table["Heterogeneity_Norm"] = het_norm
-    decision_table["Utility_NeffMinusHet"] = utility_score
+    decision_table["RGV_Norm"] = het_norm
+    decision_table["Utility_Neff_minus_RGV"] = utility_score
     decision_table["Is_Pareto"] = pareto_mask
     decision_table["Distance_To_Ideal"] = dist_to_ideal
     decision_table["Is_Recommended"] = decision_table["Included_Max_Rank"].eq(recommended_rank)
@@ -403,317 +497,21 @@ def run_rank_selection(
 
     figure_path: Path | None = None
     if bool(config.save_plot) or bool(config.show_plot):
-        # ── Nature-style rcParams ─────────────────────────────────────────
-        plt.rcParams.update(
-            {
-                "font.family": "sans-serif",
-                "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-                "pdf.fonttype": 42,
-                "ps.fonttype": 42,
-                "axes.linewidth": 0.9,
-                "axes.labelsize": 16,
-                "axes.titlesize": 15,
-                "xtick.labelsize": 14,
-                "ytick.labelsize": 14,
-                "legend.fontsize": 13,
-                "figure.titlesize": 18,
-                "xtick.direction": "out",
-                "ytick.direction": "out",
-                "xtick.major.size": 4.0,
-                "ytick.major.size": 4.0,
-                "xtick.major.width": 0.9,
-                "ytick.major.width": 0.9,
-            }
-        )
-
-        # ── Figure & axes layout ──────────────────────────────────────────
-        fig = plt.figure(figsize=(18.0, 9.5))
-        gs = fig.add_gridspec(1, 2, width_ratios=[3.2, 2.8], wspace=0.06)
-        ax = fig.add_subplot(gs[0, 0])
-        ax_note = fig.add_subplot(gs[0, 1])
-        fig.subplots_adjust(left=0.075, right=0.990, top=0.882, bottom=0.115)
-
-        rank_vals = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
-        neff_vals = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
-        het_vals = decision_table["PC12_AllSample_Heterogeneity"].to_numpy(dtype=float, copy=False)
-        pareto_vals = decision_table["Is_Pareto"].to_numpy(dtype=bool, copy=False)
-        rec_vals = decision_table["Is_Recommended"].to_numpy(dtype=bool, copy=False)
-
-        valid_mask = np.isfinite(neff_vals) & np.isfinite(het_vals)
-        if bool(np.any(valid_mask)):
-            x_valid = het_vals[valid_mask]
-            y_valid = neff_vals[valid_mask]
-            rank_valid = rank_vals[valid_mask]
-            p_valid = pareto_vals[valid_mask]
-            r_valid = rec_vals[valid_mask]
-
-            order = np.argsort(rank_valid)
-            x_plot = x_valid[order]
-            y_plot = y_valid[order]
-            rank_plot = rank_valid[order]
-            p_plot = p_valid[order]
-            r_plot = r_valid[order]
-
-            x_range = float(x_plot.max() - x_plot.min()) if len(x_plot) > 1 else 1.0
-            y_range = float(y_plot.max() - y_plot.min()) if len(y_plot) > 1 else 1.0
-
-            # ── All-rank connecting line ──────────────────────────────────
-            ax.plot(
-                x_plot, y_plot,
-                color="#BDBDBD", linewidth=1.2, alpha=0.85,
-                zorder=1, solid_capstyle="round",
+        with figure_context(THEME_RANK):
+            fig = plot_rank_tradeoff(
+                decision_table=decision_table,
+                rgv_column=rgv_column,
+                mainland_axes=mainland_axes,
+                config=config,
             )
-            # ── All rank scatter points ───────────────────────────────────
-            ax.scatter(
-                x_plot, y_plot,
-                color="#616161", s=60, alpha=0.85,
-                edgecolors="white", linewidths=0.7, zorder=2,
-            )
-            # ── Pareto frontier ───────────────────────────────────────────
-            if bool(np.any(p_plot)):
-                pf_order = np.argsort(x_plot[p_plot])
-                x_pf = x_plot[p_plot][pf_order]
-                y_pf = y_plot[p_plot][pf_order]
-                ax.plot(
-                    x_pf, y_pf,
-                    color="#D32F2F", linewidth=1.8, alpha=0.95,
-                    zorder=3, solid_capstyle="round",
-                )
-                ax.scatter(
-                    x_pf, y_pf,
-                    s=130, facecolors="none",
-                    edgecolors="#D32F2F", linewidths=1.6,
-                    label="Pareto-optimal frontier", zorder=4,
-                )
-            # ── Recommended rank highlight ────────────────────────────────
-            if bool(np.any(r_plot)):
-                rec_idx = int(np.where(r_plot)[0][0])
-                ax.scatter(
-                    x_plot[r_plot], y_plot[r_plot],
-                    marker="D", s=180,
-                    facecolors="none", edgecolors="#1565C0", linewidths=2.2,
-                    label="Recommended k", zorder=5,
-                )
-                # build sample-size annotation, placed in lower-right empty space
-                rec_k = int(rank_plot[rec_idx])
-                rec_row = decision_table[decision_table["Included_Max_Rank"] == rec_k]
-                _case_col = f"{config.case_label}_Count"
-                _ctrl_col = f"{config.control_label}_Count"
-                def _rec_count(col: str) -> int | None:
-                    """The recommended row's value in a count column, if present."""
-                    if col not in rec_row.columns:
-                        return None
-                    return int(to_numeric_array(rec_row[col])[0])
+            if bool(config.save_plot):
+                figure_path = out_dir / str(config.figure_file)
+                save_figure(fig, figure_path, dpi=int(config.figure_dpi))
+            if bool(config.show_plot):
+                plt.show()
+            else:
+                plt.close(fig)
 
-                _case_n = _rec_count(_case_col)
-                _ctrl_n = _rec_count(_ctrl_col)
-                _total_n = _rec_count("Total_Count")
-                if _case_n is not None and _ctrl_n is not None and _total_n is not None:
-                    _ann_lines = [
-                        f"k = {rec_k}  (recommended)",
-                        f"{config.case_label}: {_case_n:,}  |  {config.control_label}: {_ctrl_n:,}",
-                        f"Total: {_total_n:,}  (composite posterior)",
-                    ]
-                else:
-                    _ann_lines = [f"k = {rec_k}  (recommended)"]
-                # place annotation box in the lower-right empty area of the plot
-                ax.annotate(
-                    "\n".join(_ann_lines),
-                    xy=(float(x_plot[rec_idx]), float(y_plot[rec_idx])),
-                    xycoords="data",
-                    xytext=(0.68, 0.12),
-                    textcoords="axes fraction",
-                    fontsize=11.5, fontweight="normal",
-                    color="#0D2B6E",
-                    bbox={
-                        "boxstyle": "round,pad=0.45",
-                        "fc": "#EEF2FF", "ec": "#1565C0",
-                        "alpha": 0.97, "lw": 1.1,
-                    },
-                    arrowprops={
-                        "arrowstyle": "->",
-                        "color": "#1565C0",
-                        "lw": 1.1,
-                        "connectionstyle": "arc3,rad=-0.25",
-                    },
-                )
-            # ── Rank number labels (skip recommended k — already annotated) ──
-            for i, (xv, yv, kv) in enumerate(zip(x_plot, y_plot, rank_plot)):
-                if r_plot[i]:   # recommended k has its own annotation box
-                    continue
-                ax.text(
-                    float(xv) + x_range * 0.007,
-                    float(yv) + y_range * 0.012,
-                    str(int(kv)),
-                    fontsize=11, ha="left", va="bottom",
-                    color="#424242", zorder=6,
-                )
-
-            # ── Legend + label caption ────────────────────────────────────
-            ax.legend(
-                loc="lower right", frameon=False,
-                handlelength=1.8, handleheight=1.2,
-                fontsize=13, borderpad=0.6,
-            )
-            # Caption explaining the numeric label — italic, top-left, no box
-            ax.text(
-                0.018, 0.970,
-                r"Label = cumulative rank $k$  (top-1 $\ldots$ top-$k$ mainland clusters included)",
-                transform=ax.transAxes,
-                fontsize=11, color="#757575",
-                ha="left", va="top", style="italic",
-            )
-
-        ax.set_xlabel(r"Overall Heterogeneity  $H$  (RGV on PC1+PC2)", labelpad=10)
-        ax.set_ylabel(r"GWAS  $N_{eff}$", labelpad=10)
-        ax.set_title(
-            r"Trade-off: Overall Heterogeneity vs. GWAS $N_{eff}$",
-            loc="left", fontweight="bold", pad=11, fontsize=15,
-        )
-        ax.grid(True, linestyle=":", linewidth=0.55, alpha=0.30, color="#9E9E9E")
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_linewidth(0.9)
-        ax.spines["bottom"].set_linewidth(0.9)
-        ax.tick_params(axis="both", which="major", length=4.0, width=0.9, pad=5)
-
-        # ── Right panel: Methods / Formulas ──────────────────────────────
-        ax_note.set_axis_off()
-        ax_note.set_xlim(0.0, 1.0)
-        ax_note.set_ylim(0.0, 1.0)
-
-        _BK  = "#212121"   # near-black for headers
-        _GR  = "#424242"   # body text
-        _DIM = "#757575"   # secondary/dim text
-        _X   = 0.05        # left indent
-
-        def _rule(y: float) -> None:
-            ax_note.plot([0.0, 1.0], [y, y], color="#E0E0E0", linewidth=0.9)
-
-        # ══ Section 1: N_eff ════════════════════════════════════════════
-        _rule(0.978)
-        ax_note.text(
-            _X, 0.958,
-            r"Effective Sample Size  $N_{eff}$",
-            fontsize=14.5, fontweight="bold", va="top", ha="left", color=_BK,
-        )
-        # Step 1
-        ax_note.text(
-            _X, 0.910,
-            "Variance of allele-frequency difference (unbalanced design):",
-            fontsize=11.0, fontstyle="italic", va="top", ha="left", color=_DIM,
-        )
-        ax_note.text(
-            _X + 0.04, 0.870,
-            r"$\mathrm{Var}=p(1-p)\!\left(\dfrac{1}{N_{\mathrm{case}}}+\dfrac{1}{N_{\mathrm{ctrl}}}\right)$",
-            fontsize=13.0, va="top", ha="left", color=_GR,
-        )
-        # Step 2
-        ax_note.text(
-            _X, 0.798,
-            r"Equate to balanced design  ($N_{eff}/2$ per arm):",
-            fontsize=11.0, fontstyle="italic", va="top", ha="left", color=_DIM,
-        )
-        ax_note.text(
-            _X + 0.04, 0.758,
-            r"$=\dfrac{2\,p(1-p)}{N_{eff}}$",
-            fontsize=13.0, va="top", ha="left", color=_GR,
-        )
-        # Main result
-        ax_note.text(
-            _X, 0.695,
-            r"$\Rightarrow\;N_{eff}=\dfrac{4\,N_{\mathrm{case}}\,N_{\mathrm{ctrl}}}{"
-            r"N_{\mathrm{case}}+N_{\mathrm{ctrl}}}=N_{tot}\cdot\dfrac{4r}{(1+r)^{2}}$",
-            fontsize=14.5, va="top", ha="left", color=_BK,
-        )
-        # Meaning
-        ax_note.text(
-            _X, 0.612,
-            r"Equivalent total $N$ of a balanced (1:1) case-control study",
-            fontsize=12.0, va="top", ha="left", color=_GR,
-        )
-        ax_note.text(
-            _X, 0.578,
-            "with the same statistical test power.",
-            fontsize=12.0, va="top", ha="left", color=_GR,
-        )
-        ax_note.text(
-            _X, 0.542,
-            r"($r=N_{\mathrm{case}}/N_{\mathrm{ctrl}},\;\;N_{tot}=N_{\mathrm{case}}+N_{\mathrm{ctrl}}$)",
-            fontsize=11.0, va="top", ha="left", color=_DIM,
-        )
-
-        _rule(0.505)
-
-        # ══ Section 2: Heterogeneity ════════════════════════════════════
-        ax_note.text(
-            _X, 0.482,
-            r"Overall Heterogeneity  $H$",
-            fontsize=14.5, fontweight="bold", va="top", ha="left", color=_BK,
-        )
-        # Main formula
-        ax_note.text(
-            _X + 0.04, 0.430,
-            r"$H=\left|\,\Sigma_{PC1,PC2}\,\right|^{1/4}$",
-            fontsize=15.5, va="top", ha="left", color=_BK,
-        )
-        # Determinant expansion
-        ax_note.text(
-            _X, 0.355,
-            r"$|\Sigma|=\sigma^{2}_{PC1}\cdot\sigma^{2}_{PC2}-\sigma^{2}_{PC1,PC2}"
-            r"=\sigma^{2}_{PC1}\cdot\sigma^{2}_{PC2}(1-\rho^{2})$",
-            fontsize=11.5, va="top", ha="left", color=_GR,
-        )
-        # Closed form
-        ax_note.text(
-            _X, 0.292,
-            r"$\Rightarrow H=(\sigma_{PC1}\cdot\sigma_{PC2})^{1/2}(1-\rho^{2})^{1/4}$",
-            fontsize=13.0, va="top", ha="left", color=_GR,
-        )
-        # Meaning
-        ax_note.text(
-            _X, 0.220,
-            r"Root Generalized Variance (2D): joint spread in PC1/PC2,",
-            fontsize=12.0, va="top", ha="left", color=_GR,
-        )
-        ax_note.text(
-            _X, 0.186,
-            r"attenuated by inter-PC correlation $\rho$.",
-            fontsize=12.0, va="top", ha="left", color=_GR,
-        )
-
-        _rule(0.072)
-
-        # ══ Section 3: Counting methods ═══════════════════════════════════
-        ax_note.text(
-            _X, 0.057,
-            "Counting methods:",
-            fontsize=10.5, fontweight="bold", va="top", ha="left", color=_BK,
-        )
-        ax_note.text(
-            _X, 0.035,
-            r"Rank table: per-component argmax (MAP), as in the assignment figure.",
-            fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
-        )
-        ax_note.text(
-            _X, 0.011,
-            r"Scatter: composite posterior recomputation (top-$k$ merged), as in the subcluster stage.",
-            fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
-        )
-
-        fig.suptitle(
-            "Mainland Rank-Cumulative Trade-off Analysis",
-            fontsize=18, fontweight="bold", y=0.972,
-        )
-
-        if bool(config.save_plot):
-            figure_path = out_dir / str(config.figure_file)
-            fig.savefig(figure_path, dpi=int(config.figure_dpi), bbox_inches="tight")
-
-        if bool(config.show_plot):
-            plt.show()
-        else:
-            plt.close(fig)
 
     if bool(config.verbose):
         print("\n" + "=" * 92)

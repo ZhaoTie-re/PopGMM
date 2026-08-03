@@ -98,7 +98,7 @@ def _resolve_usecols(requested: tuple[str, ...], available_cols: list[str]) -> t
     return resolved, rename_map
 
 
-def _load_eigenval(eigenval_path: str | Path) -> pd.DataFrame:
+def load_eigenval(eigenval_path: str | Path) -> pd.DataFrame:
     eigenval = pd.read_csv(eigenval_path, header=None, names=["eigenvalue"])
     eigenval["eigenvalue"] = to_numeric_series(eigenval["eigenvalue"])
     eigenval = eigenval.dropna(subset=["eigenvalue"]).reset_index(drop=True)
@@ -338,7 +338,7 @@ def load_reference_data(
 
 
 
-    eigenval = _load_eigenval(eigenval_path)
+    eigenval = load_eigenval(eigenval_path)
 
     reference_parts: list[pd.DataFrame] = []
     chunk_count = 0
