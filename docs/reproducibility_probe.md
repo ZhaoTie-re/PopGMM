@@ -18,10 +18,14 @@ Two independent full runs, `RUN_MODE="fresh"`, default multi-threaded BLAS:
 
 | | |
 |---|---|
-| Artifacts compared | 86 |
-| Verification result | **86 pass, 0 warn, 0 fail — with no numeric tolerance of any kind** |
-| Raw byte-identical | 77 / 86 |
-| Figures byte-identical | **16 / 16** |
+| Artifacts compared | 139 |
+| Verification result | **139 pass, 0 warn, 0 fail — with no numeric tolerance of any kind** |
+| Figures byte-identical | **28 / 28** |
+
+The counts above are from the current layout. The probe was originally run
+against an 86-artifact tree; the pipeline has since gained the per-basis
+PC-space analyses, which multiplied the diagnostic outputs. The conclusion is
+unchanged and has been re-confirmed on the current tree.
 
 The 9 artifacts that are not raw byte-identical differ *only* in:
 
@@ -40,7 +44,7 @@ thread counts — parallelism stays on.
 
 ---
 
-## Why the switch happened (float32, tag `results-float32-final`)
+## Why the switch happened (float32)
 
 The original pipeline cast its inputs to float32
 (`gmm_clustering.py` and `hdbscan_filtering.py`). float32 carries ~7 decimal
@@ -88,7 +92,7 @@ same data, k=29 and k=35):
 
 This was a re-analysis, not a refactor.
 
-| | float32 (`results-float32-final`) | float64 (current) |
+| | float32 (former `results-float32-final` tag) | float64 (current) |
 |---|---|---|
 | Denoised | 181,817 / 183,013 (1,196 noise) | **181,815** (1,198 noise) |
 | `best_k` | 26 | **26** (unchanged) |
@@ -108,11 +112,10 @@ Component ids are renumbered wholesale, so the hand-picked rank selection refers
 to entirely different components. At threshold 0.90 the retained control group is
 27% smaller — a real difference in statistical power, not a relabelling.
 
-Retrieve the previous analysis with:
-
-```bash
-git show results-float32-final:results/02_gmm_clustering/gmm_summary.json
-```
+The float32 tree was pinned by a tag `results-float32-final`, which has since
+been deleted: that tree contained individual-level posterior tables with
+per-sample PC coordinates, and those are no longer distributed. The numbers
+quoted above are the record of that comparison.
 
 ---
 
