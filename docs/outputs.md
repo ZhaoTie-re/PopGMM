@@ -160,9 +160,19 @@ spending a full run to find out.
 `tools/baseline_manifest.json`:
 
 ```bash
+# compare two trees
 python -m tools.verify_results --baseline results --candidate results_other
-python -m tools.verify_results --baseline results --manifest tools/baseline_manifest.json
+
+# check one tree against the committed fingerprints
+python -m tools.verify_results --candidate results --manifest tools/baseline_manifest.json
+
+# regenerate the fingerprints after an intended change
+python -m tools.verify_results --baseline results --write-manifest tools/baseline_manifest.json
 ```
+
+`--candidate` is the tree being checked and is always required except when
+writing a manifest; `--baseline` names the trusted tree to compare against, and
+is only meaningful together with `--candidate` or `--write-manifest`.
 
 Comparison is by file kind: TSV numerically, JSON value-by-value, `.npy`
 elementwise, logs and keep-lists byte-for-byte, with the results-root path
