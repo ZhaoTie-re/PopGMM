@@ -8,7 +8,7 @@ components are merged into ancestry clusters by Mahalanobis distance.
 > **Scope.** This document covers the reference-model mathematics only — the EM
 > iteration, model selection, and component merging. Denoising, projection of a
 > study cohort into the fitted mixture, subset selection, and the keep-list
-> deliverable are described in [`README.md`](README.md).
+> deliverable are described in [`README.md`](../README.md).
 
 ```mermaid
 %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif', 'lineColor': '#6e7781', 'edgeLabelBackground': '#ffffff'}}}%%
