@@ -5,7 +5,7 @@ PopGMM 中参考面板的建模过程：用 EM 把高斯混合模型拟合到样
 
 > **适用范围。** 本文只覆盖参考模型这一侧的数学 —— EM 迭代、模型选择、成分合并。
 > 去噪、把研究队列投射进已拟合的混合模型、子集选择，以及最终的 keep-list 交付物，
-> 见 [`README.md`](README.md)。
+> 见 [`README.md`](../README.md)。
 
 ```mermaid
 %%{init: {'theme': 'default', 'themeVariables': {'fontSize': '24px', 'fontFamily': 'Arial, sans-serif', 'lineColor': '#6e7781', 'edgeLabelBackground': '#ffffff'}}}%%
