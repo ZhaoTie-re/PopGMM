@@ -31,7 +31,7 @@ from typing import Any, NamedTuple, Sequence
 import numpy as np
 import pandas as pd
 
-from scripts.common import gwas_neff, pc12_rgv, resolve_pc_columns
+from scripts.common import gwas_neff, pc12_rgv, resolve_pc_columns, rgv
 
 
 class KeepListOutput(NamedTuple):
@@ -59,6 +59,10 @@ class KeepListConfig:
 
     case_label: str = "Case"
     control_label: str = "Control"
+
+    #: Leading axes of the major-cluster projection used for RGV_Mainland.
+    #: RGV_Global is fixed at the global PCA's PC1-PC2.
+    mainland_rgv_n_pcs: int = 2
 
     verbose: bool = True
 
@@ -99,11 +103,48 @@ def _fid_iid(frame: pd.DataFrame, fid_col: str, iid_col: str) -> pd.DataFrame:
     return pd.DataFrame({fid_col: fid.astype(str).to_numpy(), iid_col: frame[iid_col].astype(str).to_numpy()})
 
 
+def _mainland_rgv(
+    frame: pd.DataFrame,
+    mainland_coordinates: pd.DataFrame | None,
+    n_pcs: int,
+) -> float:
+    """RGV of `frame`'s samples in the major-cluster projection.
+
+    NaN when no projection was supplied. A variant whose samples are not all
+    covered raises: a partially covered set would report the spread of a subset
+    while every other column describes the whole set.
+    """
+    if mainland_coordinates is None:
+        return float("nan")
+
+    axes = resolve_pc_columns(mainland_coordinates)[:n_pcs]
+    if len(axes) < n_pcs:
+        raise ValueError(
+            f"mainland_coordinates carries {len(axes)} PC columns but "
+            f"mainland_rgv_n_pcs is {n_pcs}."
+        )
+
+    right = mainland_coordinates.loc[:, ["IID", *axes]].copy()
+    right["IID"] = right["IID"].astype(str)
+    ids = pd.DataFrame({"IID": frame["IID"].astype(str).to_numpy()})
+    merged = ids.merge(right, on="IID", how="left", validate="one_to_one")
+
+    coords = merged[axes].to_numpy(dtype=np.float64, copy=False)
+    missing = int((~np.isfinite(coords).all(axis=1)).sum())
+    if missing:
+        raise ValueError(
+            f"{missing} of {len(frame)} samples have no mainland coordinates; "
+            f"the projection must cover every sample in the list."
+        )
+    return rgv(coords)
+
+
 def write_keep_lists(
     *,
     variants: Sequence[KeepListVariant],
     case_iids: Sequence[Any],
     control_iids: Sequence[Any],
+    mainland_coordinates: pd.DataFrame | None = None,
     config: KeepListConfig | None = None,
 ) -> KeepListOutput:
     """Write one keep-list per variant plus the comparison summary."""
@@ -141,7 +182,10 @@ def write_keep_lists(
                 f"{config.control_label}_Count": n_control,
                 "Case_Control_Ratio": (n_case / n_control) if n_control else float("nan"),
                 "GWAS_Neff": gwas_neff(n_case, n_control),
-                "PC12_RGV": pc12_rgv(xy),
+                "RGV_Global": pc12_rgv(xy),
+                "RGV_Mainland": _mainland_rgv(
+                    frame, mainland_coordinates, int(config.mainland_rgv_n_pcs)
+                ),
                 "components": ",".join(str(int(c)) for c in variant.component_ids),
                 "file": path.name,
             }
@@ -160,7 +204,8 @@ def write_keep_lists(
                 f"  {row['variant']:<9s} n={row['n_samples']:>6,}  "
                 f"{config.case_label}={row[f'{config.case_label}_Count']:>4,}  "
                 f"{config.control_label}={row[f'{config.control_label}_Count']:>5,}  "
-                f"Neff={row['GWAS_Neff']:>9.2f}  RGV={row['PC12_RGV']:.6f}"
+                f"Neff={row['GWAS_Neff']:>9.2f}  RGV_g={row['RGV_Global']:.6f}  "
+                f"RGV_m={row['RGV_Mainland']:.6f}"
             )
         print(f"  -> {out_dir.as_posix()}")
 

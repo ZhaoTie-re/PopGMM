@@ -126,7 +126,7 @@ Recorded because both are the kind of thing that would otherwise be rediscovered
    float64, retains 181,815 samples, and `best_k` remains 26.
 2. **"PNGs cannot be compared byte-for-byte because of embedded matplotlib
    metadata."** The metadata is stable within a pinned environment. Under float32
-   the figures differed because the *plotted data* differed. All 12 figures are
+   the figures differed because the *plotted data* differed. All 28 figures are
    now byte-identical across runs, and `verify_results.py` treats any pixel
    difference as a failure.
 

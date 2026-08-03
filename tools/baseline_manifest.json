@@ -239,11 +239,11 @@
       ]
     },
     "01_reference_model/component_merging/component_merging_overview.png": {
-      "bytes": 1659292,
+      "bytes": 1665500,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 240.03731130030732,
-      "sha256": "83ca2543e3c2ff4fd88bec328e634bdb5cb121c94e63cec720ec6c38ae6a4272",
+      "pixel_mean": 240.31918357645608,
+      "sha256": "db6cecfa79b09029eab1f7d50dadbeee77c76adde0c9f1aa54318973dae04e5c",
       "size": [
         5046,
         4590
@@ -813,11 +813,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_2p5/component_merging_overview.png": {
-      "bytes": 1754067,
+      "bytes": 1761422,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.5032444862386,
-      "sha256": "1027ccd446462f69e70eaa2629a091473d44c57e3704b3a148bb9d7c789beb9d",
+      "pixel_mean": 239.82228321878802,
+      "sha256": "586893a976e7cc4e35b95c7ae5d0ad2a920982b9719470830982b886046ec116",
       "size": [
         5046,
         4590
@@ -1322,11 +1322,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_3p0/component_merging_overview.png": {
-      "bytes": 1754855,
+      "bytes": 1761800,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.4978388585363,
-      "sha256": "6a0d6b7324bf68d281cb25128541b1c26fcfdb292add86f92fd491e95c6a9c2a",
+      "pixel_mean": 239.8150734484572,
+      "sha256": "8d895437c6c79a32dff1909476ac6c4c536dcfa2d867783497d590b80d5560ca",
       "size": [
         5046,
         4590
@@ -1831,11 +1831,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_3p5/component_merging_overview.png": {
-      "bytes": 1747702,
+      "bytes": 1754854,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.60861396502935,
-      "sha256": "5fac36cd0249f8296e07871961f0f86869eb843da00880255bb96824d8558a12",
+      "pixel_mean": 239.92164990583365,
+      "sha256": "b60fb90ce79b6045b2e9ad759ee0fa123bea64450df51303f53ea6a88c125783",
       "size": [
         5046,
         4590
@@ -2340,11 +2340,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_4p0/component_merging_overview.png": {
-      "bytes": 1709318,
+      "bytes": 1715811,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.78015725909864,
-      "sha256": "1d94938207aa27842b6706a96a06f0844cb3612d78ce43b3ef72c5e18408d93c",
+      "pixel_mean": 240.08610017684794,
+      "sha256": "205ddf6e3c65d86bf95b2c8dc6542f5ab9864501ee6dfc06baf8a8293bb15a50",
       "size": [
         5046,
         4590
@@ -2849,11 +2849,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_4p5/component_merging_overview.png": {
-      "bytes": 1709248,
+      "bytes": 1715658,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.78151836438101,
-      "sha256": "5fa956a05e1cadae351c66f138601003fbe5b84f835517990ca5f43f2f233b89",
+      "pixel_mean": 240.08746128213033,
+      "sha256": "f5ab53fe19815bb048b6032827eb9dfdc0213934117d52b860f0113902186971",
       "size": [
         5046,
         4590
@@ -3358,11 +3358,11 @@
       ]
     },
     "01_reference_model/component_merging/threshold_robustness/threshold_8p0/component_merging_overview.png": {
-      "bytes": 1659365,
+      "bytes": 1665655,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 240.0367366848091,
-      "sha256": "86b30788c0ae81a6e5ab04a0d8f7e3b3203e892d068fa0d435f29a384d0c2561",
+      "pixel_mean": 240.3186072447211,
+      "sha256": "ec5929feb38b10ad2de125294d54d091299fcc74a8e3ebf046be3fc3f2dbfce8",
       "size": [
         5046,
         4590
@@ -3890,11 +3890,11 @@
       ]
     },
     "01_reference_model/mixture_model/mixture_model_overview.png": {
-      "bytes": 3337710,
+      "bytes": 3363828,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.7617328288262,
-      "sha256": "29da619ae25526f95999b384507acdbbef66e2d065c5a41dd202f17539167558",
+      "pixel_mean": 247.8684245537202,
+      "sha256": "9b65ecec749982199ed243c701d81b4608ce8e7e129634f918d7f2698f599286",
       "size": [
         8597,
         6591
@@ -4070,32 +4070,73 @@
     "01_reference_model/mixture_model/tmp/search_bic_log.jsonl": {
       "bytes": 41519,
       "kind": "jsonl_volatile",
-      "sha256": "caac4c0f9c24ee3f07a5f3afba4d42c78e839a6ffe6ea78d37d21324c9b00f17"
+      "sha256": "fe00f2f6634f79f4336272a696672756e617059a8b3acf9971f4ef6e50a04e75"
     },
     "01_reference_model/mixture_model/tmp/search_convergence_log.jsonl": {
-      "bytes": 53086,
+      "bytes": 53087,
       "kind": "jsonl_volatile",
-      "sha256": "22cdcf0822e8349496197da9ef4f1b3484dce74656590c76d0afb4475c466fea"
+      "sha256": "1e738753f0f7f5ce7f3150a1da2baf4b8db478c938125c71db0dd2ad3827ef53"
     },
     "01_reference_model/mixture_model/tmp/search_report.md": {
       "bytes": 20572,
       "kind": "md_volatile",
-      "sha256": "c7c05dff5e059b033f1ca9794809968daf4b5a4dead88df612741f4ccc0d22bf"
+      "sha256": "c29f3f45a5413f671ace065e8426f6fc34520e7c83f03478b7421e1b764a8821"
     },
     "01_reference_model/mixture_model/tmp/selected_model_components.json": {
       "bytes": 12448,
       "kind": "json_volatile",
-      "sha256": "2f4825ddb9bea74433e97ad20309cf2c7e1d72ac2a0740b83231cd37031dc5f2"
+      "sha256": "dda56f9b0138a4ca9d273ec5f53665334b3644c76f2d26e8b3cfa81e6dd1a451"
     },
     "02_cohort_assignment/cohort_assignment_overview.png": {
-      "bytes": 7812366,
+      "bytes": 9245913,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.45627761250412,
-      "sha256": "3a622fb1077bf78699635f2e7f40041ea406a7899394dbbbddddda9f7bdcb03f",
+      "pixel_mean": 245.11345711558073,
+      "sha256": "684fba385c6e39c06f491a80e728fde6fc57d92eeb1a35e815a9e3022bd6dc68",
       "size": [
-        9360,
-        9050
+        9720,
+        9104
+      ]
+    },
+    "02_cohort_assignment/cohort_cluster_statistics.tsv": {
+      "bytes": 351,
+      "columns": [
+        "Cluster",
+        "Case",
+        "Control",
+        "Total"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Case": [
+          0.0,
+          96.0,
+          452.0,
+          16.74074074074074
+        ],
+        "Cluster": [
+          0.0,
+          26.0,
+          351.0,
+          13.0
+        ],
+        "Control": [
+          0.0,
+          488.0,
+          3117.0,
+          115.44444444444444
+        ],
+        "Total": [
+          5.0,
+          551.0,
+          3569.0,
+          132.1851851851852
+        ]
+      },
+      "sha256": "7adaccbf8004fcdb0f371ffb758d13e39c1f9996e40ff3ca2af8111845bc9fc8",
+      "shape": [
+        27,
+        4
       ]
     },
     "02_cohort_assignment/cohort_posterior_probabilities.tsv": {
@@ -4342,23 +4383,6 @@
         33
       ]
     },
-    "02_cohort_assignment/major_cluster_all_pcs_kde.log": {
-      "bytes": 648,
-      "kind": "exact",
-      "normalized_sha256": "f09ac144add827dcdb3dff6265f6b105adb9a6784232a1e1dff793fe0baea101",
-      "sha256": "647024dc64508d0468a85f15f89bb7bdb94aead83f11d859a16492873ac5e2e0"
-    },
-    "02_cohort_assignment/major_cluster_all_pcs_kde.png": {
-      "bytes": 1877652,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 240.08108385144584,
-      "sha256": "6a3b61343b706a42c7beb5317070d996195445bb1df6ebfb8992afeaf81820c8",
-      "size": [
-        8989,
-        5506
-      ]
-    },
     "02_cohort_assignment/major_cluster_component_ranks.tsv": {
       "bytes": 69449,
       "columns": [
@@ -4385,6 +4409,170 @@
       "shape": [
         3101,
         3
+      ]
+    },
+    "02_cohort_assignment/pc_space_global/all_pcs_kde.log": {
+      "bytes": 692,
+      "kind": "exact",
+      "normalized_sha256": "7995314659d44268c40e5c06804a293adf8f98e62232e03338863db671439880",
+      "sha256": "7ffe15ffac7a28eac621e22d6e6fb8dbadb4700b1b084485fcb560d6b3546900"
+    },
+    "02_cohort_assignment/pc_space_global/all_pcs_kde.png": {
+      "bytes": 1889332,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.90421616329957,
+      "sha256": "6494ff95d747a0017cf5754cc843c943c36201013a19d9396939dd4aa92fce0d",
+      "size": [
+        8989,
+        5506
+      ]
+    },
+    "02_cohort_assignment/pc_space_global/all_pcs_kde_tests.tsv": {
+      "bytes": 2951,
+      "columns": [
+        "pc",
+        "var",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "p_t": [
+          1.041894302082845e-26,
+          0.6622021181882091,
+          5.2676662231726405,
+          0.263383311158632
+        ],
+        "p_t_adj": [
+          2.08378860416569e-25,
+          0.6622021181882091,
+          7.385006219815656,
+          0.3692503109907828
+        ],
+        "p_u": [
+          3.7950189332230577e-17,
+          0.9604448752056844,
+          6.024104011495745,
+          0.3012052005747873
+        ],
+        "p_u_adj": [
+          7.590037866446117e-16,
+          0.9604448752056844,
+          7.98330871162613,
+          0.39916543558130646
+        ],
+        "t_stat": [
+          -11.04677490414672,
+          3.4875246851289115,
+          -3.650494537676144,
+          -0.18252472688380722
+        ],
+        "u_stat": [
+          437979.5,
+          648165.0,
+          11555608.0,
+          577780.4
+        ],
+        "var": [
+          0.0237133059699338,
+          0.3918508244680939,
+          0.9999999999999989,
+          0.04999999999999995
+        ]
+      },
+      "sha256": "0905971d6067cad38d51e88e3e412a8f8a1035a4a2087f3c3e3cf0de7c3a798c",
+      "shape": [
+        20,
+        10
+      ]
+    },
+    "02_cohort_assignment/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 698,
+      "kind": "exact",
+      "normalized_sha256": "70248124fca9876fffe32aa89f53f094d6ec9165af7bdae6de379b548897e0d5",
+      "sha256": "551d0128e87682279b6660bf940ebcdaf15954c9a38d1a8df4357017ea903bbc"
+    },
+    "02_cohort_assignment/pc_space_mainland/all_pcs_kde.png": {
+      "bytes": 1851798,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.96520333587233,
+      "sha256": "08f67731436ad71648f9ab40e6553cf2220ba104bbe7fea8a1d6d5c11a27ae5a",
+      "size": [
+        8921,
+        5506
+      ]
+    },
+    "02_cohort_assignment/pc_space_mainland/all_pcs_kde_tests.tsv": {
+      "bytes": 2958,
+      "columns": [
+        "pc",
+        "var",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "p_t": [
+          1.7753083368780156e-06,
+          0.9584475305188516,
+          3.9423692851517003,
+          0.197118464257585
+        ],
+        "p_t_adj": [
+          1.289932861435029e-05,
+          0.9584475305188518,
+          4.814529422326504,
+          0.2407264711163252
+        ],
+        "p_u": [
+          3.125992823042025e-06,
+          0.9512089616726744,
+          4.397235843379331,
+          0.21986179216896656
+        ],
+        "p_u_adj": [
+          5.471016498700073e-05,
+          0.9512089616726744,
+          5.39723435312544,
+          0.269861717656272
+        ],
+        "t_stat": [
+          -4.822667298508802,
+          4.80520060122732,
+          -5.118875590320081,
+          -0.25594377951600406
+        ],
+        "u_stat": [
+          503273.5,
+          661822.5,
+          11555708.5,
+          577785.425
+        ],
+        "var": [
+          0.0420804809274302,
+          0.1321245456422309,
+          0.999999999999999,
+          0.04999999999999995
+        ]
+      },
+      "sha256": "8a898ddcb6feb778fc73c164fbebbb518535e9ae2f0a52fde1e1e96d50b2b741",
+      "shape": [
+        20,
+        10
       ]
     },
     "03_rank_selection/component_rank_table.tsv": {
@@ -4443,7 +4631,7 @@
       ]
     },
     "03_rank_selection/rank_cumulative_metrics.tsv": {
-      "bytes": 2950,
+      "bytes": 3307,
       "columns": [
         "Included_Max_Rank",
         "Included_Cluster_Count",
@@ -4453,7 +4641,8 @@
         "Case_Control_Ratio",
         "Total_Count",
         "GWAS_Neff",
-        "PC12_AllSample_Heterogeneity",
+        "RGV_Global",
+        "RGV_Mainland",
         "PC12_CaseCtrl_Mahalanobis",
         "PC12_CaseCtrl_HotellingT2",
         "PC12_CaseCtrl_P"
@@ -4502,12 +4691,6 @@
           153.0,
           9.0
         ],
-        "PC12_AllSample_Heterogeneity": [
-          0.001627351800424,
-          0.0069707324074082,
-          0.0790888540664096,
-          0.004652285533318212
-        ],
         "PC12_CaseCtrl_HotellingT2": [
           0.593958071731926,
           37.687474469715,
@@ -4526,6 +4709,18 @@
           2.3188119651259425,
           0.1364007038309378
         ],
+        "RGV_Global": [
+          0.001627351800424,
+          0.0069707324074082,
+          0.0790888540664096,
+          0.004652285533318212
+        ],
+        "RGV_Mainland": [
+          0.0026778431371262,
+          0.0060277645647271,
+          0.0738654702412664,
+          0.004345027661250965
+        ],
         "Total_Count": [
           246.0,
           3101.0,
@@ -4533,14 +4728,14 @@
           1984.2941176470588
         ]
       },
-      "sha256": "ea231b8043918db642b9ff0de283285f2f59dc60a1481925456126d822804f82",
+      "sha256": "6bbdf7fd6c9317742da15d2cff62bf4df78b29ee5eb2be5235a059eb52508aa5",
       "shape": [
         17,
-        12
+        13
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {
-      "bytes": 5411,
+      "bytes": 5748,
       "columns": [
         "Included_Max_Rank",
         "Included_Cluster_Count",
@@ -4550,16 +4745,17 @@
         "Case_Control_Ratio",
         "Total_Count",
         "GWAS_Neff",
-        "PC12_AllSample_Heterogeneity",
+        "RGV_Global",
+        "RGV_Mainland",
         "PC12_CaseCtrl_Mahalanobis",
         "PC12_CaseCtrl_HotellingT2",
         "PC12_CaseCtrl_P",
         "Delta_Neff",
-        "Delta_Heterogeneity",
-        "Neff_Gain_per_Heterogeneity",
+        "Delta_RGV",
+        "Neff_Gain_per_RGV",
         "Neff_Norm",
-        "Heterogeneity_Norm",
-        "Utility_NeffMinusHet",
+        "RGV_Norm",
+        "Utility_Neff_minus_RGV",
         "Is_Pareto",
         "Distance_To_Ideal",
         "Is_Recommended"
@@ -4584,35 +4780,29 @@
           4.706649787050407,
           0.2768617521794357
         ],
-        "Delta_Heterogeneity": [
-          0.0001034779241827,
-          0.0009069184161755,
-          0.005343380606983399,
-          0.00033396128793646246
-        ],
         "Delta_Neff": [
           4.372928623723283,
           334.3883977704406,
           1278.058339428928,
           79.878646214308
         ],
+        "Delta_RGV": [
+          4.166296355020884e-05,
+          0.0006464866734582,
+          0.00334992142760021,
+          0.00020937008922501313
+        ],
         "Distance_To_Ideal": [
-          0.5435831355488614,
+          0.472245053787348,
           1.0,
-          12.253942084026221,
-          0.7208201225897777
+          11.14925221226522,
+          0.6558383654273658
         ],
         "GWAS_Neff": [
           229.34959349593493,
           1507.407932924863,
           20025.19711458625,
           1177.9527714462502
-        ],
-        "Heterogeneity_Norm": [
-          0.0,
-          1.0,
-          9.623846257926456,
-          0.5661086034074385
         ],
         "Included_Cluster_Count": [
           1.0,
@@ -4632,23 +4822,17 @@
           153.0,
           9.0
         ],
-        "Neff_Gain_per_Heterogeneity": [
-          17239.83903197772,
-          757223.6441690947,
-          3504268.1709720697,
-          219016.76068575436
+        "Neff_Gain_per_RGV": [
+          12680.961832882564,
+          1729599.474401944,
+          7689802.714201229,
+          480612.6696375768
         ],
         "Neff_Norm": [
           0.0,
           1.0,
           12.617776143427864,
           0.7422221260839921
-        ],
-        "PC12_AllSample_Heterogeneity": [
-          0.001627351800424,
-          0.0069707324074082,
-          0.0790888540664096,
-          0.004652285533318212
         ],
         "PC12_CaseCtrl_HotellingT2": [
           0.593958071731926,
@@ -4668,62 +4852,368 @@
           2.3188119651259425,
           0.1364007038309378
         ],
+        "RGV_Global": [
+          0.001627351800424,
+          0.0069707324074082,
+          0.0790888540664096,
+          0.004652285533318212
+        ],
+        "RGV_Mainland": [
+          0.0026778431371262,
+          0.0060277645647271,
+          0.0738654702412664,
+          0.004345027661250965
+        ],
+        "RGV_Norm": [
+          0.0,
+          1.0,
+          8.46053781339535,
+          0.4976786949056088
+        ],
         "Total_Count": [
           246.0,
           3101.0,
           33733.0,
           1984.2941176470588
         ],
-        "Utility_NeffMinusHet": [
+        "Utility_Neff_minus_RGV": [
           0.0,
-          0.3241076021748361,
-          2.993929885501406,
-          0.1761135226765533
+          0.4108723115823733,
+          4.157238330032513,
+          0.24454343117838312
         ]
       },
-      "sha256": "8366cd4eaf7f272ecb845ea699869e5f708615b84985a7b15d329bef4038324d",
+      "sha256": "49f065e4ead23550db491d7c7a59c3f3ea23e900847d8017e093209902ddb285",
       "shape": [
         17,
-        21
+        22
       ]
     },
     "03_rank_selection/rank_selection_tradeoff.png": {
-      "bytes": 1727017,
+      "bytes": 1744827,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 251.01307119548417,
-      "sha256": "7131ffab0ccb6b1ca70de0d64a38e0b64dff92412e41addb77f8e92b683683cd",
+      "pixel_mean": 250.87603623089137,
+      "sha256": "0db06f60f0be7f334b258250e55827088c972c2b0289acb4d4bba1441cd9c589",
       "size": [
         10544,
         5400
       ]
     },
-    "04_subcluster_variants/expanded/subcluster_all_pcs_kde.log": {
-      "bytes": 614,
+    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde.log": {
+      "bytes": 658,
       "kind": "exact",
-      "normalized_sha256": "3f0c7150136637c9a841d10e3d5008882ba931cdbdbe7b3ef235a456b5f5b4f5",
-      "sha256": "f7f7a6265c4feb1f7c8d8ebeee0567b7983465047e3639958e49dc74532f7786"
+      "normalized_sha256": "d9bf9a38b1b7343a85f66be0c9e26e18f639f210444bf123bd8caca61f34db85",
+      "sha256": "c45b9dc6c4380660038ccc9e4935445c54760616855b65d655cfe69fdd114ee4"
     },
-    "04_subcluster_variants/expanded/subcluster_all_pcs_kde.png": {
-      "bytes": 1873384,
+    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde.png": {
+      "bytes": 1892266,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 238.33698781590311,
-      "sha256": "28391a5eaaaa425712d85b6155c6e67da8b39bd4c7423465e0336caa7359653c",
+      "pixel_mean": 238.15900904578862,
+      "sha256": "60af30009fb036d069b0c6f8d05977c6d38e4eae3a2cfeb79ab88b6496d8f381",
       "size": [
         8933,
         5506
       ]
     },
-    "04_subcluster_variants/expanded/subcluster_assignment_overview.png": {
-      "bytes": 7868730,
+    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde_tests.tsv": {
+      "bytes": 3678,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0008013427086247,
+          0.0065120632449883,
+          0.008961007503999691,
+          0.00044805037519998455
+        ],
+        "ctrl_mean": [
+          -0.0002246643041457,
+          0.0069494105476527,
+          0.010529183439446534,
+          0.0005264591719723267
+        ],
+        "n_case": [
+          429.0,
+          429.0,
+          8580.0,
+          429.0
+        ],
+        "n_control": [
+          2079.0,
+          2079.0,
+          41580.0,
+          2079.0
+        ],
+        "p_t": [
+          1.1269828215625012e-08,
+          0.9845574527718872,
+          6.9841312973357335,
+          0.3492065648667867
+        ],
+        "p_t_adj": [
+          2.2539656431250026e-07,
+          0.984557452771887,
+          9.12203870223101,
+          0.45610193511155045
+        ],
+        "p_u": [
+          1.313915740141003e-09,
+          0.9434302964401966,
+          6.873625602277245,
+          0.34368128011386223
+        ],
+        "p_u_adj": [
+          2.6278314802820064e-08,
+          0.9434302964401964,
+          8.736530499152426,
+          0.4368265249576213
+        ],
+        "t_stat": [
+          -5.784212698304382,
+          3.629219375252316,
+          -8.6050588227084,
+          -0.43025294113542
+        ],
+        "u_stat": [
+          363113.5,
+          505587.0,
+          8780510.0,
+          439025.5
+        ]
+      },
+      "sha256": "17aaf3144262dfce92f2a88e8a5e4643ec87eec2e8478447b782ad3e3c1e48c4",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_global/subcluster_view.png": {
+      "bytes": 4680292,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.71069429510487,
-      "sha256": "d5d8c0af9a08719187ba84faaa7424c421af2f86d6dc5d8a3f8c6b1bcfb0d59a",
+      "pixel_mean": 242.84331879788454,
+      "sha256": "a6eb496e70c7fd7bf8956a9d27fbeb7e341550623155b90434c3df7b44963b33",
       "size": [
-        15578,
-        9038
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_global/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          429.0,
+          2079.0,
+          2508.0,
+          1254.0
+        ]
+      },
+      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 664,
+      "kind": "exact",
+      "normalized_sha256": "7c0f778cb8c663fa8abfe3ca194b01d3119980bacae7478fc4e21c894fc7bc1f",
+      "sha256": "416d5a5f18cc7dada3c1a8c1b2f88facd3488f5cec2c52002dc9cd0311fed995"
+    },
+    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde.png": {
+      "bytes": 1804791,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.288337944649,
+      "sha256": "b5d3f54535e08857ebe102c6d11b87614e86aa3f696763c333065dd3cbca217d",
+      "size": [
+        8921,
+        5506
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde_tests.tsv": {
+      "bytes": 3682,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0007066264341258,
+          0.0046311029780885,
+          0.0030529997384849575,
+          0.00015264998692424787
+        ],
+        "ctrl_mean": [
+          -0.0006430073091919,
+          0.0049162626716257,
+          0.0045122518542290565,
+          0.00022561259271145282
+        ],
+        "n_case": [
+          429.0,
+          429.0,
+          8580.0,
+          429.0
+        ],
+        "n_control": [
+          2079.0,
+          2079.0,
+          41580.0,
+          2079.0
+        ],
+        "p_t": [
+          6.977086459007362e-07,
+          0.8366570639359918,
+          5.300983236862391,
+          0.26504916184311955
+        ],
+        "p_t_adj": [
+          1.216384870722506e-05,
+          0.8366570639359917,
+          6.805413283775706,
+          0.34027066418878527
+        ],
+        "p_u": [
+          3.01345507726139e-07,
+          0.7964738131930278,
+          4.960819144194122,
+          0.24804095720970612
+        ],
+        "p_u_adj": [
+          6.0269101545227795e-06,
+          0.7964738131930278,
+          6.163141156776822,
+          0.3081570578388411
+        ],
+        "t_stat": [
+          -5.012697960867276,
+          4.588234006105744,
+          -7.1076423070605195,
+          -0.355382115353026
+        ],
+        "u_stat": [
+          379564.0,
+          515899.0,
+          8819176.5,
+          440958.825
+        ]
+      },
+      "sha256": "691ad397b6bdaaf3b521650b191b25dc7dfa34b8a079d6ff8e5afb795f346410",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_mainland/subcluster_view.png": {
+      "bytes": 8012758,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 240.01573581461358,
+      "sha256": "0ecbe2a72222cf7fff28980748c089e36a28cf64c82075be4968c14c00767b78",
+      "size": [
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/expanded/pc_space_mainland/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          429.0,
+          2079.0,
+          2508.0,
+          1254.0
+        ]
+      },
+      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_assignment_overview.png": {
+      "bytes": 8742825,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 246.31353538017123,
+      "sha256": "9814ccb2cac793632cbb3dab0c0f76f23df3daa0c1e87faabd0a79f878838d49",
+      "size": [
+        10231,
+        9188
+      ]
+    },
+    "04_subcluster_variants/expanded/subcluster_group_statistics.tsv": {
+      "bytes": 346,
+      "columns": [
+        "Group",
+        "Case",
+        "Control",
+        "Total"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Case": [
+          0.0,
+          429.0,
+          452.0,
+          28.25
+        ],
+        "Control": [
+          0.0,
+          2079.0,
+          3117.0,
+          194.8125
+        ],
+        "Total": [
+          5.0,
+          2508.0,
+          3569.0,
+          223.0625
+        ]
+      },
+      "sha256": "ecfdbdb999ece4bf698df6dc0c7ce80076eb5ad6a9ea9a8f4b446735e5e32c0b",
+      "shape": [
+        16,
+        4
       ]
     },
     "04_subcluster_variants/expanded/subcluster_posterior_probabilities.tsv": {
@@ -4899,43 +5389,320 @@
       "kind": "json",
       "sha256": "0a7e019637224e11224f3bc8530e280845532cd65d3386e5c53e0a15b8020608"
     },
-    "04_subcluster_variants/expanded/subcluster_view.png": {
-      "bytes": 4200654,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 244.0281795691562,
-      "sha256": "1fe63866e520a591d4bffbd36bfc959c573fcf1160d85f1cf9cd2b268f71f3c1",
-      "size": [
-        8913,
-        9038
-      ]
-    },
-    "04_subcluster_variants/full/subcluster_all_pcs_kde.log": {
-      "bytes": 610,
+    "04_subcluster_variants/full/pc_space_global/all_pcs_kde.log": {
+      "bytes": 654,
       "kind": "exact",
-      "normalized_sha256": "7641ae9f3df9b3bfa62be9fc320944920a351f5a735f7b8dad117d47dcb2fb5d",
-      "sha256": "719d7e58820b687bbc90e24a4d3e0828e06a49343883632f17bc5ebf375a1597"
+      "normalized_sha256": "1a5cfe7759b40fbb09803be81ba3a1eb96b547652d5252ac6b7a2187c2132855",
+      "sha256": "3fa2c15c797bc31e1fce6bf85c828a39ba2b7af5fab9635443fa3a178a0ab4a0"
     },
-    "04_subcluster_variants/full/subcluster_all_pcs_kde.png": {
-      "bytes": 1776491,
+    "04_subcluster_variants/full/pc_space_global/all_pcs_kde.png": {
+      "bytes": 1793792,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 240.82383202588045,
-      "sha256": "4aa8d3f25d083e05559ce58b1856462dba7ed941cbb0102926d3beb94fee61b3",
+      "pixel_mean": 240.64696203439834,
+      "sha256": "03943d1f5be3367548e326521da5cb198a311b4c4471c509bf06103ce5b2f2fb",
       "size": [
         8989,
         5506
       ]
     },
-    "04_subcluster_variants/full/subcluster_assignment_overview.png": {
-      "bytes": 7609870,
+    "04_subcluster_variants/full/pc_space_global/all_pcs_kde_tests.tsv": {
+      "bytes": 3654,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0007708211366742,
+          0.0064600808703872,
+          0.009258917383407717,
+          0.00046294586917038587
+        ],
+        "ctrl_mean": [
+          -0.0004435110836055,
+          0.0059832599723403,
+          0.009525544567675796,
+          0.0004762772283837898
+        ],
+        "n_case": [
+          439.0,
+          439.0,
+          8780.0,
+          439.0
+        ],
+        "n_control": [
+          2662.0,
+          2662.0,
+          53240.0,
+          2662.0
+        ],
+        "p_t": [
+          1.041894302082845e-26,
+          0.6622021181882091,
+          5.2676662231726405,
+          0.263383311158632
+        ],
+        "p_t_adj": [
+          2.08378860416569e-25,
+          0.6622021181882091,
+          7.385006219815656,
+          0.3692503109907828
+        ],
+        "p_u": [
+          3.7950189332230577e-17,
+          0.9604448752056844,
+          6.024104011495745,
+          0.3012052005747873
+        ],
+        "p_u_adj": [
+          7.590037866446117e-16,
+          0.9604448752056844,
+          7.98330871162613,
+          0.39916543558130646
+        ],
+        "t_stat": [
+          -11.04677490414672,
+          3.4875246851289115,
+          -3.650494537676144,
+          -0.18252472688380722
+        ],
+        "u_stat": [
+          437979.5,
+          648165.0,
+          11555608.0,
+          577780.4
+        ]
+      },
+      "sha256": "1eeb4d0163ff8438935a84efa11e79c881c6d8d3d7f09014b7a78d2627da76b9",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_global/subcluster_view.png": {
+      "bytes": 4963805,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 250.14031849358665,
-      "sha256": "df52cc39cf89fb939311fe36a7c1e1aa01b20e59fa35475fdc87eb58d3dad241",
+      "pixel_mean": 243.00336791218268,
+      "sha256": "5ca607ae9154888380cc8709e005e3e7127aa0bd6127be5f96e65f0005e86467",
       "size": [
-        16942,
-        9038
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_global/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          439.0,
+          2662.0,
+          3101.0,
+          1550.5
+        ]
+      },
+      "sha256": "75185a6f5c62e7a95a8d7b47048acad897ace9a59938b5a45ebdb5d4c9e58a0b",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 660,
+      "kind": "exact",
+      "normalized_sha256": "4035f5f346c5df5844d1ac101ff00954a2f6d65e62d5d0e1b77a395cb0194d1c",
+      "sha256": "17fc9107bbf9683bcceda57e950617eba20f3c260c9d731df1764b99c86aef70"
+    },
+    "04_subcluster_variants/full/pc_space_mainland/all_pcs_kde.png": {
+      "bytes": 1763790,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 240.7033358774256,
+      "sha256": "f19861798a94c7de2c714caba590349472c45ab25c915ad996ea89ea3b1b1c83",
+      "size": [
+        8921,
+        5506
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_mainland/all_pcs_kde_tests.tsv": {
+      "bytes": 3681,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0006705699959908,
+          0.0047427064751708,
+          0.0031599756813442004,
+          0.00015799878406721002
+        ],
+        "ctrl_mean": [
+          -0.001284717974722,
+          0.0036870825319346,
+          0.003873094579591266,
+          0.00019365472897956332
+        ],
+        "n_case": [
+          439.0,
+          439.0,
+          8780.0,
+          439.0
+        ],
+        "n_control": [
+          2662.0,
+          2662.0,
+          53240.0,
+          2662.0
+        ],
+        "p_t": [
+          1.7753083368780156e-06,
+          0.9584475305188516,
+          3.9423692851517003,
+          0.197118464257585
+        ],
+        "p_t_adj": [
+          1.289932861435029e-05,
+          0.9584475305188518,
+          4.814529422326504,
+          0.2407264711163252
+        ],
+        "p_u": [
+          3.125992823042025e-06,
+          0.9512089616726744,
+          4.397235843379331,
+          0.21986179216896656
+        ],
+        "p_u_adj": [
+          5.471016498700073e-05,
+          0.9512089616726744,
+          5.39723435312544,
+          0.269861717656272
+        ],
+        "t_stat": [
+          -4.822667298508802,
+          4.80520060122732,
+          -5.118875590320081,
+          -0.25594377951600406
+        ],
+        "u_stat": [
+          503273.5,
+          661822.5,
+          11555708.5,
+          577785.425
+        ]
+      },
+      "sha256": "9a0b479fd723efd7440164db17993faa349239aa0e1d3f7930c7f38d4e12fa8d",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_mainland/subcluster_view.png": {
+      "bytes": 8192611,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 240.38377878250773,
+      "sha256": "2f958841993fdac410f68d587480f8b89f878d92c677c0889d348793a7221de4",
+      "size": [
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/full/pc_space_mainland/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          439.0,
+          2662.0,
+          3101.0,
+          1550.5
+        ]
+      },
+      "sha256": "75185a6f5c62e7a95a8d7b47048acad897ace9a59938b5a45ebdb5d4c9e58a0b",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/full/subcluster_assignment_overview.png": {
+      "bytes": 8434798,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 246.2928085006485,
+      "sha256": "68317a95d23789ecdc0835e76451451c57f11cd54d7aacf542a73936aecaa76a",
+      "size": [
+        10231,
+        9188
+      ]
+    },
+    "04_subcluster_variants/full/subcluster_group_statistics.tsv": {
+      "bytes": 247,
+      "columns": [
+        "Group",
+        "Case",
+        "Control",
+        "Total"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Case": [
+          0.0,
+          439.0,
+          452.0,
+          41.09090909090909
+        ],
+        "Control": [
+          0.0,
+          2662.0,
+          3117.0,
+          283.3636363636364
+        ],
+        "Total": [
+          5.0,
+          3101.0,
+          3569.0,
+          324.45454545454544
+        ]
+      },
+      "sha256": "0c1607286a24156a02b2243d282ef7d291bccb6215aa19efce6eea69cf3127da",
+      "shape": [
+        11,
+        4
       ]
     },
     "04_subcluster_variants/full/subcluster_posterior_probabilities.tsv": {
@@ -5076,47 +5843,324 @@
       "kind": "json",
       "sha256": "06084060292a861512c383b052db51fce4a9a6f04952b2b3077de8cfe3f28eb9"
     },
-    "04_subcluster_variants/full/subcluster_view.png": {
-      "bytes": 4448462,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 244.16901711814438,
-      "sha256": "788b020910aca8fb801248b4ca6b25766e4119dd8969e6a0e0aff8e2c81abaf2",
-      "size": [
-        8913,
-        9038
-      ]
-    },
-    "04_subcluster_variants/refined/subcluster_all_pcs_kde.log": {
-      "bytes": 613,
+    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde.log": {
+      "bytes": 657,
       "kind": "exact",
-      "normalized_sha256": "d31a6930d8896a7710d7bc6672294cc40e95ac1f96171b5c01583f206c5526dc",
-      "sha256": "f47505aaa3c62ba02515eb7e2d94c2de9dc6bbcc399f220c22046115c15b0b63"
+      "normalized_sha256": "2607a17d1053698d295149644c222068a3de7432c6158997d8f9569973b1a888",
+      "sha256": "289ea9551d85c3988b14bb15ad1408161cf57d27cf637c08313042025959a72e"
     },
-    "04_subcluster_variants/refined/subcluster_all_pcs_kde.png": {
-      "bytes": 1860520,
+    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde.png": {
+      "bytes": 1895939,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 238.2115038266068,
-      "sha256": "86d239f74ae70d0ea247751e571867146e3fcf26a42eb1026323eb7b0a467b2e",
+      "pixel_mean": 237.98075703386422,
+      "sha256": "ced1eed7ad4e0d613de2bd183f73c068ea0be07d4b7fdde429ba82a5d42af39b",
       "size": [
         8947,
         5506
       ]
     },
-    "04_subcluster_variants/refined/subcluster_assignment_overview.png": {
-      "bytes": 7901511,
+    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde_tests.tsv": {
+      "bytes": 3695,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0008320588897374,
+          0.0066750839620525,
+          0.009034076536315203,
+          0.00045170382681576014
+        ],
+        "ctrl_mean": [
+          -0.000253369857018,
+          0.0080103096637781,
+          0.0123097084418063,
+          0.000615485422090315
+        ],
+        "n_case": [
+          419.0,
+          419.0,
+          8380.0,
+          419.0
+        ],
+        "n_control": [
+          1776.0,
+          1776.0,
+          35520.0,
+          1776.0
+        ],
+        "p_t": [
+          1.2969814300209091e-08,
+          0.950760165471418,
+          6.4444005411454715,
+          0.3222200270572736
+        ],
+        "p_t_adj": [
+          1.9156157912243325e-07,
+          0.950760165471418,
+          8.244138431529288,
+          0.41220692157646444
+        ],
+        "p_u": [
+          4.1570433893928807e-10,
+          0.9333795237478292,
+          6.289505805361936,
+          0.31447529026809684
+        ],
+        "p_u_adj": [
+          8.314086778785762e-09,
+          0.9333795237478292,
+          8.007556786461775,
+          0.40037783932308874
+        ],
+        "t_stat": [
+          -5.749013610189727,
+          3.9088420279037654,
+          -16.106788326744958,
+          -0.8053394163372479
+        ],
+        "u_stat": [
+          299160.0,
+          423095.0,
+          7256930.5,
+          362846.525
+        ]
+      },
+      "sha256": "9687c801a53b194d63136398caaa2bb5636eeef914af0f09e2f7b3667fe8716e",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_global/subcluster_view.png": {
+      "bytes": 4557886,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.5164131546003,
-      "sha256": "d48d493988d92197402c554fd7b9051442b7e8761ccdb7d42361d5ade3c2f311",
+      "pixel_mean": 242.63945862502234,
+      "sha256": "82247c421b9057113423825a538eee7785698470ca78d97469bb05fc748495bc",
       "size": [
-        15053,
-        9038
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_global/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          419.0,
+          1776.0,
+          2195.0,
+          1097.5
+        ]
+      },
+      "sha256": "9b375e3c48cda6bb94c4b30e326aadb74cb8997333a8707483b1d57727f95b2d",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 663,
+      "kind": "exact",
+      "normalized_sha256": "417a11f1015f0c859731522795041275bf27ae2cfe283a6238f6b532ba996c4f",
+      "sha256": "0426bcab09b7d266e82dfafaee9f5463450acdf6d1fc3add5cda073d2bb118b4"
+    },
+    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde.png": {
+      "bytes": 1830941,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 238.88467696814672,
+      "sha256": "4af468853727327fb5eef63b6b4059bbbea149f36fe6ea9a05f308f29aa50da8",
+      "size": [
+        8921,
+        5506
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde_tests.tsv": {
+      "bytes": 3697,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0007235491724105,
+          0.0047330390157517,
+          0.0030295783756804757,
+          0.00015147891878402377
+        ],
+        "ctrl_mean": [
+          -0.0009704785688795,
+          0.0061722594934177,
+          0.005003054507183789,
+          0.00025015272535918945
+        ],
+        "n_case": [
+          419.0,
+          419.0,
+          8380.0,
+          419.0
+        ],
+        "n_control": [
+          1776.0,
+          1776.0,
+          35520.0,
+          1776.0
+        ],
+        "p_t": [
+          4.187255919798338e-09,
+          0.7290380895611676,
+          3.859946423521374,
+          0.1929973211760687
+        ],
+        "p_t_adj": [
+          8.374511839596677e-08,
+          0.7290380895611676,
+          4.653377919029587,
+          0.23266889595147938
+        ],
+        "p_u": [
+          3.016592090743517e-11,
+          0.6847637886165303,
+          3.6941490080213546,
+          0.18470745040106773
+        ],
+        "p_u_adj": [
+          6.033184181487032e-10,
+          0.6847637886165303,
+          4.392319074611985,
+          0.21961595373059922
+        ],
+        "t_stat": [
+          -5.512088770623262,
+          5.946529796958745,
+          -7.91642461258396,
+          -0.395821230629198
+        ],
+        "u_stat": [
+          305350.5,
+          449625.5,
+          7346217.0,
+          367310.85
+        ]
+      },
+      "sha256": "c404c4a329a3ff46479d45b3dbf6555273d88750cbc74c196d62c6a4005e2e1f",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_mainland/subcluster_view.png": {
+      "bytes": 7592818,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.86933219563056,
+      "sha256": "56b75edfdeb4996a20e5fe93af0e3bbab0052ae304dc40d632123d7983955bc5",
+      "size": [
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/refined/pc_space_mainland/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          419.0,
+          1776.0,
+          2195.0,
+          1097.5
+        ]
+      },
+      "sha256": "9b375e3c48cda6bb94c4b30e326aadb74cb8997333a8707483b1d57727f95b2d",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/refined/subcluster_assignment_overview.png": {
+      "bytes": 8850780,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 246.28902133251282,
+      "sha256": "35f1ed9a9a4fa9d036f1e8e4352aac28c11cc512ddbceac8946680f5f478da72",
+      "size": [
+        10231,
+        9188
+      ]
+    },
+    "04_subcluster_variants/refined/subcluster_group_statistics.tsv": {
+      "bytes": 406,
+      "columns": [
+        "Group",
+        "Case",
+        "Control",
+        "Total"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Case": [
+          0.0,
+          419.0,
+          452.0,
+          23.789473684210527
+        ],
+        "Control": [
+          0.0,
+          1776.0,
+          3117.0,
+          164.05263157894737
+        ],
+        "Total": [
+          5.0,
+          2195.0,
+          3569.0,
+          187.8421052631579
+        ]
+      },
+      "sha256": "7f5fafbffde1d5dff1c0343794f11904a7944b451f62e757a957e5a9716515d2",
+      "shape": [
+        19,
+        4
       ]
     },
     "04_subcluster_variants/refined/subcluster_posterior_probabilities.tsv": {
-      "bytes": 1692882,
+      "bytes": 1768887,
       "columns": [
         "FID",
         "IID",
@@ -5133,6 +6177,7 @@
         "Prob_Cluster_7",
         "Prob_Cluster_8",
         "Prob_Cluster_9",
+        "Prob_Cluster_10",
         "Prob_Cluster_12",
         "Prob_Cluster_13",
         "Prob_Cluster_14",
@@ -5149,14 +6194,14 @@
         "Assigned_Component_ID_If_Not_Subcluster": [
           -1.0,
           25.0,
-          13679.0,
-          3.83272625385262
+          15189.0,
+          4.255813953488372
         ],
         "Assignment_Confidence": [
           0.3263237767214885,
           1.0,
-          2882.1096561693157,
-          0.8075398308123608
+          2787.5037628822283,
+          0.7810321554727454
         ],
         "FID": [
           63134.0,
@@ -5187,6 +6232,12 @@
           0.7952124199519932,
           90.6014677474097,
           0.02538567322706912
+        ],
+        "Prob_Cluster_10": [
+          1.1695032152510956e-200,
+          0.8087796877078732,
+          157.7782397917589,
+          0.044207968560313504
         ],
         "Prob_Cluster_12": [
           1.0708511070098344e-284,
@@ -5227,8 +6278,8 @@
         "Prob_Cluster_20": [
           2.676771698991505e-152,
           0.999996788383206,
-          104.99696484013523,
-          0.029419155180760784
+          104.9969648401352,
+          0.029419155180760773
         ],
         "Prob_Cluster_22": [
           5.3854215751059866e-151,
@@ -5269,8 +6320,8 @@
         "Prob_Cluster_7": [
           5.930485814227466e-271,
           0.7187195981463717,
-          72.15294032723507,
-          0.020216570559606354
+          72.15294032723509,
+          0.020216570559606357
         ],
         "Prob_Cluster_8": [
           1.4079971305370665e-192,
@@ -5285,33 +6336,22 @@
           0.007605363476845305
         ],
         "Prob_Mainland_Subcluster": [
-          1.1695032152510956e-200,
-          0.9986391874361392,
-          2143.9051496921056,
-          0.6007019192188584
+          1.5144072725844855e-226,
+          0.9969472391962644,
+          1986.1269099003466,
+          0.5564939506585449
         ]
       },
-      "sha256": "833375d98eef6dd1bad441ae06ad4a9ac20a23f6bd993a1f4129e9f3f78c8d04",
+      "sha256": "bb6e91a802944968ab2e413d6306e02a08b5ff3cec316133152a684f07c22c7b",
       "shape": [
         3569,
-        25
+        26
       ]
     },
     "04_subcluster_variants/refined/subcluster_summary.json": {
-      "bytes": 808,
+      "bytes": 816,
       "kind": "json",
-      "sha256": "eea4b5ec2a8de6cb721035623e2c102f4b07775c344f3bf09a1f9a04502ba35e"
-    },
-    "04_subcluster_variants/refined/subcluster_view.png": {
-      "bytes": 4116472,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 243.95636658843756,
-      "sha256": "bdaba6e6ca39ef460e254c052798d7b2a843f8b00698cb2367676a6e3a45ce06",
-      "size": [
-        8913,
-        9038
-      ]
+      "sha256": "fe399e8fcf09a4f1960bd255125771d2e89ef49d4ded1f4f7c76b3755740d080"
     },
     "keep_lists/expanded_mainland.fid_iid.txt": {
       "bytes": 46512,
@@ -5326,7 +6366,7 @@
       "sha256": "500a964dfc572fed133801e40bb48b401ca12591c6dfe4fb602fea01e313ec27"
     },
     "keep_lists/keep_list_summary.tsv": {
-      "bytes": 701,
+      "bytes": 799,
       "columns": [
         "variant",
         "rank_cut",
@@ -5336,7 +6376,8 @@
         "AGP3K_Count",
         "Case_Control_Ratio",
         "GWAS_Neff",
-        "PC12_RGV",
+        "RGV_Global",
+        "RGV_Mainland",
         "components",
         "file"
       ],
@@ -5345,56 +6386,62 @@
         "AGP3K_Count": [
           0.0,
           2662.0,
-          6642.0,
-          1660.5
+          6517.0,
+          1629.25
         ],
         "CTEPH_Count": [
           0.0,
           439.0,
-          1293.0,
-          323.25
+          1287.0,
+          321.75
         ],
         "Case_Control_Ratio": [
           0.1649135987978963,
-          0.2235665439242504,
-          0.594829349071353,
-          0.198276449690451
+          0.2359234234234234,
+          0.607186228570526,
+          0.20239540952350865
         ],
         "GWAS_Neff": [
-          1389.3809114359417,
+          1356.0710706150342,
           1507.407932924863,
-          4319.262528571331,
-          1439.7541761904438
+          4285.952687750424,
+          1428.650895916808
         ],
-        "PC12_RGV": [
-          0.0049661004169629,
+        "RGV_Global": [
+          0.0046457455375597,
           0.0069707324074082,
-          0.0228814898780821,
-          0.005720372469520525
+          0.0225611349986789,
+          0.005640283749669725
+        ],
+        "RGV_Mainland": [
+          0.0042547052329655,
+          0.0060277645647271,
+          0.020622818407242102,
+          0.0051557046018105256
         ],
         "n_components": [
-          10.0,
+          9.0,
           17.0,
-          56.0,
-          14.0
+          55.0,
+          13.75
         ],
         "n_samples": [
-          2326.0,
+          2195.0,
           167663.0,
-          175598.0,
-          43899.5
+          175467.0,
+          43866.75
         ],
         "rank_cut": [
-          10.0,
+          9.0,
           12.0,
-          22.0,
-          11.0
+          21.0,
+          10.5
         ]
       },
-      "sha256": "d03fa6b43ab3d6f3a551c77cf97058af3aa3caed7da74ec041ee79cd26bd0c01",
+      "sha256": "daa890043d2197164591c9be4aa553887a221c39348bb0724eb1288c440b46cd",
       "shape": [
         4,
-        11
+        12
       ]
     },
     "keep_lists/reference_full_mainland.fid_iid.txt": {
@@ -5404,15 +6451,15 @@
       "sha256": "f3e56d551ef56cbbda3ab63292b65c046b3475e9d15d4fddbd9441ff44faf154"
     },
     "keep_lists/refined_mainland.fid_iid.txt": {
-      "bytes": 42836,
+      "bytes": 40290,
       "kind": "exact",
-      "normalized_sha256": "d14dac42b60a9b0cc23a701b93ddd6cc652d24370ff76be90eb4b1e91091bd30",
-      "sha256": "d14dac42b60a9b0cc23a701b93ddd6cc652d24370ff76be90eb4b1e91091bd30"
+      "normalized_sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9",
+      "sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9"
     },
     "provenance/run_config_snapshot.json": {
-      "bytes": 4548,
+      "bytes": 4740,
       "kind": "json_volatile",
-      "sha256": "4d964b031fc71da6a72e5040d9f936eee63d106428dd3e7292884c6f22407f99"
+      "sha256": "d0419c03e411cd8d86de84aeb0dbaa2049b9bc94e371b7d99db421e83ce1da50"
     },
     "provenance/run_environment.json": {
       "bytes": 491,

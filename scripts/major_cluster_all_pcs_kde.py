@@ -20,25 +20,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
-import math
 
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from scipy.stats import mannwhitneyu, ttest_ind
-
 
 from scripts.common import (
     to_numeric_series,
     to_numeric_array,
-    PLOT_STYLE_RC as _PLOT_STYLE_RC,
     bh_fdr_adjust as _bh_fdr_adjust,
     pc_sort_key as _pc_sort_key,
     resolve_all_pc_columns as _resolve_all_pc_columns,
     setup_file_logger as _setup_file_logger,
 )
+from scripts.plotting.kde import plot_pc_kde_grid
+from scripts.plotting.style import THEME_KDE, figure_context, save_figure
 
 
 class MajorClusterAllPCsKDEOutput(NamedTuple):
@@ -51,11 +48,20 @@ class MajorClusterAllPCsKDEOutput(NamedTuple):
 
 @dataclass(frozen=True)
 class MajorClusterAllPCsKDEConfig:
-    output_dir: str | Path = "results/02_cohort_assignment"
+    output_dir: str | Path = "results/02_cohort_assignment/pc_space_global"
     save_plot: bool = True
     show_plot: bool = False
-    figure_file: str = "major_cluster_all_pcs_kde.png"
-    log_file: str = "major_cluster_all_pcs_kde.log"
+    figure_file: str = "all_pcs_kde.png"
+    log_file: str = "all_pcs_kde.log"
+    tests_file: str = "all_pcs_kde_tests.tsv"
+
+    #: Names the PCA the coordinates come from. Two runs in two bases produce
+    #: otherwise identical-looking figures, so this goes in the title and the log.
+    basis_label: str = "global PCA"
+
+    #: What the major cluster is called on figures; mirrors
+    #: params.MAJOR_CLUSTER_DISPLAY_NAME rather than being hardcoded.
+    group_label: str = "Mainland"
     case_label: str = "Case"
     control_label: str = "Control"
     n_cols: int = 5
@@ -67,6 +73,12 @@ class MajorClusterAllPCsKDEConfig:
 
 def _format_title(pc_num: int, var: float) -> str:
     return f"PC{pc_num}{f' ({var:.1%})' if np.isfinite(var) else ''}"
+
+
+def _finite(values: pd.Series) -> np.ndarray:
+    """Numeric values with non-finite entries dropped, ready for a KDE."""
+    arr = to_numeric_array(values)
+    return arr[np.isfinite(arr)]
 
 
 def run_major_cluster_all_pcs_kde(
@@ -155,8 +167,10 @@ def run_major_cluster_all_pcs_kde(
     logger = _setup_file_logger("mainland_all_pcs_kde", log_path)
 
     if bool(config.verbose):
-        logger.info(">>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND SAMPLES...")
+        logger.info(f">>> ALL-PC DISTRIBUTIONS FOR {str(config.group_label).upper()} SAMPLES "
+                    f"({config.basis_label})...")
         logger.info(f"   -> output_dir = {out_dir.as_posix()}")
+        logger.info(f"   -> basis = {config.basis_label}")
         logger.info(f"   -> mainland clusters = {mainland_ids}")
         logger.info(f"   -> Mainland samples: {len(df_major_cluster)} / {len(df_join)}")
         logger.info(f"   -> Case samples (Mainland): {len(df_case)}")
@@ -169,59 +183,42 @@ def run_major_cluster_all_pcs_kde(
         logger.info(f"      • Significant by Mann-Whitney U: {int(tests_df['reject_u'].sum())} PC(s)")
         logger.info("=" * 80)
 
+    tests_path = out_dir / str(config.tests_file)
+    tests_df.to_csv(tests_path, sep="\t", index=False)
+
     figure_png = out_dir / str(config.figure_file)
     if bool(config.save_plot) or bool(config.show_plot):
-        plt.style.use("seaborn-v0_8-whitegrid")
-        sns.set_context("paper", font_scale=2.0)
-        plt.rcParams.update(dict(_PLOT_STYLE_RC))
-        n_cols = int(config.n_cols)
-        n_rows = int(math.ceil(len(pc_cols) / n_cols))
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(6.2 * n_cols, 4.8 * n_rows), squeeze=False)
-        fig.subplots_adjust(wspace=0.30, hspace=0.45, left=0.06, right=0.98, top=0.82, bottom=0.07)
+        control_values = [_finite(df_ctrl[col]) for col in pc_cols]
+        case_values = [_finite(df_case[col]) for col in pc_cols]
+        titles = [
+            _format_title(int(_pc_sort_key(col)), float(var_lookup.get(int(_pc_sort_key(col)), np.nan)))
+            for col in pc_cols
+        ]
 
-        for i, col in enumerate(pc_cols, start=1):
-            ax = axes[(i - 1) // n_cols][(i - 1) % n_cols]
-            x_ctrl = to_numeric_array(df_ctrl[col])
-            x_case = to_numeric_array(df_case[col])
-            x_ctrl = x_ctrl[np.isfinite(x_ctrl)]
-            x_case = x_case[np.isfinite(x_case)]
-            if x_ctrl.size > 1:
-                sns.kdeplot(x=x_ctrl, color=str(config.reference_color), fill=True, alpha=float(config.alpha), linewidth=2.5, ax=ax)
-            if x_case.size > 1:
-                sns.kdeplot(x=x_case, color=str(config.case_color), fill=True, alpha=float(config.alpha), linewidth=2.5, ax=ax)
-            pc_num = int(_pc_sort_key(col))
-            var = float(var_lookup.get(pc_num, np.nan))
-            ax.set_title(_format_title(pc_num, var), pad=10, fontweight="bold")
-            ax.set_xlabel("")
-            ax.set_ylabel("Density")
-            ax.grid(True, linestyle="--", alpha=0.35, color="#C3C3C3")
-            if ax.get_legend() is not None:
-                ax.get_legend().remove()
-
-        for j in range(len(pc_cols) + 1, n_rows * n_cols + 1):
-            axes[(j - 1) // n_cols][(j - 1) % n_cols].axis("off")
-
-        fig.suptitle(
-            f"All PC Distribution Analysis: {str(config.case_label)} vs {str(config.control_label)} - Mainland Only",
-            fontweight="bold",
-            y=0.995,
-        )
-        fig.legend(
-            handles=[
-                mpatches.Patch(color=str(config.reference_color), alpha=float(config.alpha), label=str(config.control_label)),
-                mpatches.Patch(color=str(config.case_color), alpha=float(config.alpha), label=str(config.case_label)),
-            ],
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.965),
-            ncol=2,
-            frameon=False,
-            fontsize=22,
-        )
-        fig.savefig(figure_png, bbox_inches="tight", dpi=300)
-        if bool(config.show_plot):
-            plt.show()
-        else:
-            plt.close(fig)
+        with figure_context(THEME_KDE):
+            fig = plot_pc_kde_grid(
+                case_values=case_values,
+                control_values=control_values,
+                titles=titles,
+                suptitle=(
+                    f"All PC Distribution Analysis: {str(config.case_label)} vs {str(config.control_label)}"
+                    f" - {str(config.group_label)} Only  [{str(config.basis_label)}]"
+                ),
+                case_label=str(config.case_label),
+                control_label=str(config.control_label),
+                n_cols=int(config.n_cols),
+                alpha=float(config.alpha),
+                case_color=str(config.case_color),
+                # `reference_color` names the CONTROL cohort in this module, not
+                # the BBJ background it names elsewhere. Mapped explicitly here so
+                # the shared plotter can use the honest parameter name.
+                control_color=str(config.reference_color),
+            )
+            save_figure(fig, figure_png, dpi=300)
+            if bool(config.show_plot):
+                plt.show()
+            else:
+                plt.close(fig)
 
     return MajorClusterAllPCsKDEOutput(
         output_dir=out_dir,

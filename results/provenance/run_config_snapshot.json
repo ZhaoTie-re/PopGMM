@@ -96,6 +96,7 @@
     "save_plot": true,
     "save_tables": true,
     "show_plot": false,
+    "statistics_file": "cohort_cluster_statistics.tsv",
     "study_point_size": 60.0,
     "verbose": true
   },
@@ -157,16 +158,19 @@
   },
   "major_cluster_kde": {
     "alpha": 0.65,
+    "basis_label": "global PCA",
     "case_color": "#E31A1C",
     "case_label": "CTEPH",
     "control_label": "AGP3K",
-    "figure_file": "major_cluster_all_pcs_kde.png",
-    "log_file": "major_cluster_all_pcs_kde.log",
+    "figure_file": "all_pcs_kde.png",
+    "group_label": "Mainland",
+    "log_file": "all_pcs_kde.log",
     "n_cols": 5,
-    "output_dir": "results/02_cohort_assignment",
+    "output_dir": "results/02_cohort_assignment/pc_space_global",
     "reference_color": "#1F78B4",
     "save_plot": true,
     "show_plot": false,
+    "tests_file": "all_pcs_kde_tests.tsv",
     "verbose": true
   },
   "mixture_model": {
@@ -196,9 +200,11 @@
     "figure_dpi": 600,
     "figure_file": "rank_selection_tradeoff.png",
     "forced_recommended_rank": 9,
+    "mainland_rgv_n_pcs": 4,
     "max_rank": null,
     "output_dir": "results/03_rank_selection",
     "rank_table_file": "component_rank_table.tsv",
+    "rgv_basis": "mainland",
     "save_plot": true,
     "show_plot": false,
     "verbose": true

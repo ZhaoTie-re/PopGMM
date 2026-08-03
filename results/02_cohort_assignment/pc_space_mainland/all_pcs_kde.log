@@ -1,13 +1,14 @@
->>> ANALYZING ALL PC DISTRIBUTIONS FOR MAINLAND SAMPLES...
-   -> output_dir = results/02_cohort_assignment
+>>> ALL-PC DISTRIBUTIONS FOR MAINLAND SAMPLES (mainland PCA)...
+   -> output_dir = results/02_cohort_assignment/pc_space_mainland
+   -> basis = mainland PCA
    -> mainland clusters = [1, 2, 3, 6, 7, 8, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 26]
-   -> Mainland samples: 3101 / 3569
+   -> Mainland samples: 3101 / 3101
    -> Case samples (Mainland): 439
    -> Control samples (Mainland): 2662
    -> Total PCs to analyze: 20
    -> Running statistical tests...
    -> Applying FDR correction (Benjamini-Hochberg method) to all tests...
    -> FDR correction complete.
-      • Significant by t-test: 4 PC(s)
-      • Significant by Mann-Whitney U: 6 PC(s)
+      • Significant by t-test: 8 PC(s)
+      • Significant by Mann-Whitney U: 5 PC(s)
 ================================================================================

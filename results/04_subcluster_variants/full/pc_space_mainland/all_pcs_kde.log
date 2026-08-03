@@ -1,0 +1,14 @@
+>>> ALL-PC DISTRIBUTIONS FOR MAINLAND SUBCLUSTER SAMPLES (mainland PCA)...
+   -> output_dir = results/04_subcluster_variants/full/pc_space_mainland
+   -> basis = mainland PCA
+   -> mainland label = Mainland Subcluster
+   -> mainland_subcluster samples = 3101 / 3569
+   -> Case samples: 439
+   -> Control samples: 2662
+   -> Total PCs to analyze: 20
+   -> Running statistical tests...
+   -> Applying FDR correction (Benjamini-Hochberg method) to all tests...
+   -> FDR correction complete.
+      • Significant by t-test: 8 PC(s)
+      • Significant by Mann-Whitney U: 5 PC(s)
+================================================================================

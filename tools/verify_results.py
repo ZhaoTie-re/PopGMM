@@ -75,7 +75,7 @@ SKIP_NAMES = {".DS_Store"}
 # The pipeline computes in float64 and is fully deterministic: two independent
 # full runs in the same environment produce 52 of 60 artifacts byte-identical,
 # and the 8 that differ do so only in embedded timestamps or the results-root
-# path they were written to. All 12 figures are byte-identical. No numeric
+# path they were written to. All 28 figures are byte-identical. No numeric
 # artifact varies. See docs/reproducibility_probe.md.
 #
 # There is therefore NO numeric tolerance anywhere in this tool beyond the
@@ -356,7 +356,7 @@ def compare_png(base: Path, cand: Path) -> tuple[str, str]:
     d = np.abs(aa - bb)
     if d.max() == 0:
         return PASS, "pixel-identical"
-    # Two independent float64 runs produce all 12 figures byte-identical, so any
+    # Two independent float64 runs produce all 28 figures byte-identical, so any
     # pixel difference means either the plotted data changed or the environment
     # did -- both worth stopping for. The magnitude is still reported so a
     # sub-pixel render difference can be told apart from a changed curve.
