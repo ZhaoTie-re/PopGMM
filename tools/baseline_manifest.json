@@ -4070,22 +4070,22 @@
     "01_reference_model/mixture_model/tmp/search_bic_log.jsonl": {
       "bytes": 41519,
       "kind": "jsonl_volatile",
-      "sha256": "fe00f2f6634f79f4336272a696672756e617059a8b3acf9971f4ef6e50a04e75"
+      "sha256": "a4d67fe3002f215179fcb354c3dcf9a7d818dbbaa3a2f2c1535bfc560c1b4dd1"
     },
     "01_reference_model/mixture_model/tmp/search_convergence_log.jsonl": {
-      "bytes": 53087,
+      "bytes": 53093,
       "kind": "jsonl_volatile",
-      "sha256": "1e738753f0f7f5ce7f3150a1da2baf4b8db478c938125c71db0dd2ad3827ef53"
+      "sha256": "a6b86486421d361c9d89e58456780be657020dff854bc78c9a06f4393b04a687"
     },
     "01_reference_model/mixture_model/tmp/search_report.md": {
       "bytes": 20572,
       "kind": "md_volatile",
-      "sha256": "c29f3f45a5413f671ace065e8426f6fc34520e7c83f03478b7421e1b764a8821"
+      "sha256": "6c1c85c118e7106dbbc085716f9e99be8d6161db2ccf2a63ab4465381a63fc3f"
     },
     "01_reference_model/mixture_model/tmp/selected_model_components.json": {
       "bytes": 12448,
       "kind": "json_volatile",
-      "sha256": "dda56f9b0138a4ca9d273ec5f53665334b3644c76f2d26e8b3cfa81e6dd1a451"
+      "sha256": "839e45cc5f43e98f09e298abdc8e11c3b2a5e1cd0c0c4c4de7970d8962a22f4c"
     },
     "02_cohort_assignment/cohort_assignment_overview.png": {
       "bytes": 9245913,
@@ -5004,11 +5004,11 @@
       ]
     },
     "04_subcluster_variants/expanded/pc_space_global/subcluster_view.png": {
-      "bytes": 4680292,
+      "bytes": 4680720,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 242.84331879788454,
-      "sha256": "a6eb496e70c7fd7bf8956a9d27fbeb7e341550623155b90434c3df7b44963b33",
+      "pixel_mean": 242.84489476999417,
+      "sha256": "f50b59d506c013eb556978bde3c2e4809698c9ad180ce3956b81c937e6b074db",
       "size": [
         9068,
         9092
@@ -5139,11 +5139,11 @@
       ]
     },
     "04_subcluster_variants/expanded/pc_space_mainland/subcluster_view.png": {
-      "bytes": 8012758,
+      "bytes": 8013518,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 240.01573581461358,
-      "sha256": "0ecbe2a72222cf7fff28980748c089e36a28cf64c82075be4968c14c00767b78",
+      "pixel_mean": 240.01731250234093,
+      "sha256": "0fe9e65aecb0991fa6d6aad4cb73b1891c6e10c42f5cf1cd77f822464da95244",
       "size": [
         9068,
         9092
@@ -5493,11 +5493,11 @@
       ]
     },
     "04_subcluster_variants/full/pc_space_global/subcluster_view.png": {
-      "bytes": 4963805,
+      "bytes": 4964034,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 243.00336791218268,
-      "sha256": "5ca607ae9154888380cc8709e005e3e7127aa0bd6127be5f96e65f0005e86467",
+      "pixel_mean": 243.004913937511,
+      "sha256": "b2485640612f11dec2d3ae471cd6a51fe124ad501828de4b85dda7260b4940d4",
       "size": [
         9068,
         9092
@@ -5628,11 +5628,11 @@
       ]
     },
     "04_subcluster_variants/full/pc_space_mainland/subcluster_view.png": {
-      "bytes": 8192611,
+      "bytes": 8193094,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 240.38377878250773,
-      "sha256": "2f958841993fdac410f68d587480f8b89f878d92c677c0889d348793a7221de4",
+      "pixel_mean": 240.38532846779603,
+      "sha256": "5d644b6b557cd9c8efa168ab06f5c9a6625d41118f1735386c2ef2868737e38c",
       "size": [
         9068,
         9092
@@ -5947,11 +5947,11 @@
       ]
     },
     "04_subcluster_variants/refined/pc_space_global/subcluster_view.png": {
-      "bytes": 4557886,
+      "bytes": 4557852,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 242.63945862502234,
-      "sha256": "82247c421b9057113423825a538eee7785698470ca78d97469bb05fc748495bc",
+      "pixel_mean": 242.64100465035065,
+      "sha256": "4adb2b92523bcb04189cc8c5db2db5b45d5c3269c3c87a2e1760e8aaf2761ff0",
       "size": [
         9068,
         9092
@@ -6082,11 +6082,11 @@
       ]
     },
     "04_subcluster_variants/refined/pc_space_mainland/subcluster_view.png": {
-      "bytes": 7592818,
+      "bytes": 7593197,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 239.86933219563056,
-      "sha256": "56b75edfdeb4996a20e5fe93af0e3bbab0052ae304dc40d632123d7983955bc5",
+      "pixel_mean": 239.8708789365766,
+      "sha256": "8688b8f7c238a0b498e70c81d1f251215eed1484527622c8f52650a537c7e8a1",
       "size": [
         9068,
         9092

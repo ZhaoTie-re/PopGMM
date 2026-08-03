@@ -168,7 +168,13 @@ def plot_subcluster_view(
     ax1.set_title("A. Study Cohort", loc="left", pad=25, fontweight="bold")
     ax1.set_xlabel(window.xlabel, labelpad=15)
     ax1.set_ylabel(window.ylabel, labelpad=15)
-    ax1.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=True, fontsize=18, markerscale=1.3)
+    # Inside the axes, not in the gutter. Panel B here is a bar chart, so its
+    # y-axis label and tick labels reach further left than a scatter's do, and
+    # an outside legend at bbox_to_anchor=(1.02, 1.0) overlapped them. The
+    # upper-left of this panel is empty in every basis -- the reference cloud
+    # sits low-left and high-right.
+    ax1.legend(loc="upper left", frameon=True, fontsize=18, markerscale=1.3,
+               framealpha=0.92, borderpad=0.5)
 
     # --- B. group sizes -----------------------------------------------------
     ax2 = fig.add_subplot(gs[0, 1])
