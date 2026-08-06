@@ -13,8 +13,8 @@ at. Nothing outside that directory is written.
 | File | Contents |
 |---|---|
 | `full_mainland.fid_iid.txt` | Study samples in the complete major cluster |
-| `refined_mainland.fid_iid.txt` | Narrower primary-analysis subset |
-| `expanded_mainland.fid_iid.txt` | Broader sensitivity subset, between refined and full |
+| `narrow_mainland.fid_iid.txt` | Tightest cut — least residual spread, fewest samples |
+| `intermediate_mainland.fid_iid.txt` | Between narrow and full |
 | `reference_full_mainland.fid_iid.txt` | Reference-panel samples in the major cluster |
 | `keep_list_summary.tsv` | The lists side by side: counts, balance, $N_{\mathrm{eff}}$, RGV, components |
 
@@ -46,7 +46,7 @@ results/
 │   └── pc_space_mainland/         [8]
 ├── 03_rank_selection/             [6]
 ├── 04_subcluster_variants/        [7]
-│   └── <variant>/                       full · refined · expanded
+│   └── <variant>/                       narrow · intermediate · full
 │       ├── pc_space_global/       [8]
 │       └── pc_space_mainland/     [8]
 └── provenance/

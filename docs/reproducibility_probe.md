@@ -169,7 +169,7 @@ hdbscan 0.8.42 via python-hdbscan, OpenBLAS 0.3.31, macOS arm64).
 The pipeline was later reorganised so that its output layout expresses its
 purpose: three deliverable sample lists in `results/keep_lists/`, with the
 supporting stages numbered in dependency order. The threshold-screening stages
-were removed, the two rank variants (`refined`, `expanded`) are produced by one
+were removed, the two rank variants (`narrow`, `intermediate`) are produced by one
 parameterised loop, and emitting the lists became one module's job rather than
 four stages each writing one somewhere.
 
@@ -180,9 +180,9 @@ That restructure is expression, not arithmetic, and was verified as such:
   mixture summary, Mahalanobis distances, merge map, merged table, merged
   summary, posterior `.npy`, major-cluster reference, cohort posteriors,
   component ranks).
-- **`full_mainland` and `refined_mainland` are the identical row sets** as the
+- **`full_mainland` and `narrow_mainland` are the identical row sets** as the
   lists they replace (3,099 and 2,138 samples).
-- `expanded_mainland`, `keep_list_summary.tsv` and
+- `intermediate_mainland`, `keep_list_summary.tsv` and
   `major_cluster_robustness.tsv` are new.
 
 The keep-list summary's `GWAS_Neff` and `PC12_RGV` values agree to the last digit

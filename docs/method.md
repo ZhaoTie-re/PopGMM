@@ -258,8 +258,9 @@ one basis with another would render without error.
   prior population knowledge — not a model-discovered label.
 - Responsibilities quantify uncertainty *under the fitted mixture*, not
   uncertainty in genotype processing, panel construction, or PCA projection.
-- The refined and expanded cuts are analysis choices on a power-versus-homogeneity
-  curve, not biological boundaries.
+- The narrow and intermediate cuts are analysis choices on a power-versus-homogeneity
+  curve, not biological boundaries. Neither is the "better" list: a narrower set
+  buys homogeneity with effective sample size, and a broader one the reverse.
 - A more homogeneous set removes one source of stratification, not all residual
   structure. Association-model covariates, relatedness handling, and sensitivity
   analyses may still be required.

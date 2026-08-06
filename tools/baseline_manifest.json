@@ -4070,22 +4070,22 @@
     "01_reference_model/mixture_model/tmp/search_bic_log.jsonl": {
       "bytes": 41519,
       "kind": "jsonl_volatile",
-      "sha256": "a4d67fe3002f215179fcb354c3dcf9a7d818dbbaa3a2f2c1535bfc560c1b4dd1"
+      "sha256": "4ce072fa7813a7577ff9e609280833611f4a4c965761d9298ddb9929ab5e01b7"
     },
     "01_reference_model/mixture_model/tmp/search_convergence_log.jsonl": {
-      "bytes": 53093,
+      "bytes": 53087,
       "kind": "jsonl_volatile",
-      "sha256": "a6b86486421d361c9d89e58456780be657020dff854bc78c9a06f4393b04a687"
+      "sha256": "5197a91dcd7662758c5f68c258183aa8171b064d8b912e51a570de912c01bf21"
     },
     "01_reference_model/mixture_model/tmp/search_report.md": {
       "bytes": 20572,
       "kind": "md_volatile",
-      "sha256": "6c1c85c118e7106dbbc085716f9e99be8d6161db2ccf2a63ab4465381a63fc3f"
+      "sha256": "bcc90c7076f62be88466245b1334ff88bcb172ab09abe7472eae4171ba342c99"
     },
     "01_reference_model/mixture_model/tmp/selected_model_components.json": {
       "bytes": 12448,
       "kind": "json_volatile",
-      "sha256": "839e45cc5f43e98f09e298abdc8e11c3b2a5e1cd0c0c4c4de7970d8962a22f4c"
+      "sha256": "c21d92755b5961afc37387f6dd1b0e3ae721e9b5559e1cfb84b26cf4d7df11a4"
     },
     "02_cohort_assignment/cohort_assignment_overview.png": {
       "bytes": 9245913,
@@ -4900,495 +4900,6 @@
         5400
       ]
     },
-    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde.log": {
-      "bytes": 658,
-      "kind": "exact",
-      "normalized_sha256": "d9bf9a38b1b7343a85f66be0c9e26e18f639f210444bf123bd8caca61f34db85",
-      "sha256": "c45b9dc6c4380660038ccc9e4935445c54760616855b65d655cfe69fdd114ee4"
-    },
-    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde.png": {
-      "bytes": 1892266,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 238.15900904578862,
-      "sha256": "60af30009fb036d069b0c6f8d05977c6d38e4eae3a2cfeb79ab88b6496d8f381",
-      "size": [
-        8933,
-        5506
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_global/all_pcs_kde_tests.tsv": {
-      "bytes": 3678,
-      "columns": [
-        "pc",
-        "n_case",
-        "n_control",
-        "case_mean",
-        "ctrl_mean",
-        "t_stat",
-        "p_t",
-        "u_stat",
-        "p_u",
-        "p_t_adj",
-        "p_u_adj",
-        "reject_t",
-        "reject_u"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "case_mean": [
-          -0.0008013427086247,
-          0.0065120632449883,
-          0.008961007503999691,
-          0.00044805037519998455
-        ],
-        "ctrl_mean": [
-          -0.0002246643041457,
-          0.0069494105476527,
-          0.010529183439446534,
-          0.0005264591719723267
-        ],
-        "n_case": [
-          429.0,
-          429.0,
-          8580.0,
-          429.0
-        ],
-        "n_control": [
-          2079.0,
-          2079.0,
-          41580.0,
-          2079.0
-        ],
-        "p_t": [
-          1.1269828215625012e-08,
-          0.9845574527718872,
-          6.9841312973357335,
-          0.3492065648667867
-        ],
-        "p_t_adj": [
-          2.2539656431250026e-07,
-          0.984557452771887,
-          9.12203870223101,
-          0.45610193511155045
-        ],
-        "p_u": [
-          1.313915740141003e-09,
-          0.9434302964401966,
-          6.873625602277245,
-          0.34368128011386223
-        ],
-        "p_u_adj": [
-          2.6278314802820064e-08,
-          0.9434302964401964,
-          8.736530499152426,
-          0.4368265249576213
-        ],
-        "t_stat": [
-          -5.784212698304382,
-          3.629219375252316,
-          -8.6050588227084,
-          -0.43025294113542
-        ],
-        "u_stat": [
-          363113.5,
-          505587.0,
-          8780510.0,
-          439025.5
-        ]
-      },
-      "sha256": "17aaf3144262dfce92f2a88e8a5e4643ec87eec2e8478447b782ad3e3c1e48c4",
-      "shape": [
-        20,
-        13
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_global/subcluster_view.png": {
-      "bytes": 4680720,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 242.84489476999417,
-      "sha256": "f50b59d506c013eb556978bde3c2e4809698c9ad180ce3956b81c937e6b074db",
-      "size": [
-        9068,
-        9092
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_global/subcluster_view_counts.tsv": {
-      "bytes": 33,
-      "columns": [
-        "Group",
-        "Count"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "Count": [
-          429.0,
-          2079.0,
-          2508.0,
-          1254.0
-        ]
-      },
-      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
-      "shape": [
-        2,
-        2
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde.log": {
-      "bytes": 664,
-      "kind": "exact",
-      "normalized_sha256": "7c0f778cb8c663fa8abfe3ca194b01d3119980bacae7478fc4e21c894fc7bc1f",
-      "sha256": "416d5a5f18cc7dada3c1a8c1b2f88facd3488f5cec2c52002dc9cd0311fed995"
-    },
-    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde.png": {
-      "bytes": 1804791,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 239.288337944649,
-      "sha256": "b5d3f54535e08857ebe102c6d11b87614e86aa3f696763c333065dd3cbca217d",
-      "size": [
-        8921,
-        5506
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_mainland/all_pcs_kde_tests.tsv": {
-      "bytes": 3682,
-      "columns": [
-        "pc",
-        "n_case",
-        "n_control",
-        "case_mean",
-        "ctrl_mean",
-        "t_stat",
-        "p_t",
-        "u_stat",
-        "p_u",
-        "p_t_adj",
-        "p_u_adj",
-        "reject_t",
-        "reject_u"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "case_mean": [
-          -0.0007066264341258,
-          0.0046311029780885,
-          0.0030529997384849575,
-          0.00015264998692424787
-        ],
-        "ctrl_mean": [
-          -0.0006430073091919,
-          0.0049162626716257,
-          0.0045122518542290565,
-          0.00022561259271145282
-        ],
-        "n_case": [
-          429.0,
-          429.0,
-          8580.0,
-          429.0
-        ],
-        "n_control": [
-          2079.0,
-          2079.0,
-          41580.0,
-          2079.0
-        ],
-        "p_t": [
-          6.977086459007362e-07,
-          0.8366570639359918,
-          5.300983236862391,
-          0.26504916184311955
-        ],
-        "p_t_adj": [
-          1.216384870722506e-05,
-          0.8366570639359917,
-          6.805413283775706,
-          0.34027066418878527
-        ],
-        "p_u": [
-          3.01345507726139e-07,
-          0.7964738131930278,
-          4.960819144194122,
-          0.24804095720970612
-        ],
-        "p_u_adj": [
-          6.0269101545227795e-06,
-          0.7964738131930278,
-          6.163141156776822,
-          0.3081570578388411
-        ],
-        "t_stat": [
-          -5.012697960867276,
-          4.588234006105744,
-          -7.1076423070605195,
-          -0.355382115353026
-        ],
-        "u_stat": [
-          379564.0,
-          515899.0,
-          8819176.5,
-          440958.825
-        ]
-      },
-      "sha256": "691ad397b6bdaaf3b521650b191b25dc7dfa34b8a079d6ff8e5afb795f346410",
-      "shape": [
-        20,
-        13
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_mainland/subcluster_view.png": {
-      "bytes": 8013518,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 240.01731250234093,
-      "sha256": "0fe9e65aecb0991fa6d6aad4cb73b1891c6e10c42f5cf1cd77f822464da95244",
-      "size": [
-        9068,
-        9092
-      ]
-    },
-    "04_subcluster_variants/expanded/pc_space_mainland/subcluster_view_counts.tsv": {
-      "bytes": 33,
-      "columns": [
-        "Group",
-        "Count"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "Count": [
-          429.0,
-          2079.0,
-          2508.0,
-          1254.0
-        ]
-      },
-      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
-      "shape": [
-        2,
-        2
-      ]
-    },
-    "04_subcluster_variants/expanded/subcluster_assignment_overview.png": {
-      "bytes": 8742825,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 246.31353538017123,
-      "sha256": "9814ccb2cac793632cbb3dab0c0f76f23df3daa0c1e87faabd0a79f878838d49",
-      "size": [
-        10231,
-        9188
-      ]
-    },
-    "04_subcluster_variants/expanded/subcluster_group_statistics.tsv": {
-      "bytes": 346,
-      "columns": [
-        "Group",
-        "Case",
-        "Control",
-        "Total"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "Case": [
-          0.0,
-          429.0,
-          452.0,
-          28.25
-        ],
-        "Control": [
-          0.0,
-          2079.0,
-          3117.0,
-          194.8125
-        ],
-        "Total": [
-          5.0,
-          2508.0,
-          3569.0,
-          223.0625
-        ]
-      },
-      "sha256": "ecfdbdb999ece4bf698df6dc0c7ce80076eb5ad6a9ea9a8f4b446735e5e32c0b",
-      "shape": [
-        16,
-        4
-      ]
-    },
-    "04_subcluster_variants/expanded/subcluster_posterior_probabilities.tsv": {
-      "bytes": 1537516,
-      "columns": [
-        "FID",
-        "IID",
-        "PC1_AVG",
-        "PC2_AVG",
-        "Assigned_Mainland_Subcluster_Group",
-        "Assigned_Component_ID_If_Not_Subcluster",
-        "Prob_Mainland_Subcluster",
-        "Assignment_Confidence",
-        "Prob_Cluster_0",
-        "Prob_Cluster_2",
-        "Prob_Cluster_4",
-        "Prob_Cluster_5",
-        "Prob_Cluster_8",
-        "Prob_Cluster_9",
-        "Prob_Cluster_13",
-        "Prob_Cluster_14",
-        "Prob_Cluster_15",
-        "Prob_Cluster_19",
-        "Prob_Cluster_20",
-        "Prob_Cluster_22",
-        "Prob_Cluster_23",
-        "Prob_Cluster_24",
-        "Prob_Cluster_25"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "Assigned_Component_ID_If_Not_Subcluster": [
-          -1.0,
-          25.0,
-          11627.0,
-          3.257775287195293
-        ],
-        "Assignment_Confidence": [
-          0.3506307513963651,
-          1.0,
-          3026.6598673401227,
-          0.8480414310283336
-        ],
-        "FID": [
-          63134.0,
-          9999936379.0,
-          4956999717960.0,
-          4947105506.946108
-        ],
-        "IID": [
-          63134.0,
-          9999936379.0,
-          4956999717960.0,
-          4947105506.946108
-        ],
-        "PC1_AVG": [
-          -0.0895513,
-          0.0407277,
-          -0.31605803153000167,
-          -8.855646722611423e-05
-        ],
-        "PC2_AVG": [
-          -0.0377906,
-          0.0620659,
-          12.7018788868,
-          0.0035589461717007564
-        ],
-        "Prob_Cluster_0": [
-          5.2024357077417165e-204,
-          0.7952124199519933,
-          90.6014677474097,
-          0.02538567322706912
-        ],
-        "Prob_Cluster_13": [
-          2.9216847326032533e-131,
-          0.999170084486962,
-          184.33176653610718,
-          0.05164801528050075
-        ],
-        "Prob_Cluster_14": [
-          1.3936948645772993e-207,
-          0.7148820977620999,
-          63.71517201854267,
-          0.01785238778888839
-        ],
-        "Prob_Cluster_15": [
-          0.0,
-          0.9999999987740332,
-          55.961543767500245,
-          0.015679894583216655
-        ],
-        "Prob_Cluster_19": [
-          7.20258184151749e-262,
-          0.9344084435843336,
-          298.4842619442226,
-          0.0836324634195076
-        ],
-        "Prob_Cluster_2": [
-          1.5172672243593597e-213,
-          0.8474890846749215,
-          70.97634478055484,
-          0.01988689963030396
-        ],
-        "Prob_Cluster_20": [
-          2.676771698991505e-152,
-          0.999996788383206,
-          104.9969648401352,
-          0.029419155180760773
-        ],
-        "Prob_Cluster_22": [
-          5.3854215751059866e-151,
-          0.9972405231052854,
-          60.80113706951256,
-          0.017035902793363006
-        ],
-        "Prob_Cluster_23": [
-          6.18977287459711e-164,
-          0.9996943291698764,
-          14.299258810681572,
-          0.004006516898481808
-        ],
-        "Prob_Cluster_24": [
-          5.94856923286942e-189,
-          0.999995500445712,
-          22.81954004763005,
-          0.006393819010263393
-        ],
-        "Prob_Cluster_25": [
-          4.580969680491113e-88,
-          1.0,
-          38.18157900493178,
-          0.010698116840832664
-        ],
-        "Prob_Cluster_4": [
-          0.0,
-          0.9999999997254524,
-          4.951647642033892,
-          0.0013874047750165011
-        ],
-        "Prob_Cluster_5": [
-          3.0064792549419667e-237,
-          0.930370681604768,
-          91.61134284345532,
-          0.025668630665019704
-        ],
-        "Prob_Cluster_8": [
-          1.4079971305370665e-192,
-          0.7376071403029225,
-          88.6072446049534,
-          0.024826910788723282
-        ],
-        "Prob_Cluster_9": [
-          0.0,
-          0.9999999922693844,
-          27.143542248860893,
-          0.007605363476845305
-        ],
-        "Prob_Mainland_Subcluster": [
-          1.1695032152510956e-200,
-          0.9998897946344336,
-          2351.517186093468,
-          0.6588728456412071
-        ]
-      },
-      "sha256": "29e05dd0b8574698139de6e2877df22e289473d8baf3665ff83a1f43397789f8",
-      "shape": [
-        3569,
-        23
-      ]
-    },
-    "04_subcluster_variants/expanded/subcluster_summary.json": {
-      "bytes": 793,
-      "kind": "json",
-      "sha256": "0a7e019637224e11224f3bc8530e280845532cd65d3386e5c53e0a15b8020608"
-    },
     "04_subcluster_variants/full/pc_space_global/all_pcs_kde.log": {
       "bytes": 654,
       "kind": "exact",
@@ -5843,13 +5354,502 @@
       "kind": "json",
       "sha256": "06084060292a861512c383b052db51fce4a9a6f04952b2b3077de8cfe3f28eb9"
     },
-    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde.log": {
-      "bytes": 657,
+    "04_subcluster_variants/intermediate/pc_space_global/all_pcs_kde.log": {
+      "bytes": 662,
       "kind": "exact",
-      "normalized_sha256": "2607a17d1053698d295149644c222068a3de7432c6158997d8f9569973b1a888",
-      "sha256": "289ea9551d85c3988b14bb15ad1408161cf57d27cf637c08313042025959a72e"
+      "normalized_sha256": "d90dc92c60e97691ea1d7a5faaeab93c465a05a7638ca784114d452e5587c02b",
+      "sha256": "99073fa29444636740698423a3e4715e46f981422cede9c46d53fadf1feb2764"
     },
-    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde.png": {
+    "04_subcluster_variants/intermediate/pc_space_global/all_pcs_kde.png": {
+      "bytes": 1892266,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 238.15900904578862,
+      "sha256": "60af30009fb036d069b0c6f8d05977c6d38e4eae3a2cfeb79ab88b6496d8f381",
+      "size": [
+        8933,
+        5506
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_global/all_pcs_kde_tests.tsv": {
+      "bytes": 3678,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0008013427086247,
+          0.0065120632449883,
+          0.008961007503999691,
+          0.00044805037519998455
+        ],
+        "ctrl_mean": [
+          -0.0002246643041457,
+          0.0069494105476527,
+          0.010529183439446534,
+          0.0005264591719723267
+        ],
+        "n_case": [
+          429.0,
+          429.0,
+          8580.0,
+          429.0
+        ],
+        "n_control": [
+          2079.0,
+          2079.0,
+          41580.0,
+          2079.0
+        ],
+        "p_t": [
+          1.1269828215625012e-08,
+          0.9845574527718872,
+          6.9841312973357335,
+          0.3492065648667867
+        ],
+        "p_t_adj": [
+          2.2539656431250026e-07,
+          0.984557452771887,
+          9.12203870223101,
+          0.45610193511155045
+        ],
+        "p_u": [
+          1.313915740141003e-09,
+          0.9434302964401966,
+          6.873625602277245,
+          0.34368128011386223
+        ],
+        "p_u_adj": [
+          2.6278314802820064e-08,
+          0.9434302964401964,
+          8.736530499152426,
+          0.4368265249576213
+        ],
+        "t_stat": [
+          -5.784212698304382,
+          3.629219375252316,
+          -8.6050588227084,
+          -0.43025294113542
+        ],
+        "u_stat": [
+          363113.5,
+          505587.0,
+          8780510.0,
+          439025.5
+        ]
+      },
+      "sha256": "17aaf3144262dfce92f2a88e8a5e4643ec87eec2e8478447b782ad3e3c1e48c4",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_global/subcluster_view.png": {
+      "bytes": 4680720,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 242.84489476999417,
+      "sha256": "f50b59d506c013eb556978bde3c2e4809698c9ad180ce3956b81c937e6b074db",
+      "size": [
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_global/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          429.0,
+          2079.0,
+          2508.0,
+          1254.0
+        ]
+      },
+      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 668,
+      "kind": "exact",
+      "normalized_sha256": "c56fc46ee44749dd91149374bf73ccc59885ef985a01fac3445b4baff84bb050",
+      "sha256": "d1aeac7d4dba34aeaf2aa683b11fcd1b0cf65f39297af5e643aee42fda2da0e8"
+    },
+    "04_subcluster_variants/intermediate/pc_space_mainland/all_pcs_kde.png": {
+      "bytes": 1804791,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 239.288337944649,
+      "sha256": "b5d3f54535e08857ebe102c6d11b87614e86aa3f696763c333065dd3cbca217d",
+      "size": [
+        8921,
+        5506
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_mainland/all_pcs_kde_tests.tsv": {
+      "bytes": 3682,
+      "columns": [
+        "pc",
+        "n_case",
+        "n_control",
+        "case_mean",
+        "ctrl_mean",
+        "t_stat",
+        "p_t",
+        "u_stat",
+        "p_u",
+        "p_t_adj",
+        "p_u_adj",
+        "reject_t",
+        "reject_u"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "case_mean": [
+          -0.0007066264341258,
+          0.0046311029780885,
+          0.0030529997384849575,
+          0.00015264998692424787
+        ],
+        "ctrl_mean": [
+          -0.0006430073091919,
+          0.0049162626716257,
+          0.0045122518542290565,
+          0.00022561259271145282
+        ],
+        "n_case": [
+          429.0,
+          429.0,
+          8580.0,
+          429.0
+        ],
+        "n_control": [
+          2079.0,
+          2079.0,
+          41580.0,
+          2079.0
+        ],
+        "p_t": [
+          6.977086459007362e-07,
+          0.8366570639359918,
+          5.300983236862391,
+          0.26504916184311955
+        ],
+        "p_t_adj": [
+          1.216384870722506e-05,
+          0.8366570639359917,
+          6.805413283775706,
+          0.34027066418878527
+        ],
+        "p_u": [
+          3.01345507726139e-07,
+          0.7964738131930278,
+          4.960819144194122,
+          0.24804095720970612
+        ],
+        "p_u_adj": [
+          6.0269101545227795e-06,
+          0.7964738131930278,
+          6.163141156776822,
+          0.3081570578388411
+        ],
+        "t_stat": [
+          -5.012697960867276,
+          4.588234006105744,
+          -7.1076423070605195,
+          -0.355382115353026
+        ],
+        "u_stat": [
+          379564.0,
+          515899.0,
+          8819176.5,
+          440958.825
+        ]
+      },
+      "sha256": "691ad397b6bdaaf3b521650b191b25dc7dfa34b8a079d6ff8e5afb795f346410",
+      "shape": [
+        20,
+        13
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_mainland/subcluster_view.png": {
+      "bytes": 8013518,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 240.01731250234093,
+      "sha256": "0fe9e65aecb0991fa6d6aad4cb73b1891c6e10c42f5cf1cd77f822464da95244",
+      "size": [
+        9068,
+        9092
+      ]
+    },
+    "04_subcluster_variants/intermediate/pc_space_mainland/subcluster_view_counts.tsv": {
+      "bytes": 33,
+      "columns": [
+        "Group",
+        "Count"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Count": [
+          429.0,
+          2079.0,
+          2508.0,
+          1254.0
+        ]
+      },
+      "sha256": "78c2bd60b1c615e9e0826fb1cdcf84c2ba91f8b1d68c2c55060fbce649431a74",
+      "shape": [
+        2,
+        2
+      ]
+    },
+    "04_subcluster_variants/intermediate/subcluster_assignment_overview.png": {
+      "bytes": 8742825,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 246.31353538017123,
+      "sha256": "9814ccb2cac793632cbb3dab0c0f76f23df3daa0c1e87faabd0a79f878838d49",
+      "size": [
+        10231,
+        9188
+      ]
+    },
+    "04_subcluster_variants/intermediate/subcluster_group_statistics.tsv": {
+      "bytes": 346,
+      "columns": [
+        "Group",
+        "Case",
+        "Control",
+        "Total"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Case": [
+          0.0,
+          429.0,
+          452.0,
+          28.25
+        ],
+        "Control": [
+          0.0,
+          2079.0,
+          3117.0,
+          194.8125
+        ],
+        "Total": [
+          5.0,
+          2508.0,
+          3569.0,
+          223.0625
+        ]
+      },
+      "sha256": "ecfdbdb999ece4bf698df6dc0c7ce80076eb5ad6a9ea9a8f4b446735e5e32c0b",
+      "shape": [
+        16,
+        4
+      ]
+    },
+    "04_subcluster_variants/intermediate/subcluster_posterior_probabilities.tsv": {
+      "bytes": 1537516,
+      "columns": [
+        "FID",
+        "IID",
+        "PC1_AVG",
+        "PC2_AVG",
+        "Assigned_Mainland_Subcluster_Group",
+        "Assigned_Component_ID_If_Not_Subcluster",
+        "Prob_Mainland_Subcluster",
+        "Assignment_Confidence",
+        "Prob_Cluster_0",
+        "Prob_Cluster_2",
+        "Prob_Cluster_4",
+        "Prob_Cluster_5",
+        "Prob_Cluster_8",
+        "Prob_Cluster_9",
+        "Prob_Cluster_13",
+        "Prob_Cluster_14",
+        "Prob_Cluster_15",
+        "Prob_Cluster_19",
+        "Prob_Cluster_20",
+        "Prob_Cluster_22",
+        "Prob_Cluster_23",
+        "Prob_Cluster_24",
+        "Prob_Cluster_25"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Assigned_Component_ID_If_Not_Subcluster": [
+          -1.0,
+          25.0,
+          11627.0,
+          3.257775287195293
+        ],
+        "Assignment_Confidence": [
+          0.3506307513963651,
+          1.0,
+          3026.6598673401227,
+          0.8480414310283336
+        ],
+        "FID": [
+          63134.0,
+          9999936379.0,
+          4956999717960.0,
+          4947105506.946108
+        ],
+        "IID": [
+          63134.0,
+          9999936379.0,
+          4956999717960.0,
+          4947105506.946108
+        ],
+        "PC1_AVG": [
+          -0.0895513,
+          0.0407277,
+          -0.31605803153000167,
+          -8.855646722611423e-05
+        ],
+        "PC2_AVG": [
+          -0.0377906,
+          0.0620659,
+          12.7018788868,
+          0.0035589461717007564
+        ],
+        "Prob_Cluster_0": [
+          5.2024357077417165e-204,
+          0.7952124199519933,
+          90.6014677474097,
+          0.02538567322706912
+        ],
+        "Prob_Cluster_13": [
+          2.9216847326032533e-131,
+          0.999170084486962,
+          184.33176653610718,
+          0.05164801528050075
+        ],
+        "Prob_Cluster_14": [
+          1.3936948645772993e-207,
+          0.7148820977620999,
+          63.71517201854267,
+          0.01785238778888839
+        ],
+        "Prob_Cluster_15": [
+          0.0,
+          0.9999999987740332,
+          55.961543767500245,
+          0.015679894583216655
+        ],
+        "Prob_Cluster_19": [
+          7.20258184151749e-262,
+          0.9344084435843336,
+          298.4842619442226,
+          0.0836324634195076
+        ],
+        "Prob_Cluster_2": [
+          1.5172672243593597e-213,
+          0.8474890846749215,
+          70.97634478055484,
+          0.01988689963030396
+        ],
+        "Prob_Cluster_20": [
+          2.676771698991505e-152,
+          0.999996788383206,
+          104.9969648401352,
+          0.029419155180760773
+        ],
+        "Prob_Cluster_22": [
+          5.3854215751059866e-151,
+          0.9972405231052854,
+          60.80113706951256,
+          0.017035902793363006
+        ],
+        "Prob_Cluster_23": [
+          6.18977287459711e-164,
+          0.9996943291698764,
+          14.299258810681572,
+          0.004006516898481808
+        ],
+        "Prob_Cluster_24": [
+          5.94856923286942e-189,
+          0.999995500445712,
+          22.81954004763005,
+          0.006393819010263393
+        ],
+        "Prob_Cluster_25": [
+          4.580969680491113e-88,
+          1.0,
+          38.18157900493178,
+          0.010698116840832664
+        ],
+        "Prob_Cluster_4": [
+          0.0,
+          0.9999999997254524,
+          4.951647642033892,
+          0.0013874047750165011
+        ],
+        "Prob_Cluster_5": [
+          3.0064792549419667e-237,
+          0.930370681604768,
+          91.61134284345532,
+          0.025668630665019704
+        ],
+        "Prob_Cluster_8": [
+          1.4079971305370665e-192,
+          0.7376071403029225,
+          88.6072446049534,
+          0.024826910788723282
+        ],
+        "Prob_Cluster_9": [
+          0.0,
+          0.9999999922693844,
+          27.143542248860893,
+          0.007605363476845305
+        ],
+        "Prob_Mainland_Subcluster": [
+          1.1695032152510956e-200,
+          0.9998897946344336,
+          2351.517186093468,
+          0.6588728456412071
+        ]
+      },
+      "sha256": "29e05dd0b8574698139de6e2877df22e289473d8baf3665ff83a1f43397789f8",
+      "shape": [
+        3569,
+        23
+      ]
+    },
+    "04_subcluster_variants/intermediate/subcluster_summary.json": {
+      "bytes": 793,
+      "kind": "json",
+      "sha256": "0a7e019637224e11224f3bc8530e280845532cd65d3386e5c53e0a15b8020608"
+    },
+    "04_subcluster_variants/narrow/pc_space_global/all_pcs_kde.log": {
+      "bytes": 656,
+      "kind": "exact",
+      "normalized_sha256": "97976bb3c438453133d195414ad6d9976633bd2e5d2265eabbecfe3815ef25f6",
+      "sha256": "8a0b4f1b9afb3ea719cade2ba3bac1728f0d52157bf64e81a82b2676c4f8fae6"
+    },
+    "04_subcluster_variants/narrow/pc_space_global/all_pcs_kde.png": {
       "bytes": 1895939,
       "kind": "png",
       "mode": "RGBA",
@@ -5860,7 +5860,7 @@
         5506
       ]
     },
-    "04_subcluster_variants/refined/pc_space_global/all_pcs_kde_tests.tsv": {
+    "04_subcluster_variants/narrow/pc_space_global/all_pcs_kde_tests.tsv": {
       "bytes": 3695,
       "columns": [
         "pc",
@@ -5946,7 +5946,7 @@
         13
       ]
     },
-    "04_subcluster_variants/refined/pc_space_global/subcluster_view.png": {
+    "04_subcluster_variants/narrow/pc_space_global/subcluster_view.png": {
       "bytes": 4557852,
       "kind": "png",
       "mode": "RGBA",
@@ -5957,7 +5957,7 @@
         9092
       ]
     },
-    "04_subcluster_variants/refined/pc_space_global/subcluster_view_counts.tsv": {
+    "04_subcluster_variants/narrow/pc_space_global/subcluster_view_counts.tsv": {
       "bytes": 33,
       "columns": [
         "Group",
@@ -5978,13 +5978,13 @@
         2
       ]
     },
-    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde.log": {
-      "bytes": 663,
+    "04_subcluster_variants/narrow/pc_space_mainland/all_pcs_kde.log": {
+      "bytes": 662,
       "kind": "exact",
-      "normalized_sha256": "417a11f1015f0c859731522795041275bf27ae2cfe283a6238f6b532ba996c4f",
-      "sha256": "0426bcab09b7d266e82dfafaee9f5463450acdf6d1fc3add5cda073d2bb118b4"
+      "normalized_sha256": "311ebfded27932cf25447d7fa531a97c93b4e5deffab83ca172a8b86560422c5",
+      "sha256": "fbdef7aa0c57b56bc6a139ccdcaad073c97e20f16cbc0d9f5dea4d087c27ff1c"
     },
-    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde.png": {
+    "04_subcluster_variants/narrow/pc_space_mainland/all_pcs_kde.png": {
       "bytes": 1830941,
       "kind": "png",
       "mode": "RGBA",
@@ -5995,7 +5995,7 @@
         5506
       ]
     },
-    "04_subcluster_variants/refined/pc_space_mainland/all_pcs_kde_tests.tsv": {
+    "04_subcluster_variants/narrow/pc_space_mainland/all_pcs_kde_tests.tsv": {
       "bytes": 3697,
       "columns": [
         "pc",
@@ -6081,7 +6081,7 @@
         13
       ]
     },
-    "04_subcluster_variants/refined/pc_space_mainland/subcluster_view.png": {
+    "04_subcluster_variants/narrow/pc_space_mainland/subcluster_view.png": {
       "bytes": 7593197,
       "kind": "png",
       "mode": "RGBA",
@@ -6092,7 +6092,7 @@
         9092
       ]
     },
-    "04_subcluster_variants/refined/pc_space_mainland/subcluster_view_counts.tsv": {
+    "04_subcluster_variants/narrow/pc_space_mainland/subcluster_view_counts.tsv": {
       "bytes": 33,
       "columns": [
         "Group",
@@ -6113,7 +6113,7 @@
         2
       ]
     },
-    "04_subcluster_variants/refined/subcluster_assignment_overview.png": {
+    "04_subcluster_variants/narrow/subcluster_assignment_overview.png": {
       "bytes": 8850780,
       "kind": "png",
       "mode": "RGBA",
@@ -6124,7 +6124,7 @@
         9188
       ]
     },
-    "04_subcluster_variants/refined/subcluster_group_statistics.tsv": {
+    "04_subcluster_variants/narrow/subcluster_group_statistics.tsv": {
       "bytes": 406,
       "columns": [
         "Group",
@@ -6159,7 +6159,7 @@
         4
       ]
     },
-    "04_subcluster_variants/refined/subcluster_posterior_probabilities.tsv": {
+    "04_subcluster_variants/narrow/subcluster_posterior_probabilities.tsv": {
       "bytes": 1768887,
       "columns": [
         "FID",
@@ -6348,16 +6348,10 @@
         26
       ]
     },
-    "04_subcluster_variants/refined/subcluster_summary.json": {
+    "04_subcluster_variants/narrow/subcluster_summary.json": {
       "bytes": 816,
       "kind": "json",
       "sha256": "fe399e8fcf09a4f1960bd255125771d2e89ef49d4ded1f4f7c76b3755740d080"
-    },
-    "keep_lists/expanded_mainland.fid_iid.txt": {
-      "bytes": 46512,
-      "kind": "exact",
-      "normalized_sha256": "f31d2f9e6ccb64d6d867912002d975a10b938bbc82c562b38275331ad54aa408",
-      "sha256": "f31d2f9e6ccb64d6d867912002d975a10b938bbc82c562b38275331ad54aa408"
     },
     "keep_lists/full_mainland.fid_iid.txt": {
       "bytes": 58354,
@@ -6365,8 +6359,14 @@
       "normalized_sha256": "500a964dfc572fed133801e40bb48b401ca12591c6dfe4fb602fea01e313ec27",
       "sha256": "500a964dfc572fed133801e40bb48b401ca12591c6dfe4fb602fea01e313ec27"
     },
+    "keep_lists/intermediate_mainland.fid_iid.txt": {
+      "bytes": 46512,
+      "kind": "exact",
+      "normalized_sha256": "f31d2f9e6ccb64d6d867912002d975a10b938bbc82c562b38275331ad54aa408",
+      "sha256": "f31d2f9e6ccb64d6d867912002d975a10b938bbc82c562b38275331ad54aa408"
+    },
     "keep_lists/keep_list_summary.tsv": {
-      "bytes": 799,
+      "bytes": 805,
       "columns": [
         "variant",
         "rank_cut",
@@ -6438,11 +6438,17 @@
           10.5
         ]
       },
-      "sha256": "daa890043d2197164591c9be4aa553887a221c39348bb0724eb1288c440b46cd",
+      "sha256": "53b449a68294c2905a19f9723501fe9f3161fbbf398928f801fb61deb5d23e48",
       "shape": [
         4,
         12
       ]
+    },
+    "keep_lists/narrow_mainland.fid_iid.txt": {
+      "bytes": 40290,
+      "kind": "exact",
+      "normalized_sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9",
+      "sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9"
     },
     "keep_lists/reference_full_mainland.fid_iid.txt": {
       "bytes": 5029890,
@@ -6450,21 +6456,15 @@
       "normalized_sha256": "f3e56d551ef56cbbda3ab63292b65c046b3475e9d15d4fddbd9441ff44faf154",
       "sha256": "f3e56d551ef56cbbda3ab63292b65c046b3475e9d15d4fddbd9441ff44faf154"
     },
-    "keep_lists/refined_mainland.fid_iid.txt": {
-      "bytes": 40290,
-      "kind": "exact",
-      "normalized_sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9",
-      "sha256": "0efa2487d648be2604accf9f615ade919f94d1265263fbe71a0e64f022a2dee9"
-    },
     "provenance/run_config_snapshot.json": {
-      "bytes": 4740,
+      "bytes": 4743,
       "kind": "json_volatile",
-      "sha256": "d0419c03e411cd8d86de84aeb0dbaa2049b9bc94e371b7d99db421e83ce1da50"
+      "sha256": "4d156e7d8beb7cff544fa74e4f9aab71bfe5162b792d63b7fad9292bd3d19795"
     },
     "provenance/run_environment.json": {
-      "bytes": 491,
+      "bytes": 492,
       "kind": "json_volatile",
-      "sha256": "21f09315518717f0f858707f828ad120e6d894561ff054f55dffafbbf2a759db"
+      "sha256": "48f16cfe58240af5210eb1beb86adef0cd6369cf527e1aa98406786f1b89c5da"
     }
   },
   "root": "results"
