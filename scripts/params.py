@@ -145,9 +145,18 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 # MAINLAND_RGV_N_PCS axes. RGV_BASIS picks which one the Pareto front and the
 # recommendation are computed from.
 #
-#   full     -- every major-cluster component. No cut.
-#   refined  -- the primary analysis set.
-#   expanded -- a looser cut between refined and full, for sensitivity analysis.
+#   narrow       -- the tightest cut: least residual spread, fewest samples.
+#   intermediate -- between the two.
+#   full         -- every major-cluster component. No cut: most samples, most
+#                   residual spread.
+#
+# The names describe position on that trade-off, not quality. `narrow` is not a
+# better list than `full`: it buys homogeneity with effective sample size, and
+# `full` buys the reverse. Naming one of them "refined" -- as this did until
+# recently -- reads as a recommendation the evidence does not support, and hides
+# that narrow is the *smallest* of the three.
+#
+# They are nested, narrow <= intermediate <= full, which the names also carry.
 #
 # All three go through the same subcluster stage, so each gets the same figures
 # and tables under `04_subcluster_variants/<variant>/` and is directly
@@ -158,11 +167,14 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 #: analysis (the notebook then prints the chosen rank rather than asserting one).
 RankCut = int | Literal["full", "pareto"]
 
-#: Primary analysis set. Currently a deliberate override: under this model the
-REFINED_RANK_K: RankCut = 9
+#: Tightest cut. A deliberate override rather than the Pareto recommendation:
+#: `Distance_To_Ideal` is nearly flat across ranks 7-9 under this model, so the
+#: automatic pick is not meaningfully better than a neighbour, and the cut is
+#: recorded here as the human decision it is.
+NARROW_RANK_K: RankCut = 9
 
-#: Sensitivity set, between refined and full.
-EXPANDED_RANK_K: RankCut = 12
+#: Between narrow and full.
+INTERMEDIATE_RANK_K: RankCut = 12
 
 #: Leading axes of the major-cluster PCA that RGV_Mainland is computed over,
 #: as ``det(Sigma)**(1/2d)`` with ``d = MAINLAND_RGV_N_PCS``. RGV_Global is fixed
@@ -177,6 +189,8 @@ EXPANDED_RANK_K: RankCut = 12
 #: The value is not comparable across settings of this parameter: it is a
 #: geometric-mean SD over however many axes are included, so it falls as d rises
 #: (0.00744 / 0.00654 / 0.00551 / 0.00466 at d = 2 / 3 / 5 / 10 for the full set).
+#: Changing it therefore changes RGV_Mainland, the Pareto front, and the
+#: recommended rank -- it is not a display setting.
 MAINLAND_RGV_N_PCS: int = 4
 
 #: Which basis the Pareto front and the recommended rank are computed from.
@@ -186,8 +200,8 @@ RGV_BASIS: Literal["global", "mainland"] = "mainland"
 #: Variant name -> rank cut. Drives the subcluster stage and the keep-list names.
 SUBCLUSTER_VARIANTS: dict[str, RankCut] = {
     "full": "full",
-    "refined": REFINED_RANK_K,
-    "expanded": EXPANDED_RANK_K,
+    "narrow": NARROW_RANK_K,
+    "intermediate": INTERMEDIATE_RANK_K,
 }
 
 # ---------------------------------------------------------------------------

@@ -50,7 +50,7 @@ class KeepListConfig:
     #: Name of the comparison table.
     summary_file: str = "keep_list_summary.tsv"
 
-    #: Suffix applied to every list name, e.g. "mainland" -> refined_mainland.
+    #: Suffix applied to every list name, e.g. "mainland" -> narrow_mainland.
     name_suffix: str = "mainland"
 
     #: Column names in the incoming frames.

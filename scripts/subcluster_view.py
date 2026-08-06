@@ -46,7 +46,7 @@ class SubclusterViewOutput(NamedTuple):
 
 @dataclass(frozen=True)
 class SubclusterViewConfig:
-    output_dir: str | Path = "results/04_subcluster_variants/refined/pc_space_global"
+    output_dir: str | Path = "results/04_subcluster_variants/narrow/pc_space_global"
     figure_file: str = "subcluster_view.png"
     counts_file: str = "subcluster_view_counts.tsv"
 

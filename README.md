@@ -19,8 +19,8 @@ Three nested sample lists, plus the same selection applied to the reference pane
 
 | File in `results/keep_lists/` | Contents |
 |---|---|
-| `refined_mainland.fid_iid.txt` | The primary analysis set — narrower, more homogeneous |
-| `expanded_mainland.fid_iid.txt` | A broader sensitivity set |
+| `narrow_mainland.fid_iid.txt` | Tightest cut — least residual spread, fewest samples |
+| `intermediate_mainland.fid_iid.txt` | Between narrow and full |
 | `full_mainland.fid_iid.txt` | Every component of the major cluster — the widest defensible set |
 | `reference_full_mainland.fid_iid.txt` | Reference-panel samples in the same region |
 | `keep_list_summary.tsv` | The lists side by side: counts, balance, effective sample size, residual spread |
@@ -29,7 +29,7 @@ Each list is headerless, tab-separated `FID IID` — feed it straight to PLINK:
 
 ```bash
 plink2 --pfile <dataset> \
-  --keep results/keep_lists/refined_mainland.fid_iid.txt \
+  --keep results/keep_lists/narrow_mainland.fid_iid.txt \
   --make-pgen \
   --out <dataset>.popgmm
 ```
@@ -71,7 +71,7 @@ flowchart TB
         B1 --> B2 --> B3
     end
 
-    OUT["<b>full · refined · expanded</b><br/>PLINK keep lists"]:::out
+    OUT["<b>narrow · intermediate · full</b><br/>PLINK keep lists"]:::out
     DIAG["<b>8</b> · All-PC case/control<br/>diagnostics"]:::step
 
     X0 --> A1
@@ -108,19 +108,21 @@ python -m ipykernel install --user --name popgmm --display-name popgmm
 Open [`workflow.ipynb`](workflow.ipynb), select the `popgmm` kernel, and run all
 cells top to bottom **from the repository root**.
 
-Two environment variables redirect a run without editing source. They must be set
-before the kernel starts — `params.py` reads them at import:
+Three environment variables redirect a run without editing source. They must be
+set before the kernel starts — they are read at import:
 
 ```bash
 POPGMM_DATA_ROOT=/path/to/data
 POPGMM_RESULTS_ROOT=/path/to/results
+POPGMM_RUN_MODE=resume            # default "fresh"
 ```
 
-`RUN_MODE` in the first cell selects `"fresh"` or `"resume"`. **Use `"fresh"` for
-any final analysis.** Resume reuses cached upstream computations, which leaves
-numeric results unchanged but writes none of the cached stages' files, so the
-result tree becomes a mix of two runs; `tools/verify_results.py` refuses to
-verify such a tree.
+`RUN_MODE` selects `"fresh"` or `"resume"`. **Use `"fresh"` for any final
+analysis.** Resume reuses cached upstream computations, which leaves numeric
+results unchanged but writes none of the cached stages' files, so the result tree
+becomes a mix of two runs; `tools/verify_results.py` refuses to verify such a
+tree. The environment variable exists so iterating with resume does not require
+editing — and accidentally committing — the default.
 
 ---
 
@@ -150,7 +152,7 @@ results/
 ├── 01_reference_model/      denoising · mixture fit · component merging
 ├── 02_cohort_assignment/    per-sample posteriors and confidence
 ├── 03_rank_selection/       the power-versus-homogeneity evidence
-├── 04_subcluster_variants/  full · refined · expanded
+├── 04_subcluster_variants/  narrow · intermediate · full
 └── provenance/              configuration and environment snapshots
 ```
 
@@ -164,8 +166,9 @@ Every file is described in [`docs/outputs.md`](docs/outputs.md).
   infer ethnicity, identity, or ancestry independently of that reference.
 - The major cluster is defined algorithmically; its display name is an analyst's
   interpretation, not a model-discovered label.
-- The refined and expanded cuts are analysis choices on a power-versus-homogeneity
-  curve, not biological boundaries.
+- The narrow and intermediate cuts are analysis choices on a power-versus-homogeneity
+  curve, not biological boundaries. Neither is the "better" list: a narrower set
+  buys homogeneity with effective sample size, and a broader one the reverse.
 - A more homogeneous set removes one source of stratification, not all residual
   structure. Association-model covariates, relatedness handling and sensitivity
   analyses may still be required.
