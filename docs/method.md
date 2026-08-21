@@ -248,8 +248,48 @@ in $k$ (Spearman $-0.78$ on the mainland axes, against $+1.00$ for RGV) and
 bottoms out near the *uncut* set, where $N_{\mathrm{eff}}$ is largest — so
 selecting on it would collapse the trade-off rather than inform it.
 
-What it is good for is auditing a cut after the fact. Two things it surfaces on
-the committed run, neither visible in RGV:
+It is still informative about *where* to place a cut, as long as it is not what
+the cut is minimised on. RGV rises strictly with $k$ ($\rho = +1.00$) while the
+de-biased separation falls ($\rho = -0.73$), so blending the two produces an
+interior optimum where either alone would only trade against
+$N_{\mathrm{eff}}$. Both are min-max normalised and combined at a weight $w$:
+
+```math
+H(w) \;=\; w \cdot \mathrm{RGV} \;+\; (1-w)\cdot \hat{D}^2_{\mathrm{unb}},
+\qquad
+k^{*}(w) \;=\; \arg\min_k \sqrt{H(w)^2 + \left(1 - N_{\mathrm{eff}}\right)^2}
+```
+
+$w$ encodes which kind of residual structure is judged to matter; no data can
+supply it. It is therefore swept from 0 to 1 rather than picked, and panel C of
+`casectrl_separation.png` reports the result. **$k = 12$ wins across
+$w \in [0.37, 0.71]$** — the whole band in which neither measure dominates — so
+the intermediate cut does not rest on having chosen a $w$. Two caveats belong
+with that number:
+
+- **$w < 0.5$ is not usable.** It weights the labels above the spread, which is
+  the failure mode above. The cuts that win there ($k = 15, 16$) are artefacts
+  of optimising the association signal.
+- **$w$ is not an absolute scale.** Min-max normalisation is anchored on the
+  observed extremes, so the plateau boundaries shift if the walk is truncated —
+  $[0.45, 0.78]$ without $k=1$, $[0.31, 0.66]$ without $k=17$. The winner inside
+  the balanced band is $k = 12$ in every case; only the edges move.
+
+This is also why the trade-off proper uses a single spread measure. One measure
+needs no weight; a second introduces a parameter with no principled value, which
+is a reason to keep this analysis supplementary rather than promote it.
+
+The three delivered cuts are each fixed by a different rule, and only the middle
+one comes from here:
+
+| Cut | Fixed by |
+|---|---|
+| `narrow` | the knee of the $N_{\mathrm{eff}}$-vs-RGV curve |
+| `intermediate` | the re-weighting sweep above |
+| `full` | every major-cluster component — definitional, not a choice |
+
+What the diagnostic is good for beyond that is auditing a cut after the fact.
+Two things it surfaces on the committed run, neither visible in RGV:
 
 - The `full` set is indistinguishable from homogeneous on the global PC1–PC2
   ($p = 0.39$) but separated on the four mainland axes ($p = 0.0035$). The

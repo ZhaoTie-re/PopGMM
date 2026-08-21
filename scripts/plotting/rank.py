@@ -338,17 +338,19 @@ def plot_casectrl_separation(
     *,
     decision_table: pd.DataFrame,
     mainland_axes: Sequence[str],
+    weight_grid: np.ndarray,
+    weight_winner: np.ndarray,
     variant_cuts: "Mapping[str, int] | None" = None,
+    safe_weight_floor: float = 0.5,
 ) -> Figure:
-    """Return the supplementary case/control separation figure.
+    """Return the supplementary separation figure: three data panels and a note column.
 
-    A sibling of ``plot_rank_tradeoff``, not an extension of it: that figure's
-    right-hand column is a saturated static text block, and the selection story
-    it tells is ``GWAS_Neff`` against ``RGV_Mainland``. This one answers the
-    question residual spread cannot -- whether cases and controls sit at
-    different places *within* the retained set -- and is reported alongside the
-    trade-off rather than folded into it. See ``scripts.common`` for why
-    minimising it would be the wrong objective.
+    A sibling of ``plot_rank_tradeoff``, not an extension of it. That figure
+    prices one exchange -- effective sample size against residual spread -- and
+    is what selects a cut. This one carries the question residual spread cannot
+    answer (do cases and controls sit at different places *within* the retained
+    set) and the re-weighting argument behind the intermediate cut. Neither is
+    an input to the recommendation; see ``scripts.common.case_ctrl_separation``.
     """
     n_dim = len(mainland_axes)
     rank = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
@@ -357,89 +359,202 @@ def plot_casectrl_separation(
     floor = decision_table["Mainland_CaseCtrl_Noise_Floor"].to_numpy(dtype=float, copy=False)
     pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
     d2_raw = d_raw ** 2
+    cuts = dict(variant_cuts or {})
 
     _BK, _GR, _DIM = "#212121", "#424242", "#757575"
-    _RAW = "#7B3294"     # observed D^2
-    _UNB = "#008837"     # after removing the sampling floor
-    _FLOOR = "#BDBDBD"
+    _RAW, _UNB, _FLOOR = "#7B3294", "#008837", "#BDBDBD"
+    _SIG, _UNSAFE = "#D7191C", "#F4C7C3"
+    _X = 0.05
 
-    fig = plt.figure(figsize=(13.5, 10.5))
-    gs = fig.add_gridspec(2, 1, height_ratios=[1.15, 1.0], hspace=0.155)
-    ax_d = fig.add_subplot(gs[0, 0])
-    ax_p = fig.add_subplot(gs[1, 0], sharex=ax_d)
+    fig = plt.figure(figsize=(19.5, 12.0))
+    gs = fig.add_gridspec(1, 2, width_ratios=[3.25, 2.75], wspace=0.055)
+    gs_l = gs[0, 0].subgridspec(3, 1, height_ratios=[1.08, 0.90, 0.86], hspace=0.33)
+    ax_d = fig.add_subplot(gs_l[0, 0])
+    ax_p = fig.add_subplot(gs_l[1, 0], sharex=ax_d)
+    ax_w = fig.add_subplot(gs_l[2, 0])
+    ax_note = fig.add_subplot(gs[0, 1])
 
-    # ── Panel A: D^2, and how much of it is sampling scatter ─────────
+    # ══ A · How far apart, and how much of that is sampling ══════════
     ax_d.fill_between(
         rank, 0.0, floor, color=_FLOOR, alpha=0.55, linewidth=0, zorder=1,
-        label=rf"Sampling floor  $E[D^2] = p\,(1/n_1 + 1/n_2)$,  $p={n_dim}$",
+        label=rf"Sampling floor  $p\,(1/n_1 + 1/n_2)$,  $p={n_dim}$",
     )
     ax_d.axhline(0.0, color=_DIM, linewidth=0.9, linestyle=":", zorder=2)
-    ax_d.plot(rank, d2_raw, "-o", color=_RAW, markersize=6.5, linewidth=2.0,
-              markeredgecolor="white", markeredgewidth=1.0, zorder=4,
+    ax_d.plot(rank, d2_raw, "-o", color=_RAW, markersize=6.0, linewidth=1.9,
+              markeredgecolor="white", markeredgewidth=0.9, zorder=4,
               label=r"Observed  $\hat{D}^2$")
-    ax_d.plot(rank, d2_unb, "-s", color=_UNB, markersize=6.0, linewidth=2.0,
-              markeredgecolor="white", markeredgewidth=1.0, zorder=5,
+    ax_d.plot(rank, d2_unb, "-s", color=_UNB, markersize=5.6, linewidth=1.9,
+              markeredgecolor="white", markeredgewidth=0.9, zorder=5,
               label=r"De-biased  $\hat{D}^2 - E[D^2]$")
-    ax_d.set_ylabel(r"Mahalanobis  $D^2$   (case vs control centroids)")
-    ax_d.set_title(
-        "A · Separation of the case and control centroids, and the floor sampling alone puts under it",
-        fontsize=14, fontweight="bold", loc="left", pad=10,
-    )
-    # Centre-right, not upper-right: the top strip is reserved for the cut
-    # labels, and the descending tail leaves this block of the panel empty.
-    ax_d.legend(loc="center right", frameon=True, framealpha=0.95, edgecolor="#CFCFCF")
+    ax_d.set_ylabel(r"Mahalanobis  $D^2$")
+    ax_d.set_title("A · Separation of the case and control centroids",
+                   fontsize=14, fontweight="bold", loc="left", pad=9)
+    ax_d.legend(loc="center right", frameon=True, framealpha=0.95,
+                edgecolor="#CFCFCF", fontsize=11.5)
     ax_d.tick_params(labelbottom=False)
 
-    # ── Panel B: the evidence, which needs no bias correction ────────
+    # ══ B · The evidence, which needs no bias correction ═════════════
     sig = np.isfinite(pval) & (pval < 0.05)
-    ax_p.plot(rank, pval, "-", color=_GR, linewidth=1.6, zorder=3)
-    ax_p.scatter(rank[sig], pval[sig], s=95, color="#D7191C", edgecolor="white",
-                 linewidth=1.1, zorder=5, label=r"$p < 0.05$")
-    ax_p.scatter(rank[~sig], pval[~sig], s=95, color="#FFFFFF", edgecolor=_GR,
-                 linewidth=1.6, zorder=5, label=r"$p \geq 0.05$")
-    ax_p.axhline(0.05, color="#D7191C", linewidth=1.2, linestyle="--", zorder=2)
-    ax_p.text(rank.max(), 0.05, "  0.05", color="#D7191C", fontsize=12,
-              va="center", ha="left", fontweight="bold")
+    ax_p.plot(rank, pval, "-", color=_GR, linewidth=1.5, zorder=3)
+    ax_p.scatter(rank[sig], pval[sig], s=78, color=_SIG, edgecolor="white",
+                 linewidth=1.0, zorder=5, label=r"$p < 0.05$")
+    ax_p.scatter(rank[~sig], pval[~sig], s=78, color="#FFFFFF", edgecolor=_GR,
+                 linewidth=1.5, zorder=5, label=r"$p \geq 0.05$")
+    ax_p.axhline(0.05, color=_SIG, linewidth=1.1, linestyle="--", zorder=2)
     ax_p.set_yscale("log")
-    ax_p.set_ylabel(r"Hotelling's $T^2$  $p$-value")
-    ax_p.set_xlabel(r"Cumulative rank $k$   (top-1 … top-$k$ mainland components included)")
-    ax_p.set_title(
-        r"B · Evidence for that separation. The exact $F$ test already accounts for sampling, so no correction applies.",
-        fontsize=14, fontweight="bold", loc="left", pad=10,
-    )
-    ax_p.legend(loc="lower left", frameon=True, framealpha=0.95, edgecolor="#CFCFCF")
-
-    # ── The delivered cuts, on both panels ───────────────────────────
-    if variant_cuts:
-        for name, k in sorted(variant_cuts.items(), key=lambda kv: kv[1]):
-            for axis in (ax_d, ax_p):
-                axis.axvline(k, color=_DIM, linewidth=1.1, linestyle="--", alpha=0.7, zorder=1)
-            # Axes-fraction y so the strip stays put whatever the data range;
-            # the end cuts anchor inwards or they overrun the frame.
-            ha = "left" if k <= rank.min() else "right" if k >= rank.max() else "center"
-            ax_d.text(
-                k, 0.985, f"{name}\nk={k}", color=_BK, fontsize=11.5,
-                fontweight="bold", va="top", ha=ha,
-                transform=ax_d.get_xaxis_transform(),
-                bbox=dict(boxstyle="round,pad=0.28", facecolor="white",
-                          edgecolor="#DDDDDD", linewidth=0.8, alpha=0.92),
-            )
-
+    ax_p.set_ylabel(r"Hotelling's $T^2$  $p$")
+    ax_p.set_title(r"B · Evidence for it. The exact $F$ test already accounts for sampling.",
+                   fontsize=14, fontweight="bold", loc="left", pad=9)
+    ax_p.legend(loc="lower left", frameon=True, framealpha=0.95,
+                edgecolor="#CFCFCF", fontsize=11.5, ncol=2)
+    ax_p.set_xlabel(r"Cumulative rank $k$", labelpad=2)
     ax_p.set_xticks(rank)
+
+    # ── The delivered cuts, on both rank panels ──────────────────────
+    for name, k in sorted(cuts.items(), key=lambda kv: kv[1]):
+        for axis in (ax_d, ax_p):
+            axis.axvline(k, color=_DIM, linewidth=1.0, linestyle="--", alpha=0.7, zorder=1)
+        # Axes-fraction y so the strip stays put whatever the data range; the
+        # end cuts anchor inwards or they overrun the frame.
+        ha = "left" if k <= rank.min() else "right" if k >= rank.max() else "center"
+        ax_d.text(
+            k, 0.985, f"{name}\nk={k}", color=_BK, fontsize=11.0, fontweight="bold",
+            va="top", ha=ha, transform=ax_d.get_xaxis_transform(),
+            bbox=dict(boxstyle="round,pad=0.26", facecolor="white",
+                      edgecolor="#DDDDDD", linewidth=0.8, alpha=0.92),
+        )
     for axis in (ax_d, ax_p):
         axis.set_xlim(rank.min() - 0.4, rank.max() + 0.4)
         axis.grid(True, alpha=0.30, linewidth=0.7)
         axis.set_axisbelow(True)
 
-    fig.suptitle(
-        "Supplementary · Case/Control Ancestry Separation Across the Rank Walk",
-        fontsize=18, fontweight="bold", y=0.977,
-    )
-    fig.text(
-        0.5, 0.941,
-        f"Mainland PCA, PC1-PC{n_dim} — the same axes and the same retained set as the "
-        f"RGV the trade-off is judged on. Diagnostic only: never optimised against.",
-        fontsize=12.5, color=_DIM, ha="center", va="top", fontstyle="italic",
-    )
-    fig.subplots_adjust(left=0.088, right=0.975, top=0.878, bottom=0.075)
+    # ══ C · Which cut wins as the two measures are re-weighted ═══════
+    won = weight_winner[weight_winner > 0]
+    ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color=_UNSAFE, alpha=0.55,
+                      linewidth=0, zorder=1)
+    ax_w.text(safe_weight_floor / 2.0, 0.045,
+              "not usable — weights the labels\nabove the spread",
+              transform=ax_w.get_xaxis_transform(), fontsize=10.5, color="#9B2226",
+              ha="center", va="bottom", fontstyle="italic", zorder=6)
+    ax_w.plot(weight_grid, weight_winner, drawstyle="steps-post", color=_BK,
+              linewidth=2.6, zorder=4, solid_joinstyle="miter")
+
+    # The cuts fixed by other rules are drawn but never win here; saying so on
+    # the panel is the point, since a reader will look for them.
+    for name, k in sorted(cuts.items(), key=lambda kv: kv[1]):
+        if not np.any(weight_winner == k):
+            ax_w.axhline(k, color=_DIM, linewidth=1.0, linestyle=":", alpha=0.85, zorder=2)
+            ax_w.text(0.995, k, f"{name} (k={k}) — fixed by another rule", color=_DIM,
+                      fontsize=10.5, va="center", ha="right", fontstyle="italic", zorder=6,
+                      bbox=dict(boxstyle="round,pad=0.22", facecolor="white",
+                                edgecolor="none", alpha=0.92))
+
+    # The winning plateau, and how wide it is.
+    for name, k in cuts.items():
+        on = weight_grid[weight_winner == k]
+        if on.size == 0:
+            continue
+        lo, hi = float(on.min()), float(on.max())
+        ax_w.plot([lo, hi], [k, k], color=_UNB, linewidth=6.5, solid_capstyle="butt",
+                  alpha=0.85, zorder=5)
+        ax_w.annotate(
+            f"{name}  k={k}\n" rf"wins across  $w \in [{lo:.2f},\ {hi:.2f}]$",
+            xy=((lo + hi) / 2.0, k), xytext=(0, 15), textcoords="offset points",
+            fontsize=11.5, fontweight="bold", color=_BK, ha="center", va="bottom",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                      edgecolor=_UNB, linewidth=1.1, alpha=0.95), zorder=7,
+        )
+
+    y_lo, y_hi = int(won.min()) - 1, max(int(won.max()), max(cuts.values(), default=0)) + 1
+    ax_w.set_ylim(y_lo, y_hi)
+    ax_w.set_xlim(0.0, 1.0)
+    ax_w.set_yticks(sorted(set(int(v) for v in np.unique(won)) | set(cuts.values())))
+    ax_w.set_ylabel(r"Winning cut  $k^{*}(w)$")
+    ax_w.set_xlabel(r"$w$ — weight on residual spread; $1-w$ on case/control separation")
+    ax_w.set_title("C · Why k = 12 is the intermediate cut: it wins across the whole balanced band",
+                   fontsize=14, fontweight="bold", loc="left", pad=9)
+    ax_w.grid(True, alpha=0.30, linewidth=0.7)
+    ax_w.set_axisbelow(True)
+
+    # ══ Right column: methods / formulas ═════════════════════════════
+    ax_note.set_axis_off()
+    ax_note.set_xlim(0.0, 1.0)
+    ax_note.set_ylim(0.0, 1.0)
+
+    def _rule(y: float) -> None:
+        ax_note.plot([0.0, 1.0], [y, y], color="#E0E0E0", linewidth=0.9)
+
+    def _h(y: float, txt: str) -> None:
+        ax_note.text(_X, y, txt, fontsize=14, fontweight="bold", va="top",
+                     ha="left", color=_BK)
+
+    def _m(y: float, txt: str, size: float = 15.0) -> None:
+        ax_note.text(0.5, y, txt, fontsize=size, va="top", ha="center", color=_BK)
+
+    def _b(y: float, txt: str, size: float = 12.0, style: str = "normal",
+           color: str = _GR) -> None:
+        ax_note.text(_X, y, txt, fontsize=size, va="top", ha="left", color=color,
+                     fontstyle=style)
+
+    # ── Section 1: the statistic ──────────────────────────────────────
+    _rule(0.980)
+    _h(0.966, "Case/Control Separation")
+    _m(0.926, r"$D^2 = (\bar{x}_{1} - \bar{x}_{2})^{\top}\,"
+              r"S_{\mathrm{pooled}}^{-1}\,(\bar{x}_{1} - \bar{x}_{2})$")
+    _m(0.876, r"$T^2 = D^2\,\dfrac{n_1 n_2}{n_1 + n_2}$"
+              r"$\qquad p:\ F = \dfrac{T^2 (\nu - p + 1)}{p\,\nu}$", 14.0)
+    _b(0.812, "Mahalanobis distance between the two group centroids under")
+    _b(0.789, "the pooled within-group covariance, in SD units. $T^2$ weights")
+    _b(0.766, r"it by sample size: the distance alone is not evidence.")
+    _b(0.743, rf"Computed on mainland PC1-PC{n_dim} — the axes RGV uses, on the",
+       color=_DIM, style="italic")
+    _b(0.720, "same retained samples.", color=_DIM, style="italic")
+
+    # ── Section 2: the sampling floor ─────────────────────────────────
+    _rule(0.700)
+    _h(0.686, "Why a raw $D^2$ cannot be compared across cuts")
+    _m(0.644, r"$E\left[\hat{D}^2\right] = D^2_{\mathrm{true}}"
+              r" + p\left(\dfrac{1}{n_1} + \dfrac{1}{n_2}\right)$", 14.0)
+    _b(0.580, "Two sample means never coincide, and $D^2$ squares the gap, so")
+    _b(0.557, "scatter can only add. The retained set grows more than tenfold")
+    _b(0.534, "across the walk, so this floor falls with it and a raw $\\hat{D}^2$ drifts")
+    _b(0.511, "down for arithmetic reasons alone. The de-biased column subtracts")
+    _b(0.488, r"it, and goes negative where separation is below the floor.")
+    _b(0.465, r"$T^2$ and $p$ need no correction — the $F$ test is exact.",
+       color=_DIM, style="italic")
+
+    # ── Section 3: the intermediate cut ───────────────────────────────
+    _rule(0.445)
+    _h(0.431, "Why $k = 12$ for the intermediate cut")
+    _b(0.394, "The two homogeneity measures disagree about direction: RGV rises")
+    _b(0.371, r"with $k$ ($\rho = +1.00$), the de-biased separation falls")
+    _b(0.348, r"($\rho = -0.73$). Blending them gives an interior optimum, where")
+    _b(0.325, "either alone only trades against $N_{eff}$.")
+    _m(0.286, r"$H(w) = w\cdot\mathrm{RGV} + (1-w)\cdot \hat{D}^2_{\mathrm{unb}}$"
+              r"$\quad$(min-max)", 13.5)
+    _m(0.238, r"$k^{*}(w) = \arg\min_k \sqrt{H(w)^2 + \left(1 - N_{eff}\right)^2}$", 13.5)
+    _b(0.190, r"$w$ is a judgement about which residual structure matters, not a")
+    _b(0.167, "value the data can supply — which is why it is swept rather than")
+    _b(0.144, "picked. Panel C is the result: one cut owns the entire balanced")
+    _b(0.121, "band, so the choice does not rest on having chosen a $w$.")
+
+    # ── Section 4: what fixes each cut ────────────────────────────────
+    _rule(0.101)
+    _b(0.087, "What fixes each cut:", size=11.0, color=_BK)
+    for i, (label, why) in enumerate((
+        (r"narrow", r"knee of the $N_{eff}$-vs-RGV curve"),
+        (r"intermediate", r"the re-weighting sweep in panel C"),
+        (r"full", r"every major-cluster component — definitional"),
+    )):
+        y = 0.065 - i * 0.019
+        ax_note.text(_X + 0.02, y, label, fontsize=10.5, fontweight="bold",
+                     va="top", ha="left", color=_GR)
+        ax_note.text(_X + 0.20, y, why, fontsize=10.5, va="top", ha="left",
+                     color=_DIM, fontstyle="italic")
+    ax_note.text(_X, 0.005, "Separation is diagnostic throughout: no cut is selected on it.",
+                 fontsize=10.5, va="top", ha="left", color=_BK, fontweight="bold")
+
+    fig.suptitle("Supplementary · Case/Control Ancestry Separation, and the Intermediate Cut",
+                 fontsize=18, fontweight="bold", y=0.975)
+    fig.subplots_adjust(left=0.058, right=0.992, top=0.928, bottom=0.058)
     return fig

@@ -4576,14 +4576,14 @@
       ]
     },
     "03_rank_selection/casectrl_separation.png": {
-      "bytes": 1571911,
+      "bytes": 3032330,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.41797286984055,
-      "sha256": "d227959908cf9ad774e15ea3bbd90e3102fd51f159c662072c2894a3b3fdb9e5",
+      "pixel_mean": 247.36762985924898,
+      "sha256": "b14587d3afa011b3d93569fe9e1bbe306f1c82ace0d5ed0532d1563af529a095",
       "size": [
-        7858,
-        6139
+        11519,
+        7055
       ]
     },
     "03_rank_selection/component_rank_table.tsv": {
