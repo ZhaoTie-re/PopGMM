@@ -4575,6 +4575,17 @@
         10
       ]
     },
+    "03_rank_selection/casectrl_separation.png": {
+      "bytes": 1571911,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 248.41797286984055,
+      "sha256": "d227959908cf9ad774e15ea3bbd90e3102fd51f159c662072c2894a3b3fdb9e5",
+      "size": [
+        7858,
+        6139
+      ]
+    },
     "03_rank_selection/component_rank_table.tsv": {
       "bytes": 611,
       "columns": [
@@ -4631,7 +4642,7 @@
       ]
     },
     "03_rank_selection/rank_cumulative_metrics.tsv": {
-      "bytes": 3307,
+      "bytes": 5150,
       "columns": [
         "Included_Max_Rank",
         "Included_Cluster_Count",
@@ -4645,7 +4656,12 @@
         "RGV_Mainland",
         "PC12_CaseCtrl_Mahalanobis",
         "PC12_CaseCtrl_HotellingT2",
-        "PC12_CaseCtrl_P"
+        "PC12_CaseCtrl_P",
+        "Mainland_CaseCtrl_Mahalanobis",
+        "Mainland_CaseCtrl_D2_Unbiased",
+        "Mainland_CaseCtrl_HotellingT2",
+        "Mainland_CaseCtrl_P",
+        "Mainland_CaseCtrl_Noise_Floor"
       ],
       "kind": "tsv",
       "numeric": {
@@ -4691,6 +4707,36 @@
           153.0,
           9.0
         ],
+        "Mainland_CaseCtrl_D2_Unbiased": [
+          -0.0036818238512297,
+          0.1806247023050443,
+          0.9887735995878615,
+          0.058163152916933025
+        ],
+        "Mainland_CaseCtrl_HotellingT2": [
+          2.6200433447774265,
+          40.60262452482874,
+          309.26227928721966,
+          18.191898781601157
+        ],
+        "Mainland_CaseCtrl_Mahalanobis": [
+          0.0836089980170267,
+          0.5003870480677848,
+          4.3090523291796945,
+          0.253473666422335
+        ],
+        "Mainland_CaseCtrl_Noise_Floor": [
+          0.010614246913876,
+          0.0697624955689471,
+          0.29457179527651167,
+          0.017327752663324217
+        ],
+        "Mainland_CaseCtrl_P": [
+          3.9452921592214746e-08,
+          0.623787436303638,
+          1.6490727189121879,
+          0.09700427758306987
+        ],
         "PC12_CaseCtrl_HotellingT2": [
           0.593958071731926,
           37.687474469715,
@@ -4728,14 +4774,14 @@
           1984.2941176470588
         ]
       },
-      "sha256": "6bbdf7fd6c9317742da15d2cff62bf4df78b29ee5eb2be5235a059eb52508aa5",
+      "sha256": "9ea32d06ceff0a7c010b6ab8a308b10721a9c5117f7c3184580b075f6929babf",
       "shape": [
         17,
-        13
+        18
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {
-      "bytes": 5748,
+      "bytes": 7591,
       "columns": [
         "Included_Max_Rank",
         "Included_Cluster_Count",
@@ -4750,6 +4796,11 @@
         "PC12_CaseCtrl_Mahalanobis",
         "PC12_CaseCtrl_HotellingT2",
         "PC12_CaseCtrl_P",
+        "Mainland_CaseCtrl_Mahalanobis",
+        "Mainland_CaseCtrl_D2_Unbiased",
+        "Mainland_CaseCtrl_HotellingT2",
+        "Mainland_CaseCtrl_P",
+        "Mainland_CaseCtrl_Noise_Floor",
         "Delta_Neff",
         "Delta_RGV",
         "Neff_Gain_per_RGV",
@@ -4822,6 +4873,36 @@
           153.0,
           9.0
         ],
+        "Mainland_CaseCtrl_D2_Unbiased": [
+          -0.0036818238512297,
+          0.1806247023050443,
+          0.9887735995878615,
+          0.058163152916933025
+        ],
+        "Mainland_CaseCtrl_HotellingT2": [
+          2.6200433447774265,
+          40.60262452482874,
+          309.26227928721966,
+          18.191898781601157
+        ],
+        "Mainland_CaseCtrl_Mahalanobis": [
+          0.0836089980170267,
+          0.5003870480677848,
+          4.3090523291796945,
+          0.253473666422335
+        ],
+        "Mainland_CaseCtrl_Noise_Floor": [
+          0.010614246913876,
+          0.0697624955689471,
+          0.29457179527651167,
+          0.017327752663324217
+        ],
+        "Mainland_CaseCtrl_P": [
+          3.9452921592214746e-08,
+          0.623787436303638,
+          1.6490727189121879,
+          0.09700427758306987
+        ],
         "Neff_Gain_per_RGV": [
           12680.961832882564,
           1729599.474401944,
@@ -4883,10 +4964,10 @@
           0.24454343117838312
         ]
       },
-      "sha256": "49f065e4ead23550db491d7c7a59c3f3ea23e900847d8017e093209902ddb285",
+      "sha256": "91a7b48eb5332d627efc295b151e8998ffb213306293d54017f6a5fa21bb75f5",
       "shape": [
         17,
-        22
+        27
       ]
     },
     "03_rank_selection/rank_selection_tradeoff.png": {

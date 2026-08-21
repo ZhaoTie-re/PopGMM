@@ -295,65 +295,95 @@ def pc12_rgv(xy: np.ndarray) -> float:
     return rgv(xy)
 
 
+def mahalanobis_bias(n_case: int, n_ctrl: int, n_dim: int) -> float:
+    """Expected ``D^2`` between two group means drawn from the *same* population.
+
+    ``p * (1/n_case + 1/n_control)``. Two sample means never coincide, and
+    ``D^2`` squares the gap between them, so sampling scatter can only add to
+    it: the axis count multiplies the contribution, the group sizes divide it.
+
+    It matters here because the retained set grows more than tenfold across the
+    rank walk, so this floor falls with it and a raw ``D^2`` drifts downwards
+    for arithmetic reasons alone. Checked by permuting this dataset's own
+    mainland coordinates -- one population split at random, so the true
+    separation is zero by construction -- which reproduced the formula to three
+    decimals.
+
+    ``hotelling_t2`` and ``p_value`` need no such correction: the exact F test
+    already accounts for sampling.
+    """
+    if n_case <= 0 or n_ctrl <= 0 or n_dim <= 0:
+        return float("nan")
+    return float(n_dim) * ((1.0 / float(n_case)) + (1.0 / float(n_ctrl)))
+
+
 class CaseControlSeparation(NamedTuple):
     """How far apart cases and controls sit in ancestry space."""
 
     #: Mahalanobis distance between the two group means, in pooled within-group
-    #: SD units. Scale-free, so it is comparable across sample sets.
+    #: SD units. Scale-free, so it is comparable across bases -- but not across
+    #: sample *sizes*, which is what ``d2_unbiased`` is for.
     mahalanobis: float
+    #: ``D^2`` with ``mahalanobis_bias`` subtracted; the only one of these that
+    #: compares fairly between sets of different sizes. Negative is meaningful
+    #: rather than a failure -- the separation sits below the sampling floor.
+    d2_unbiased: float
     #: Hotelling's T-squared -- the same distance weighted by sample size. This
     #: is the test statistic; the distance alone says nothing about evidence.
     hotelling_t2: float
     #: p-value of that test, via the exact F transform. Small means the two
-    #: groups really do sit at different places on PC1-PC2.
+    #: groups really do sit at different places in the space.
     p_value: float
 
 
-def pc12_case_ctrl_separation(
-    case_xy: np.ndarray, ctrl_xy: np.ndarray
+def case_ctrl_separation(
+    case_coords: np.ndarray, ctrl_coords: np.ndarray
 ) -> CaseControlSeparation:
-    """Case-vs-control ancestry separation on PC1-PC2.
+    """Case-vs-control ancestry separation over however many axes are supplied.
 
     Reported as a diagnostic, never optimised against. Three reasons, all
     measured on this dataset rather than assumed:
 
-    * It is not monotone in the rank cut (Spearman -0.49 against k, versus
-      +1.00 for ``pc12_rgv``) and its minimum falls on the *uncut* set, which is
-      also where GWAS_Neff is largest. Selecting on it would put both objectives
-      at the same point, leaving no trade-off and so no decision to make.
-    * ``E[D^2]`` carries a ``p * (1/n_case + 1/n_control)`` bias that shrinks as
-      the set grows -- from 0.037 at the tightest cut to 0.005 at the widest.
-      Minimising it therefore partly just selects for a larger set.
+    * It is not monotone in the rank cut -- Spearman -0.49 against k on the
+      global PC1-PC2, -0.78 on the four mainland axes, against +1.00 for
+      ``rgv`` -- and it bottoms out near the *uncut* set, which is also where
+      GWAS_Neff is largest. Selecting on it would put both objectives at nearly
+      the same place, leaving no trade-off and so no decision to make.
+    * ``E[D^2]`` carries the ``mahalanobis_bias`` term, which shrinks as the set
+      grows. Minimising it therefore partly just selects for a larger set.
     * It is computed from the case/control labels. Choosing the samples that
       minimise it optimises the very quantity the association test measures, so
       a genuinely ancestry-linked risk would be selected away along with the
       confounding.
 
-    What it is good for is the question ``pc12_rgv`` cannot answer: residual
-    spread says how wide the retained set is, not whether cases and controls
-    are drawn from the same place within it. Only the second is what biases an
-    association test.
+    What it is good for is the question ``rgv`` cannot answer: residual spread
+    says how wide the retained set is, not whether cases and controls are drawn
+    from the same place within it. Only the second biases an association test.
 
-    Returns NaN for fewer than two samples in either group, or a singular
-    pooled covariance.
+    Both arrays must carry the same axes, in the same order, from the same PCA;
+    nothing here can detect a mismatch. Requires more samples than axes in each
+    group -- at or below that the group covariance is singular and the value
+    would come from the stabilising ridge rather than from the data. Returns NaN
+    there, and for a singular pooled covariance.
     """
-    case_xy = np.asarray(case_xy, dtype=np.float64)
-    ctrl_xy = np.asarray(ctrl_xy, dtype=np.float64)
-    nan = CaseControlSeparation(float("nan"), float("nan"), float("nan"))
+    case_coords = np.asarray(case_coords, dtype=np.float64)
+    ctrl_coords = np.asarray(ctrl_coords, dtype=np.float64)
+    nan = CaseControlSeparation(float("nan"), float("nan"), float("nan"), float("nan"))
 
-    if case_xy.ndim != 2 or ctrl_xy.ndim != 2:
+    if case_coords.ndim != 2 or ctrl_coords.ndim != 2:
         return nan
-    if case_xy.shape[1] != 2 or ctrl_xy.shape[1] != 2:
+    n_dim = int(case_coords.shape[1])
+    if n_dim < 1 or int(ctrl_coords.shape[1]) != n_dim:
         return nan
 
-    n_case, n_ctrl, n_dim = int(case_xy.shape[0]), int(ctrl_xy.shape[0]), 2
-    if n_case < 2 or n_ctrl < 2:
+    n_case, n_ctrl = int(case_coords.shape[0]), int(ctrl_coords.shape[0])
+    if n_case <= n_dim or n_ctrl <= n_dim:
         return nan
 
     dof = n_case + n_ctrl - 2
     pooled = (
-        (n_case - 1) * np.cov(case_xy, rowvar=False)
-        + (n_ctrl - 1) * np.cov(ctrl_xy, rowvar=False)
+        (n_case - 1) * np.atleast_2d(np.cov(case_coords, rowvar=False))
+        + (n_ctrl - 1) * np.atleast_2d(np.cov(ctrl_coords, rowvar=False))
     ) / float(dof)
     pooled = np.asarray(pooled, dtype=np.float64)
     if not np.all(np.isfinite(pooled)):
@@ -361,22 +391,45 @@ def pc12_case_ctrl_separation(
 
     # Small ridge for numerical stability under near-collinearity.
     trace = float(np.trace(pooled))
-    scale = trace / 2.0 if np.isfinite(trace) else 1.0
-    pooled = pooled + np.eye(2, dtype=np.float64) * (1e-8 * max(1.0, scale))
+    scale = trace / n_dim if np.isfinite(trace) else 1.0
+    pooled = pooled + np.eye(n_dim, dtype=np.float64) * (1e-8 * max(1.0, scale))
 
-    delta = case_xy.mean(axis=0) - ctrl_xy.mean(axis=0)
+    delta = case_coords.mean(axis=0) - ctrl_coords.mean(axis=0)
     d2 = float(delta @ np.linalg.pinv(pooled) @ delta)
     if not np.isfinite(d2) or d2 < 0.0:
         return nan
 
+    d2_unbiased = d2 - mahalanobis_bias(n_case, n_ctrl, n_dim)
     t2 = d2 * (n_case * n_ctrl) / float(n_case + n_ctrl)
     df2 = dof - n_dim + 1
     if df2 <= 0:
-        return CaseControlSeparation(float(np.sqrt(d2)), float(t2), float("nan"))
+        return CaseControlSeparation(
+            float(np.sqrt(d2)), float(d2_unbiased), float(t2), float("nan")
+        )
 
     f_stat = t2 * df2 / float(n_dim * dof)
     p_value = float(cast(Any, _f_dist).sf(f_stat, n_dim, df2))
-    return CaseControlSeparation(float(np.sqrt(d2)), float(t2), p_value)
+    return CaseControlSeparation(
+        float(np.sqrt(d2)), float(d2_unbiased), float(t2), p_value
+    )
+
+
+def pc12_case_ctrl_separation(
+    case_xy: np.ndarray, ctrl_xy: np.ndarray
+) -> CaseControlSeparation:
+    """``case_ctrl_separation`` on exactly two axes, rejecting anything else.
+
+    The global-PCA diagnostic is defined on PC1-PC2 and nothing else, so callers
+    of that specific quantity go through this wrapper rather than passing
+    whatever width the frame happens to carry. Mirrors ``pc12_rgv``.
+    """
+    case_xy = np.asarray(case_xy, dtype=np.float64)
+    ctrl_xy = np.asarray(ctrl_xy, dtype=np.float64)
+    if case_xy.ndim != 2 or ctrl_xy.ndim != 2:
+        return CaseControlSeparation(float("nan"), float("nan"), float("nan"), float("nan"))
+    if case_xy.shape[1] != 2 or ctrl_xy.shape[1] != 2:
+        return CaseControlSeparation(float("nan"), float("nan"), float("nan"), float("nan"))
+    return case_ctrl_separation(case_xy, ctrl_xy)
 
 
 def safe_stats(x: np.ndarray) -> dict[str, float]:
