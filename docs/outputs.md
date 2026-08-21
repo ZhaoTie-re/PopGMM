@@ -124,7 +124,7 @@ region rather than jumping elsewhere.
 | `rank_cumulative_metrics.tsv` | Each cumulative top-$k$ set with its counts |
 | `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
 | `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
-| `casectrl_separation.png` | Supplementary: case/control separation across the walk, in the mainland basis |
+| `casectrl_separation.png` | Supplementary: case/control separation across the walk, and the re-weighting argument behind the intermediate cut |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
 the numbers both figures draw.
@@ -139,7 +139,11 @@ set grows, so it drifts downwards across the walk on its own. Negative means the
 separation is below that floor. Neither `_HotellingT2` nor `_P` needs the
 correction.
 
-`casectrl_separation.png` is supplementary and does not drive the cut — see
+`casectrl_separation.png` carries three panels and a methods column: the
+separation and its sampling floor (A), the evidence for it (B), and which cut
+wins as residual spread and separation are re-weighted against each other (C).
+Panel C is what fixes the intermediate cut. The separation itself is diagnostic
+and drives no cut — see
 [`method.md`](method.md#supplementary-casecontrol-separation) for why selecting
 on it would be the wrong objective.
 

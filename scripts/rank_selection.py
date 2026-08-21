@@ -244,6 +244,50 @@ def _safe_minmax_norm(arr: np.ndarray) -> np.ndarray:
     return (arr - a_min) / span
 
 
+#: Grid the blend weight is swept on. Fine enough that a plateau boundary is
+#: located to the third decimal, which is well past the precision the choice
+#: deserves -- the point is the width of the plateau, not where it ends.
+_WEIGHT_GRID_STEP: float = 0.001
+
+
+def _weight_sweep(
+    neff: np.ndarray, het: np.ndarray, sep: np.ndarray, ranks: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Which cut wins as the two homogeneity measures are re-weighted.
+
+    Residual spread and case/control separation disagree about which way to go:
+    RGV rises monotonically with the cut, while the de-biased separation falls.
+    Blending them therefore produces an interior optimum, where either alone
+    would only trade against ``GWAS_Neff``.
+
+    For each weight ``w`` the two are min-max normalised and combined as
+    ``w * RGV + (1 - w) * separation``, and the cut nearest the ideal corner
+    wins -- the same distance-to-ideal score the single-basis recommendation
+    uses, so the two are directly comparable.
+
+    ``w`` is a judgement about which kind of residual structure matters, not a
+    quantity the data can supply. Sweeping it is the point: a cut that wins
+    across a wide band of ``w`` does not depend on having picked one. Note too
+    that min-max normalisation is anchored on the observed extremes, so ``w``
+    is not an absolute scale -- the plateau boundaries shift if the walk is
+    truncated, even though the winner within the balanced band does not.
+
+    Returns the grid and the winning rank at each point on it.
+    """
+    n_norm = _safe_minmax_norm(neff)
+    h_norm = _safe_minmax_norm(het)
+    s_norm = _safe_minmax_norm(sep)
+    valid = np.isfinite(n_norm) & np.isfinite(h_norm) & np.isfinite(s_norm)
+    grid = np.arange(0.0, 1.0 + _WEIGHT_GRID_STEP / 2.0, _WEIGHT_GRID_STEP)
+    if not bool(np.any(valid)):
+        return grid, np.full(grid.shape, -1, dtype=int)
+
+    n_v, h_v, s_v, r_v = n_norm[valid], h_norm[valid], s_norm[valid], ranks[valid]
+    blended = np.outer(grid, h_v) + np.outer(1.0 - grid, s_v)
+    dist = np.sqrt(blended ** 2 + (1.0 - n_v) ** 2)
+    return grid, r_v[np.argmin(dist, axis=1)].astype(int)
+
+
 def run_rank_selection(
     *,
     df_results: pd.DataFrame,
@@ -560,10 +604,18 @@ def run_rank_selection(
             resolved = max_rank if isinstance(cut, str) else int(cut)
             if 1 <= resolved <= max_rank:
                 cuts[str(name)] = resolved
+        w_grid, w_winner = _weight_sweep(
+            decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False),
+            decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False),
+            decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=np.float64, copy=False),
+            decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False),
+        )
         with figure_context(THEME_RANK):
             fig_sep = plot_casectrl_separation(
                 decision_table=decision_table,
                 mainland_axes=mainland_axes,
+                weight_grid=w_grid,
+                weight_winner=w_winner,
                 variant_cuts=cuts or None,
             )
             if bool(config.save_plot):
