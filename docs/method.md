@@ -205,6 +205,60 @@ The resulting curve does not name a correct subset; it prices the exchange — h
 much effective sample size is gained as the region broadens, and how much
 residual spread comes with it. The cuts are analysis decisions, open to review.
 
+#### Supplementary: case/control separation
+
+Residual spread says how *wide* the retained set is. It does not say whether
+cases and controls are drawn from the same place within it — and only the second
+biases an association test. So each cumulative set also carries the Mahalanobis
+distance between the two group centroids under the pooled within-group
+covariance, with Hotelling's $T^2$ and its exact $F$ $p$-value:
+
+```math
+D^2 = (\bar{x}_{\mathrm{case}} - \bar{x}_{\mathrm{ctrl}})^{\top}
+      S_{\mathrm{pooled}}^{-1}
+      (\bar{x}_{\mathrm{case}} - \bar{x}_{\mathrm{ctrl}})
+\qquad
+T^2 = D^2\,\frac{n_1 n_2}{n_1 + n_2}
+```
+
+Reported in both bases, matching the RGV columns: `PC12_CaseCtrl_*` on the
+global PC1–PC2, and `Mainland_CaseCtrl_*` over the same
+`params.MAINLAND_RGV_N_PCS` mainland axes the trade-off is judged on.
+
+A raw $\hat{D}^2$ cannot be compared across the walk. Two sample means never
+coincide, and $D^2$ squares the gap between them, so sampling scatter can only
+add to it:
+
+```math
+E\!\left[\hat{D}^2\right] \;=\; D^2_{\text{true}} \;+\; p\left(\frac{1}{n_1} + \frac{1}{n_2}\right)
+```
+
+The retained set grows more than tenfold across the walk, so that floor falls
+from 0.070 to 0.011 and a raw $\hat{D}^2$ drifts downwards for arithmetic
+reasons alone. `Mainland_CaseCtrl_D2_Unbiased` subtracts it and is the only one
+of the three that compares fairly between cuts; it goes negative where the
+separation sits below the floor. $T^2$ and its $p$-value need no correction —
+the exact $F$ test already accounts for sampling.
+
+**This is a diagnostic and is never optimised against.** It is computed from the
+case/control labels, so choosing the samples that minimise it would optimise the
+very quantity the association test measures, and a genuinely ancestry-linked
+risk would be selected away along with the confounding. It is also non-monotone
+in $k$ (Spearman $-0.78$ on the mainland axes, against $+1.00$ for RGV) and
+bottoms out near the *uncut* set, where $N_{\mathrm{eff}}$ is largest — so
+selecting on it would collapse the trade-off rather than inform it.
+
+What it is good for is auditing a cut after the fact. Two things it surfaces on
+the committed run, neither visible in RGV:
+
+- The `full` set is indistinguishable from homogeneous on the global PC1–PC2
+  ($p = 0.39$) but separated on the four mainland axes ($p = 0.0035$). The
+  structure is in mainland PC3–PC4, which the global diagnostic cannot see.
+- The `narrow` cut sits at the strongest separation in the whole walk
+  ($p = 3.9 \times 10^{-8}$). It is the knee of the $N_{\mathrm{eff}}$-vs-RGV
+  curve, which is what selects it; the separation is a property to be aware of,
+  not a reason to move it.
+
 ### 7. Composite-posterior reassignment
 
 A selected component set $\mathcal{G}$ is treated as one composite group.

@@ -1,12 +1,19 @@
-"""The rank-selection trade-off figure: effective sample size against residual spread.
+"""The two rank-selection figures, one per question the stage answers.
 
-One point per cumulative rank cut, with the Pareto front marked. The right-hand
-column is a typeset methods note rather than a data panel.
+``plot_rank_tradeoff`` is the decision figure: effective sample size against
+residual spread, one point per cumulative rank cut, with the Pareto front
+marked. Its right-hand column is a typeset methods note rather than a data
+panel.
+
+``plot_casectrl_separation`` is the supplementary diagnostic: whether cases and
+controls sit at different places *within* each retained set, which residual
+spread cannot express. Kept a sibling rather than a third panel -- the two
+figures answer different questions and only the first selects a cut.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -324,4 +331,115 @@ def plot_rank_tradeoff(
         "Mainland Rank-Cumulative Trade-off Analysis",
         fontsize=18, fontweight="bold", y=0.972,
     )
+    return fig
+
+
+def plot_casectrl_separation(
+    *,
+    decision_table: pd.DataFrame,
+    mainland_axes: Sequence[str],
+    variant_cuts: "Mapping[str, int] | None" = None,
+) -> Figure:
+    """Return the supplementary case/control separation figure.
+
+    A sibling of ``plot_rank_tradeoff``, not an extension of it: that figure's
+    right-hand column is a saturated static text block, and the selection story
+    it tells is ``GWAS_Neff`` against ``RGV_Mainland``. This one answers the
+    question residual spread cannot -- whether cases and controls sit at
+    different places *within* the retained set -- and is reported alongside the
+    trade-off rather than folded into it. See ``scripts.common`` for why
+    minimising it would be the wrong objective.
+    """
+    n_dim = len(mainland_axes)
+    rank = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
+    d_raw = decision_table["Mainland_CaseCtrl_Mahalanobis"].to_numpy(dtype=float, copy=False)
+    d2_unb = decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float, copy=False)
+    floor = decision_table["Mainland_CaseCtrl_Noise_Floor"].to_numpy(dtype=float, copy=False)
+    pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
+    d2_raw = d_raw ** 2
+
+    _BK, _GR, _DIM = "#212121", "#424242", "#757575"
+    _RAW = "#7B3294"     # observed D^2
+    _UNB = "#008837"     # after removing the sampling floor
+    _FLOOR = "#BDBDBD"
+
+    fig = plt.figure(figsize=(13.5, 10.5))
+    gs = fig.add_gridspec(2, 1, height_ratios=[1.15, 1.0], hspace=0.155)
+    ax_d = fig.add_subplot(gs[0, 0])
+    ax_p = fig.add_subplot(gs[1, 0], sharex=ax_d)
+
+    # ── Panel A: D^2, and how much of it is sampling scatter ─────────
+    ax_d.fill_between(
+        rank, 0.0, floor, color=_FLOOR, alpha=0.55, linewidth=0, zorder=1,
+        label=rf"Sampling floor  $E[D^2] = p\,(1/n_1 + 1/n_2)$,  $p={n_dim}$",
+    )
+    ax_d.axhline(0.0, color=_DIM, linewidth=0.9, linestyle=":", zorder=2)
+    ax_d.plot(rank, d2_raw, "-o", color=_RAW, markersize=6.5, linewidth=2.0,
+              markeredgecolor="white", markeredgewidth=1.0, zorder=4,
+              label=r"Observed  $\hat{D}^2$")
+    ax_d.plot(rank, d2_unb, "-s", color=_UNB, markersize=6.0, linewidth=2.0,
+              markeredgecolor="white", markeredgewidth=1.0, zorder=5,
+              label=r"De-biased  $\hat{D}^2 - E[D^2]$")
+    ax_d.set_ylabel(r"Mahalanobis  $D^2$   (case vs control centroids)")
+    ax_d.set_title(
+        "A · Separation of the case and control centroids, and the floor sampling alone puts under it",
+        fontsize=14, fontweight="bold", loc="left", pad=10,
+    )
+    # Centre-right, not upper-right: the top strip is reserved for the cut
+    # labels, and the descending tail leaves this block of the panel empty.
+    ax_d.legend(loc="center right", frameon=True, framealpha=0.95, edgecolor="#CFCFCF")
+    ax_d.tick_params(labelbottom=False)
+
+    # ── Panel B: the evidence, which needs no bias correction ────────
+    sig = np.isfinite(pval) & (pval < 0.05)
+    ax_p.plot(rank, pval, "-", color=_GR, linewidth=1.6, zorder=3)
+    ax_p.scatter(rank[sig], pval[sig], s=95, color="#D7191C", edgecolor="white",
+                 linewidth=1.1, zorder=5, label=r"$p < 0.05$")
+    ax_p.scatter(rank[~sig], pval[~sig], s=95, color="#FFFFFF", edgecolor=_GR,
+                 linewidth=1.6, zorder=5, label=r"$p \geq 0.05$")
+    ax_p.axhline(0.05, color="#D7191C", linewidth=1.2, linestyle="--", zorder=2)
+    ax_p.text(rank.max(), 0.05, "  0.05", color="#D7191C", fontsize=12,
+              va="center", ha="left", fontweight="bold")
+    ax_p.set_yscale("log")
+    ax_p.set_ylabel(r"Hotelling's $T^2$  $p$-value")
+    ax_p.set_xlabel(r"Cumulative rank $k$   (top-1 … top-$k$ mainland components included)")
+    ax_p.set_title(
+        r"B · Evidence for that separation. The exact $F$ test already accounts for sampling, so no correction applies.",
+        fontsize=14, fontweight="bold", loc="left", pad=10,
+    )
+    ax_p.legend(loc="lower left", frameon=True, framealpha=0.95, edgecolor="#CFCFCF")
+
+    # ── The delivered cuts, on both panels ───────────────────────────
+    if variant_cuts:
+        for name, k in sorted(variant_cuts.items(), key=lambda kv: kv[1]):
+            for axis in (ax_d, ax_p):
+                axis.axvline(k, color=_DIM, linewidth=1.1, linestyle="--", alpha=0.7, zorder=1)
+            # Axes-fraction y so the strip stays put whatever the data range;
+            # the end cuts anchor inwards or they overrun the frame.
+            ha = "left" if k <= rank.min() else "right" if k >= rank.max() else "center"
+            ax_d.text(
+                k, 0.985, f"{name}\nk={k}", color=_BK, fontsize=11.5,
+                fontweight="bold", va="top", ha=ha,
+                transform=ax_d.get_xaxis_transform(),
+                bbox=dict(boxstyle="round,pad=0.28", facecolor="white",
+                          edgecolor="#DDDDDD", linewidth=0.8, alpha=0.92),
+            )
+
+    ax_p.set_xticks(rank)
+    for axis in (ax_d, ax_p):
+        axis.set_xlim(rank.min() - 0.4, rank.max() + 0.4)
+        axis.grid(True, alpha=0.30, linewidth=0.7)
+        axis.set_axisbelow(True)
+
+    fig.suptitle(
+        "Supplementary · Case/Control Ancestry Separation Across the Rank Walk",
+        fontsize=18, fontweight="bold", y=0.977,
+    )
+    fig.text(
+        0.5, 0.941,
+        f"Mainland PCA, PC1-PC{n_dim} — the same axes and the same retained set as the "
+        f"RGV the trade-off is judged on. Diagnostic only: never optimised against.",
+        fontsize=12.5, color=_DIM, ha="center", va="top", fontstyle="italic",
+    )
+    fig.subplots_adjust(left=0.088, right=0.975, top=0.878, bottom=0.075)
     return fig

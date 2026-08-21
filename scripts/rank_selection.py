@@ -17,6 +17,12 @@ The global PCA's leading axes separate the major cluster from the other regions,
 so within it they are nearly constant; a major-cluster PCA spends its axes on the
 structure that actually remains. That is the reason for the second basis.
 
+Alongside the trade-off, each cumulative set carries a case/control separation
+diagnostic -- how far the two group centroids sit apart within the retained set,
+which residual spread cannot express. It is reported in the same two bases and
+is never optimised against; ``scripts.common.case_ctrl_separation`` gives the
+three reasons why.
+
 This module produces evidence, not a decision. A cut may be forced by the
 caller; otherwise the Pareto optimum is reported.
 
@@ -26,27 +32,37 @@ Cohort assignment results, the merge map, the fitted mixture, case/control lists
 
 Outputs
 -------
-Component rank table, cumulative metrics, decision table, and a trade-off figure
-(PNG + PDF).
+Component rank table, cumulative metrics, decision table, the trade-off figure,
+and a supplementary case/control separation figure (PNG + PDF).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, NamedTuple
+from typing import Any, Literal, Mapping, NamedTuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.plotting.rank import plot_rank_tradeoff
+from scripts.plotting.rank import plot_casectrl_separation, plot_rank_tradeoff
 from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
+from scripts.common import case_ctrl_separation as _case_ctrl_separation
+from scripts.common import mahalanobis_bias as _mahalanobis_bias
 from scripts.common import pc12_case_ctrl_separation as _case_ctrl_separation_pc12
+from scripts.common import CaseControlSeparation as _CaseControlSeparation
 from scripts.common import pc12_rgv as _global_rgv_pc12
 from scripts.common import resolve_pc_columns, rgv as _rgv
+
+#: Stand-in for the rows where no mainland projection was supplied, leaving the
+#: mainland separation columns NaN exactly as ``RGV_Mainland`` already is. The
+#: noise-floor column reaches NaN by its own route, via ``n_dim = 0``.
+_SEPARATION_NAN = _CaseControlSeparation(
+    float("nan"), float("nan"), float("nan"), float("nan")
+)
 
 
 class RankSelectionOutput(NamedTuple):
@@ -61,6 +77,7 @@ class RankSelectionOutput(NamedTuple):
     cumulative_table_path: Path
     decision_table_path: Path
     figure_path: Path | None
+    separation_figure_path: Path | None
 
 
 @dataclass(frozen=True)
@@ -72,6 +89,16 @@ class RankSelectionConfig:
     cumulative_table_file: str = "rank_cumulative_metrics.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
     figure_file: str = "rank_selection_tradeoff.png"
+
+    # Supplementary case/control separation figure, in the mainland basis over
+    # the same axes as RGV_Mainland. Only written when a mainland projection was
+    # supplied, since without one its four columns are all NaN.
+    separation_figure_file: str = "casectrl_separation.png"
+
+    # Cuts to mark on that figure, name -> rank. Rank-selection has no view of
+    # the variants the next stage builds, so the caller passes them in; a
+    # "full" cut given as a string resolves to the last rank walked.
+    variant_cuts: "Mapping[str, int | str] | None" = None
 
     # How many of the ranked mainland components to walk. None means "all of
     # them", discovered from the mainland component list rather than stated as a
@@ -336,9 +363,11 @@ def run_rank_selection(
 
     mainland_axes: list[str] = []
     mainland_xy: np.ndarray | None = None
+    n_mainland_axes: int = 0
     if mainland_coordinates is not None:
         mainland_axes = _mainland_axes(mainland_coordinates, int(config.mainland_rgv_n_pcs))
         mainland_xy = _align_mainland(df, mainland_coordinates, mainland_axes)
+        n_mainland_axes = len(mainland_axes)
     elif config.rgv_basis == "mainland":
         raise ValueError(
             'rgv_basis="mainland" needs mainland_coordinates; none was supplied.'
@@ -373,6 +402,7 @@ def run_rank_selection(
         rgv_global = _global_rgv_pc12(all_xy)
 
         rgv_mainland = float("nan")
+        separation_mainland = _SEPARATION_NAN
         if mainland_xy is not None:
             covered = np.isfinite(mainland_xy).all(axis=1)
             # The projection covers the major cluster, and the retained set is
@@ -388,10 +418,16 @@ def run_rank_selection(
                     f"walk can retain."
                 )
             rgv_mainland = _rgv(mainland_xy[in_sub])
+            # Same retained set as RGV_Mainland and GWAS_Neff -- the coverage
+            # check above guarantees it, where the global-basis diagnostic below
+            # silently drops non-finite rows via finite_mask.
+            separation_mainland = _case_ctrl_separation(
+                mainland_xy[in_sub & is_case_arr], mainland_xy[in_sub & is_ctrl_arr]
+            )
 
         # Diagnostic only -- reported next to the two selection metrics, never
-        # optimised against. See scripts.common.pc12_case_ctrl_separation for
-        # why minimising it would be the wrong objective.
+        # optimised against. See scripts.common.case_ctrl_separation for why
+        # minimising it would be the wrong objective.
         separation = _case_ctrl_separation_pc12(
             np.stack([pc1_arr[finite_mask & is_case_arr], pc2_arr[finite_mask & is_case_arr]], axis=1),
             np.stack([pc1_arr[finite_mask & is_ctrl_arr], pc2_arr[finite_mask & is_ctrl_arr]], axis=1),
@@ -412,6 +448,11 @@ def run_rank_selection(
                 "PC12_CaseCtrl_Mahalanobis": float(separation.mahalanobis),
                 "PC12_CaseCtrl_HotellingT2": float(separation.hotelling_t2),
                 "PC12_CaseCtrl_P": float(separation.p_value),
+                "Mainland_CaseCtrl_Mahalanobis": float(separation_mainland.mahalanobis),
+                "Mainland_CaseCtrl_D2_Unbiased": float(separation_mainland.d2_unbiased),
+                "Mainland_CaseCtrl_HotellingT2": float(separation_mainland.hotelling_t2),
+                "Mainland_CaseCtrl_P": float(separation_mainland.p_value),
+                "Mainland_CaseCtrl_Noise_Floor": float(_mahalanobis_bias(case_n, ctrl_n, n_mainland_axes)),
             }
         )
 
@@ -512,6 +553,26 @@ def run_rank_selection(
             else:
                 plt.close(fig)
 
+    separation_figure_path: Path | None = None
+    if (bool(config.save_plot) or bool(config.show_plot)) and mainland_xy is not None:
+        cuts: dict[str, int] = {}
+        for name, cut in dict(config.variant_cuts or {}).items():
+            resolved = max_rank if isinstance(cut, str) else int(cut)
+            if 1 <= resolved <= max_rank:
+                cuts[str(name)] = resolved
+        with figure_context(THEME_RANK):
+            fig_sep = plot_casectrl_separation(
+                decision_table=decision_table,
+                mainland_axes=mainland_axes,
+                variant_cuts=cuts or None,
+            )
+            if bool(config.save_plot):
+                separation_figure_path = out_dir / str(config.separation_figure_file)
+                save_figure(fig_sep, separation_figure_path, dpi=int(config.figure_dpi))
+            if bool(config.show_plot):
+                plt.show()
+            else:
+                plt.close(fig_sep)
 
     if bool(config.verbose):
         print("\n" + "=" * 92)
@@ -539,4 +600,5 @@ def run_rank_selection(
         cumulative_table_path=cumulative_table_path,
         decision_table_path=decision_table_path,
         figure_path=figure_path,
+        separation_figure_path=separation_figure_path,
     )

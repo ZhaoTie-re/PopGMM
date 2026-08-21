@@ -122,11 +122,26 @@ region rather than jumping elsewhere.
 |---|---|
 | `component_rank_table.tsv` | Major-cluster components ordered by case/control ratio |
 | `rank_cumulative_metrics.tsv` | Each cumulative top-$k$ set with its counts |
-| `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, Pareto flag, recommendation |
+| `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
 | `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
+| `casectrl_separation.png` | Supplementary: case/control separation across the walk, in the mainland basis |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
-the numbers the figure draws, including the case/control separation diagnostics.
+the numbers both figures draw.
+
+The separation diagnostics come in two blocks, one per basis, matching the two
+RGV columns. `PC12_CaseCtrl_*` is on the global PC1–PC2; `Mainland_CaseCtrl_*`
+is over the same `params.MAINLAND_RGV_N_PCS` mainland axes the trade-off is
+judged on, and on exactly the same retained samples as `RGV_Mainland` and
+`GWAS_Neff`. Read `_D2_Unbiased` rather than `_Mahalanobis` when comparing cuts:
+the raw distance carries a sampling floor of `_Noise_Floor` that shrinks as the
+set grows, so it drifts downwards across the walk on its own. Negative means the
+separation is below that floor. Neither `_HotellingT2` nor `_P` needs the
+correction.
+
+`casectrl_separation.png` is supplementary and does not drive the cut — see
+[`method.md`](method.md#supplementary-casecontrol-separation) for why selecting
+on it would be the wrong objective.
 
 ### `04_subcluster_variants/<variant>/` [7]
 
