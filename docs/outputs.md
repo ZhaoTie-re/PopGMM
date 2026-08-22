@@ -124,8 +124,8 @@ region rather than jumping elsewhere.
 | `rank_cumulative_metrics.tsv` | Each cumulative top-$k$ set with its counts |
 | `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
 | `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
-| `rank_cut_selection.tsv` | How each delivered cut was arrived at: rule, resolved rank, the automatic and manual answers, and whether they agree |
-| `rank_cut_selection.png` | The two selection rules drawn — the knee construction and the weight sweep — with their definitions |
+| `rank_cut_selection.tsv` | How each cut was arrived at: what it counts as residual structure, the frontier that produces, the operator that admits, and the resolved rank |
+| `rank_cut_selection.png` | The selection framework drawn — the objective space, both derivations, and what each answer depends on |
 | `casectrl_separation.png` | Supplementary: case/control separation across the walk |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
@@ -146,18 +146,41 @@ row per variant:
 
 | Column | Contents |
 |---|---|
-| `Rule` | `knee`, `equal_weight_blend`, or `definitional` |
-| `Resolved_Rank` | the cut actually used downstream; empty for the uncut full set |
+| `Structure_Counted` | what this cut treats as residual structure — the only thing that differs between the three |
+| `Frontier_Monotone` / `Chord_Span` | the geometry that produces, which is what selects the operator |
+| `Operator` | `knee`, `nearest_ideal`, or `argmax_power` |
+| `Resolved_Rank` | the cut actually used downstream |
 | `Source` | `auto`, `manual`, `pinned`, or `definitional` |
 | `Auto_Rank` / `Manual_Rank` | what the rule and `params.MANUAL_RANK_CUTS` each say |
 | `Auto_Manual_Agree` | whether those two agree — computed in either mode |
 | `Statistic` / `Value` | the quantity the rule optimises, at the chosen cut |
 | `Margin` / `Margin_Kind` | how safe the answer is *in that rule's own terms*; the two kinds are not comparable with each other |
 
-Both rules run whatever `params.RANK_CUT_MODE` is set to, so the mode can never
-move a cut without this table showing it. `Margin` is worth reading: the knee
-leads its runner-up by 0.58%, while the blend's evaluation point sits 0.13 from
-the nearest boundary of the interval on which its answer is constant.
+The three cuts are one procedure at three settings of `Structure_Counted`, and
+the operator follows from the geometry each setting produces rather than being
+paired with it by hand — see
+[`method.md`](method.md#6b-deriving-the-three-cuts). `Resolved_Rank` for `full`
+is the last walked rank; the subcluster stage expresses that same set as
+"exclude nothing".
+
+Both the rule and the manual value run whatever `params.RANK_CUT_MODE` is set
+to, so the mode can never move a cut without this table showing it. `Margin` is
+worth reading: the knee leads its runner-up by 0.58%, while the blend's
+evaluation point sits 0.13 from the nearest boundary of the interval on which
+its answer is constant.
+
+### Reading order
+
+The three figures are one argument and are numbered on the page, each naming its
+neighbours in a footer:
+
+1. `rank_selection_tradeoff.png` — what is being traded
+2. `casectrl_separation.png` — the second homogeneity axis
+3. `rank_cut_selection.png` — the cuts the two of them fix
+
+The blue diamond on the first is labelled `narrow`, not "recommended": all three
+figures use the variant names, and none of them implies one cut is better than
+another.
 
 `casectrl_separation.png` is the separation diagnostic alone — the statistic and
 its sampling floor (A), and the evidence for it (B). It drives no cut; see

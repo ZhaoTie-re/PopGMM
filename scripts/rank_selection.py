@@ -76,10 +76,12 @@ _SEPARATION_NAN = _CaseControlSeparation(
 #: argument for preferring either measure.
 INTERMEDIATE_BLEND_WEIGHT: float = 0.5
 
-#: Rule names written to ``rank_cut_selection.tsv``.
-RULE_KNEE = "knee"
-RULE_BLEND = "equal_weight_blend"
-RULE_DEFINITIONAL = "definitional"
+#: Operator names written to ``rank_cut_selection.tsv``. Which one applies to a
+#: cut follows from the geometry of its objective space, not from a choice; see
+#: ``_choose_operator``.
+OPERATOR_KNEE = "knee"
+OPERATOR_NEAREST_IDEAL = "nearest_ideal"
+OPERATOR_ARGMAX_POWER = "argmax_power"
 
 
 class RankSelectionOutput(NamedTuple):
@@ -328,111 +330,117 @@ def _weight_sweep(
 
 
 
-class RankCutRecord(NamedTuple):
-    """One variant's cut, and what is needed to reproduce or dispute it."""
+class ObjectiveSpace(NamedTuple):
+    """The normalised plane one cut is chosen in.
 
-    variant: str
-    #: Which rule applies to this variant. "definitional" means no rule: the
-    #: full set is every major-cluster component, and there is nothing to pick.
-    rule: str
-    #: The cut actually used downstream. None is the uncut full set.
-    resolved_rank: int | None
-    #: Where `resolved_rank` came from: the rule ("auto"), params ("manual"),
-    #: a per-variant int that overrides the mode ("pinned"), or "definitional".
-    source: str
-    #: What the rule answers, independent of which source was used.
-    auto_rank: int | None
-    #: What params carries, independent of the mode.
-    manual_rank: int | None
-    #: Whether the rule and params agree -- about each other, regardless of
-    #: which was used. A pinned cut can disagree with both while these agree.
-    auto_manual_agree: bool | None
-    #: The quantity the rule maximises or minimises, and its value at the cut.
-    statistic: str
-    value: float
-    #: How safe the answer is, in the rule's own terms, and what kind of margin
-    #: it is -- these are not comparable between rules.
-    margin: float
-    margin_kind: str
+    Every cut is an optimum over the same two axes -- residual structure to be
+    minimised, effective sample size to be maximised -- and the cuts differ only
+    in *what is counted as residual structure*. Holding that in one object is
+    what makes the three selections one procedure rather than three rules.
+    """
+
+    #: What this space counts as residual structure, for the record.
+    counted: str
+    #: Residual structure per cut, min-max normalised to [0, 1].
+    structure: np.ndarray
+    #: GWAS_Neff per cut, min-max normalised to [0, 1].
+    power: np.ndarray
+    #: Whether the structure axis increases strictly with the cut. This decides
+    #: which operator is admissible -- see ``_choose_operator``.
+    monotone: bool
+    #: How far the structure axis travels between the first and last cut. A
+    #: monotone axis spans the full [0, 1]; a folded one barely moves.
+    chord_span: float
 
 
-def _knee_cut(
-    ranks: np.ndarray, neff: np.ndarray, het: np.ndarray
-) -> tuple[int | None, float, float]:
-    """The knee of the effective-size-versus-spread curve.
+def _objective_space(counted: str, structure: np.ndarray, power: np.ndarray) -> ObjectiveSpace:
+    s = _safe_minmax_norm(structure)
+    p = _safe_minmax_norm(power)
+    finite = np.isfinite(s) & np.isfinite(p)
+    mono = bool(finite.all() and s.size > 1 and np.all(np.diff(s[finite]) > 0))
+    span = float(abs(s[finite][-1] - s[finite][0])) if int(finite.sum()) > 1 else float("nan")
+    return ObjectiveSpace(counted=counted, structure=s, power=p, monotone=mono, chord_span=span)
+
+
+def _knee(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None, float, float, str]:
+    """The point of the frontier furthest from the chord joining its ends.
 
     The curve climbs steeply while each added component brings real samples,
-    then flattens once the remaining components are small or control-heavy. The
-    knee is the last cut before that flattening: the point furthest from the
-    chord joining the two ends of the curve, both axes min-max normalised so the
-    two units cannot dominate each other (Satopaa et al. 2011, "Finding a
-    'Kneedle' in a Haystack").
+    then flattens once the remaining ones are small or control-heavy. The knee
+    is the last cut before that flattening -- where an extra unit of residual
+    structure stops buying as much effective sample size (Satopaa et al. 2011).
 
-    Both quantities happen to be monotone in ``k`` here, which puts the chord
-    endpoints at (0, 0) and (1, 1) and makes this distance exactly
-    ``Utility_Neff_minus_RGV / sqrt(2)`` -- so the decision table already
-    carries the difference curve this maximises. The perpendicular form is used
-    anyway because it stays correct if the spread ever dips.
+    It measures a turn in the exchange rate, which is the quantity the decision
+    is actually about, and this is why it is preferred to ``_nearest_ideal``
+    wherever it applies: closeness to an unattainable corner has no reading in
+    those terms and depends on the aspect ratio of the normalised box.
 
-    Returns the knee, its distance, and how far it leads the runner-up. The
-    margin is worth reading: a knee that leads by a hair is a knee the data does
-    not really place.
+    Only admissible on a monotone frontier. ``_choose_operator`` enforces that.
+
+    Returns the knee, its distance, its lead over the runner-up, and the
+    statistic's name. A knee that leads by a hair is a knee the data does not
+    really place, so the lead is reported beside the answer, never behind it.
     """
-    x = _safe_minmax_norm(het)
-    y = _safe_minmax_norm(neff)
+    x, y = space.structure, space.power
     ok = np.isfinite(x) & np.isfinite(y)
     if int(ok.sum()) < 3:
-        return None, float("nan"), float("nan")
+        return None, float("nan"), float("nan"), "distance_to_chord"
 
     x_v, y_v, r_v = x[ok], y[ok], ranks[ok]
     dx, dy = x_v[-1] - x_v[0], y_v[-1] - y_v[0]
     chord = float(np.hypot(dx, dy))
     if not np.isfinite(chord) or chord <= 0:
-        return None, float("nan"), float("nan")
+        return None, float("nan"), float("nan"), "distance_to_chord"
 
     dist = np.abs(dy * x_v - dx * y_v + x_v[-1] * y_v[0] - y_v[-1] * x_v[0]) / chord
     best = int(np.argmax(dist))
     runner = float(np.sort(dist)[-2]) if dist.size >= 2 else float("nan")
-    return int(r_v[best]), float(dist[best]), float(dist[best] - runner)
+    return int(r_v[best]), float(dist[best]), float(dist[best] - runner), "distance_to_chord"
 
 
-def _blend_cut(
-    ranks: np.ndarray,
-    neff: np.ndarray,
-    het: np.ndarray,
-    sep: np.ndarray,
-    weight: float,
-) -> tuple[int | None, float, float]:
-    """The cut that balances the two homogeneity measures against each other.
+def _nearest_ideal(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None, float, str]:
+    """The cut closest to the unattainable corner (no structure, all the power).
 
-    Residual spread rises with every component added; the de-biased case/control
-    separation falls. Because they disagree about direction, blending them has
-    an interior optimum -- neither alone does, since either one only trades
-    against ``GWAS_Neff``. At ``weight`` the blend is scored by the same
-    distance-to-ideal the single-basis recommendation uses.
-
-    Returns the winner, its distance, and the half-width of the interval of
-    weights on which the winner does not change, measured from ``weight`` to the
-    nearer edge. That margin is the honest statement of how much the answer
-    depends on the weight: a winner that changes just outside the chosen value
-    was chosen by the value.
+    What is left when the frontier is not a curve. A folded axis has no turn in
+    its exchange rate to find, so there is nothing for ``_knee`` to measure and
+    the remaining well-defined choice is proximity to the ideal corner.
     """
-    n_norm = _safe_minmax_norm(neff)
-    h_norm = _safe_minmax_norm(het)
-    s_norm = _safe_minmax_norm(sep)
-    ok = np.isfinite(n_norm) & np.isfinite(h_norm) & np.isfinite(s_norm)
+    x, y = space.structure, space.power
+    ok = np.isfinite(x) & np.isfinite(y)
     if int(ok.sum()) < 2:
-        return None, float("nan"), float("nan")
+        return None, float("nan"), "distance_to_ideal"
+    dist = np.sqrt(x[ok] ** 2 + (1.0 - y[ok]) ** 2)
+    return int(ranks[ok][int(np.argmin(dist))]), float(np.min(dist)), "distance_to_ideal"
 
-    w = float(weight)
-    blended = w * h_norm[ok] + (1.0 - w) * s_norm[ok]
-    dist = np.sqrt(blended ** 2 + (1.0 - n_norm[ok]) ** 2)
-    best_rank = int(ranks[ok][int(np.argmin(dist))])
 
-    grid, winner = _weight_sweep(neff, het, sep, ranks)
-    on = grid[winner == best_rank]
-    margin = float(min(w - on.min(), on.max() - w)) if on.size else float("nan")
-    return best_rank, float(np.min(dist)), margin
+def _choose_operator(space: ObjectiveSpace) -> str:
+    """Which operator the geometry of this space admits.
+
+    Not a preference. ``_knee`` reads a corner off a curve, which needs the
+    frontier to be a curve: monotone in the cut, so the chord spans the axis and
+    the perpendicular has leverage. Blending a non-monotone quantity into the
+    structure axis folds it -- on this dataset the blended axis travels 0.094
+    between its ends against the spread axis's 1.000, leaving the chord nearly
+    vertical and the knee degenerate. Where that happens ``_nearest_ideal`` is
+    what remains well defined.
+    """
+    return OPERATOR_KNEE if space.monotone else OPERATOR_NEAREST_IDEAL
+
+
+def _blend_margin(
+    ranks: np.ndarray, neff: np.ndarray, het: np.ndarray, sep: np.ndarray,
+    weight: float, winner: int | None,
+) -> float:
+    """How far ``weight`` sits from the nearest weight that changes the winner.
+
+    The honest statement of how much the blended answer depends on its weight: a
+    winner that changes just outside the chosen value was chosen by the value.
+    """
+    if winner is None:
+        return float("nan")
+    grid, won = _weight_sweep(neff, het, sep, ranks)
+    on = grid[won == winner]
+    return float(min(weight - on.min(), on.max() - weight)) if on.size else float("nan")
 
 
 def resolve_rank_cuts(
@@ -443,16 +451,28 @@ def resolve_rank_cuts(
     manual_cuts: "Mapping[str, int]",
     mode: str,
     blend_weight: float = INTERMEDIATE_BLEND_WEIGHT,
-) -> tuple[dict[str, int | None], pd.DataFrame]:
+) -> tuple[dict[str, int | None], pd.DataFrame, dict[str, ObjectiveSpace]]:
     """Resolve every variant's cut, and record how each one was arrived at.
 
-    Both rules are evaluated whatever the mode, so the table can always say
-    whether the automatic and the manual answer agree. The mode selects which
-    column is *used*; it never changes which are computed. Switching modes can
-    therefore not move a cut without the table showing it moved.
+    The three cuts are one procedure at three settings of a single question --
+    what counts as residual structure:
 
-    Returns the cuts keyed by variant -- None being the uncut full set -- and one
-    row per variant describing the decision.
+    ``full``          nothing is counted, so the optimum is the largest set.
+    ``narrow``        residual spread is counted.
+    ``intermediate``  spread and case/control separation are both counted.
+
+    Each setting defines an ``ObjectiveSpace``; the operator then follows from
+    that space's geometry rather than from taste (``_choose_operator``). Widening
+    what is counted moves the cut outwards here because the separation term falls
+    with the cut while spread rises.
+
+    Both the rule and the manual value are evaluated whatever the mode, so the
+    record can always say whether they agree. The mode selects which is *used*;
+    it never changes which are computed, so switching modes cannot move a cut
+    without the table showing it moved.
+
+    Returns the cuts keyed by variant -- None being the uncut full set -- one row
+    per variant describing the decision, and the spaces themselves for plotting.
     """
     ranks = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
     neff = decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False)
@@ -464,43 +484,66 @@ def resolve_rank_cuts(
         else np.full(ranks.shape, np.nan)
     )
     max_rank = int(ranks.max()) if ranks.size else 0
+    w = float(blend_weight)
 
-    knee_rank, knee_val, knee_margin = _knee_cut(ranks, neff, het)
-    blend_rank, blend_val, blend_margin = _blend_cut(ranks, neff, het, sep, blend_weight)
+    # ── The three settings of "what counts as residual structure" ────
+    spread = _objective_space("residual spread", het, neff)
+    blended = _objective_space(
+        f"residual spread and case/control separation, weighted {w:g} / {1 - w:g}",
+        w * _safe_minmax_norm(het) + (1.0 - w) * _safe_minmax_norm(sep),
+        neff,
+    )
+    spaces: dict[str, ObjectiveSpace] = {"narrow": spread, "intermediate": blended}
 
-    rules: dict[str, tuple[str, int | None, str, float, float, str]] = {
-        "narrow": (RULE_KNEE, knee_rank, "distance_to_chord", knee_val, knee_margin,
-                   "lead_over_runner_up"),
-        "intermediate": (RULE_BLEND, blend_rank, "blended_distance_to_ideal", blend_val,
-                         blend_margin, "weight_to_nearest_boundary"),
+    # narrow and intermediate: operator chosen by the geometry of each space.
+    derived: dict[str, dict[str, Any]] = {}
+    for variant, space in spaces.items():
+        operator = _choose_operator(space)
+        if operator == OPERATOR_KNEE:
+            rank, value, margin, stat = _knee(space, ranks)
+            margin_kind = "lead_over_runner_up"
+        else:
+            rank, value, stat = _nearest_ideal(space, ranks)
+            margin = _blend_margin(ranks, neff, het, sep, w, rank)
+            margin_kind = "weight_to_nearest_boundary"
+        derived[variant] = {
+            "space": space, "operator": operator, "rank": rank,
+            "statistic": stat, "value": value,
+            "margin": margin, "margin_kind": margin_kind,
+        }
+
+    # full: nothing is counted as structure, so the optimum is simply the most
+    # powerful set. Derived rather than asserted, which is what puts it in the
+    # same family as the other two.
+    finite_power = np.isfinite(neff)
+    full_rank = int(ranks[finite_power][int(np.argmax(neff[finite_power]))]) if finite_power.any() else None
+    derived["full"] = {
+        "space": None, "operator": OPERATOR_ARGMAX_POWER, "rank": full_rank,
+        "statistic": "gwas_neff",
+        "value": float(np.nanmax(neff)) if finite_power.any() else float("nan"),
+        "margin": float("nan"), "margin_kind": "",
     }
 
     cuts: dict[str, int | None] = {}
     rows: list[dict[str, Any]] = []
     for variant, declared in dict(variant_cuts).items():
+        if variant not in derived:
+            raise ValueError(
+                f"variant {variant!r} has no place in the selection framework. Add a "
+                f"setting of what counts as residual structure for it, or give it an "
+                f"explicit int in params.SUBCLUSTER_VARIANTS."
+            )
+        spec = derived[variant]
+        space = spec["space"]
         manual = manual_cuts.get(variant)
         manual = int(manual) if manual is not None else None
-
-        if declared == "full":
-            cuts[variant] = None
-            rows.append({
-                "Variant": variant, "Rule": RULE_DEFINITIONAL, "Source": "definitional",
-                "Resolved_Rank": pd.NA, "Auto_Rank": pd.NA, "Manual_Rank": pd.NA,
-                "Auto_Manual_Agree": pd.NA, "Statistic": "", "Value": np.nan,
-                "Margin": np.nan, "Margin_Kind": "",
-            })
-            continue
-
-        if variant not in rules:
-            raise ValueError(
-                f"variant {variant!r} has no selection rule. Give it an explicit int "
-                f"in params.SUBCLUSTER_VARIANTS, or add a rule for it."
-            )
-        rule, auto_rank, stat, value, margin, margin_kind = rules[variant]
+        auto_rank = spec["rank"]
 
         # A per-variant int overrides the mode in either direction; that is what
-        # makes "pin one cut, leave the other automatic" expressible.
-        if isinstance(declared, str) and declared == "auto":
+        # makes "pin one cut, leave the other derived" expressible.
+        if declared == "full":
+            source, resolved = "definitional", auto_rank
+        elif isinstance(declared, str) and declared == "auto":
             source, resolved = "auto", auto_rank
         elif isinstance(declared, str):
             raise ValueError(
@@ -514,8 +557,9 @@ def resolve_rank_cuts(
             source, resolved = "manual", manual
         if resolved is None:
             raise ValueError(
-                f"variant {variant!r} resolved to no rank under mode {mode!r}: the "
-                f"{rule} rule returned nothing and params carries no manual value."
+                f"variant {variant!r} resolved to no rank under mode {mode!r}: its "
+                f"{spec['operator']} rule returned nothing and params carries no "
+                f"manual value."
             )
         resolved = int(resolved)
         if not (1 <= resolved <= max_rank):
@@ -524,22 +568,33 @@ def resolve_rank_cuts(
                 f"range 1..{max_rank}."
             )
 
-        cuts[variant] = resolved
+        # The uncut set is expressed downstream as "exclude nothing" rather than
+        # as a rank, which is the same component set by construction.
+        cuts[variant] = None if resolved >= max_rank and declared == "full" else resolved
         rows.append({
-            "Variant": variant, "Rule": rule, "Source": source,
+            "Variant": variant,
+            "Structure_Counted": "nothing" if space is None else space.counted,
+            "Frontier_Monotone": pd.NA if space is None else bool(space.monotone),
+            "Chord_Span": np.nan if space is None else float(space.chord_span),
+            "Operator": spec["operator"],
             "Resolved_Rank": resolved,
+            "Source": source,
             "Auto_Rank": pd.NA if auto_rank is None else int(auto_rank),
             "Manual_Rank": pd.NA if manual is None else int(manual),
-            "Auto_Manual_Agree": pd.NA if (auto_rank is None or manual is None) else bool(auto_rank == manual),
-            "Statistic": stat, "Value": float(value),
-            "Margin": float(margin), "Margin_Kind": margin_kind,
+            "Auto_Manual_Agree": (
+                pd.NA if (auto_rank is None or manual is None) else bool(auto_rank == manual)
+            ),
+            "Statistic": spec["statistic"],
+            "Value": float(spec["value"]),
+            "Margin": float(spec["margin"]),
+            "Margin_Kind": spec["margin_kind"],
         })
 
     order = list(dict(variant_cuts).keys())
     table = pd.DataFrame.from_records(rows)
     table["__o"] = table["Variant"].map({v: i for i, v in enumerate(order)})
     table = table.sort_values("__o").drop(columns="__o").reset_index(drop=True)
-    return cuts, table
+    return cuts, table, spaces
 
 
 def run_rank_selection(
@@ -829,7 +884,7 @@ def run_rank_selection(
     # they agree. Done here rather than in the subcluster stage because the
     # evidence lives here: a cut derived where the decision table is built
     # cannot drift from the table that justifies it.
-    rank_cuts, cut_selection_table = resolve_rank_cuts(
+    rank_cuts, cut_selection_table, objective_spaces = resolve_rank_cuts(
         decision_table=decision_table,
         rgv_column=rgv_column,
         variant_cuts=dict(config.variant_cuts or {}),
@@ -868,6 +923,12 @@ def run_rank_selection(
                 rgv_column=rgv_column,
                 mainland_axes=mainland_axes,
                 config=config,
+                # Name the marked cut by its variant, not "recommended": all
+                # three figures then use one vocabulary, and none of them
+                # implies one cut is better than the others.
+                cut_label=next(
+                    (n for n, k in rank_cuts.items() if k == recommended_rank), "recommended"
+                ),
             )
             if bool(config.save_plot):
                 figure_path = out_dir / str(config.figure_file)
@@ -917,7 +978,7 @@ def run_rank_selection(
             fig_cut = plot_rank_cut_selection(
                 decision_table=decision_table,
                 cut_selection=cut_selection_table,
-                rgv_column=rgv_column,
+                objective_spaces=objective_spaces,
                 mainland_axes=mainland_axes,
                 weight_grid=w_grid,
                 weight_winner=w_winner,

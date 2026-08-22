@@ -1,4 +1,4 @@
-Variant	Rule	Source	Resolved_Rank	Auto_Rank	Manual_Rank	Auto_Manual_Agree	Statistic	Value	Margin	Margin_Kind
-full	definitional	definitional								
-narrow	knee	auto	9	9	9	True	distance_to_chord	0.2905305977216882	0.0016886475267409162	lead_over_runner_up
-intermediate	equal_weight_blend	auto	12	12	12	True	blended_distance_to_ideal	0.34455396685306267	0.128	weight_to_nearest_boundary
+Variant	Structure_Counted	Frontier_Monotone	Chord_Span	Operator	Resolved_Rank	Source	Auto_Rank	Manual_Rank	Auto_Manual_Agree	Statistic	Value	Margin	Margin_Kind
+full	nothing			argmax_power	17	definitional	17			gwas_neff	1507.407932924863		
+narrow	residual spread	True	1.0	knee	9	auto	9	9	True	distance_to_chord	0.2905305977216882	0.0016886475267409162	lead_over_runner_up
+intermediate	residual spread and case/control separation, weighted 0.5 / 0.5	False	0.23778383642097733	nearest_ideal	12	auto	12	12	True	distance_to_ideal	0.3596056685377501	0.128	weight_to_nearest_boundary
