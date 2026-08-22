@@ -4576,14 +4576,14 @@
       ]
     },
     "03_rank_selection/casectrl_separation.png": {
-      "bytes": 2501821,
+      "bytes": 2590543,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.051341311904,
-      "sha256": "c0aa919c4eeaeca3319e577325694cf0d05c08c7806aca78290fe27d2a16af7c",
+      "pixel_mean": 247.96458336379635,
+      "sha256": "226653fe868b7798502fa94cbbe4ec80baaff3a2b00aa1238770d00ab6fec679",
       "size": [
         11239,
-        5569
+        5586
       ]
     },
     "03_rank_selection/component_rank_table.tsv": {
@@ -4781,23 +4781,26 @@
       ]
     },
     "03_rank_selection/rank_cut_selection.png": {
-      "bytes": 2688596,
+      "bytes": 3744723,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.182436759988,
-      "sha256": "9f119bca5436f1ded6ee5dd22e3e45112c72a305cdde1aa76bb5c792ccf09e2d",
+      "pixel_mean": 247.1500546063664,
+      "sha256": "ea502a9d87a6a5535e3e961d1abd11af7cac75eda1b356e0952b37531861b9fa",
       "size": [
-        11470,
-        7026
+        11845,
+        7639
       ]
     },
     "03_rank_selection/rank_cut_selection.tsv": {
-      "bytes": 385,
+      "bytes": 577,
       "columns": [
         "Variant",
-        "Rule",
-        "Source",
+        "Structure_Counted",
+        "Frontier_Monotone",
+        "Chord_Span",
+        "Operator",
         "Resolved_Rank",
+        "Source",
         "Auto_Rank",
         "Manual_Rank",
         "Auto_Manual_Agree",
@@ -4810,9 +4813,15 @@
       "numeric": {
         "Auto_Rank": [
           9.0,
-          12.0,
-          21.0,
-          10.5
+          17.0,
+          38.0,
+          12.666666666666666
+        ],
+        "Chord_Span": [
+          0.2377838364209773,
+          1.0,
+          1.2377838364209772,
+          0.6188919182104886
         ],
         "Manual_Rank": [
           9.0,
@@ -4828,21 +4837,21 @@
         ],
         "Resolved_Rank": [
           9.0,
-          12.0,
-          21.0,
-          10.5
+          17.0,
+          38.0,
+          12.666666666666666
         ],
         "Value": [
           0.2905305977216882,
-          0.3445539668530626,
-          0.6350845645747508,
-          0.3175422822873754
+          1507.407932924863,
+          1508.0580691911225,
+          502.6860230637075
         ]
       },
-      "sha256": "e27e58db51d80cc022ea1e231451f7a74eb4b6175061dc5f69b24d6000cf9b0e",
+      "sha256": "505fbda00424e6422288dd672dbb6bd0e111e1b8fedc1b016e7cfe08ae76380b",
       "shape": [
         3,
-        11
+        14
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {
@@ -5036,14 +5045,14 @@
       ]
     },
     "03_rank_selection/rank_selection_tradeoff.png": {
-      "bytes": 1744827,
+      "bytes": 1812855,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 250.87603623089137,
-      "sha256": "0db06f60f0be7f334b258250e55827088c972c2b0289acb4d4bba1441cd9c589",
+      "pixel_mean": 250.96306350314464,
+      "sha256": "0ddd1076f0a93df539dc9754faa25ec71823e01128db8edf5080fd03a587b7da",
       "size": [
         10544,
-        5400
+        5586
       ]
     },
     "04_subcluster_variants/full/pc_space_global/all_pcs_kde.log": {

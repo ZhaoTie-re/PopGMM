@@ -254,9 +254,9 @@ formalises.
 
 ### 6b. Deriving the three cuts
 
-The three delivered sets are fixed by three different rules, stated here and
-implemented in `scripts/rank_selection.py`. Both selection rules operate on the
-same min-max normalisation, so neither quantity's unit can dominate the other:
+The three delivered sets are **one procedure at three settings of a single
+question**: what counts as residual structure. Every cut minimises residual
+structure against $N_{\mathrm{eff}}$ over the same normalised axes —
 
 ```math
 x_k = \frac{H_k - \min_j H_j}{\max_j H_j - \min_j H_j},
@@ -264,14 +264,34 @@ x_k = \frac{H_k - \min_j H_j}{\max_j H_j - \min_j H_j},
 y_k = \frac{N_k - \min_j N_j}{\max_j N_j - \min_j N_j}
 ```
 
-with $H_k$ the residual spread of cut $k$ (the column `params.RGV_BASIS` selects)
-and $N_k$ its $N_{\mathrm{eff}}$.
+— and they differ only in what enters $H_k$. Widening what is counted moves the
+cut outwards here, because the separation term falls with $k$ while spread
+rises.
 
-**`narrow` — the knee of the trade-off curve.** The curve climbs steeply while
-each added component brings real samples, then flattens once the remaining ones
-are small or control-heavy. The knee is the last cut before that flattening: the
-point furthest from the chord joining the two ends of the curve
-(Satopää et al. 2011):
+| Cut | Structure counted | Frontier | Operator | $k$ |
+|---|---|---|---|---|
+| `full` | nothing | — | $\arg\max$ $N_{\mathrm{eff}}$ | 17 |
+| `narrow` | residual spread | monotone, chord spans 1.000 | knee | 9 |
+| `intermediate` | spread **and** separation | folded, chord spans 0.238 | nearest ideal | 12 |
+
+**The operator is not a choice.** It follows from the geometry each setting
+produces, and `scripts/rank_selection.py` tests for that geometry
+(`_choose_operator`) rather than hard-coding the pairing. The two are not
+interchangeable, which is what makes the test worth running:
+
+| | monotone frontier | folded axis |
+|---|---|---|
+| knee | **9** | 2 — degenerate |
+| nearest ideal | 7 | **12** |
+
+**`full` — nothing counted.** With no homogeneity term there is no trade to
+make, so the optimum is simply the largest set, $\arg\max_k y_k = 17$: every
+major-cluster component. Derived rather than asserted, which is what places it
+in the same family as the other two.
+
+**`narrow` — residual spread counted.** Spread is strictly monotone in $k$, so
+the frontier is a curve and the chord joining its ends spans the whole axis. The
+knee is the point furthest from that chord (Satopää et al. 2011):
 
 ```math
 k_{\mathrm{narrow}} = \arg\max_k d_k,
@@ -280,23 +300,25 @@ d_k = \frac{\left|\Delta y\,x_k - \Delta x\,y_k + x_K y_1 - y_K x_1\right|}
             {\sqrt{\Delta x^2 + \Delta y^2}}
 ```
 
-Both quantities are monotone in $k$ on this run, which puts the chord endpoints
-at $(0,0)$ and $(1,1)$ and makes $d_k = |y_k - x_k|/\sqrt{2}$ — a rescaling of
-the `Utility_Neff_minus_RGV` column the decision table already carries. The
-perpendicular form is implemented anyway, so the rule stays correct if the
-spread ever dips.
+It measures the **turn in the exchange rate** — the last cut before
+$N_{\mathrm{eff}}$ stops repaying the spread it costs — which is the quantity
+the decision is actually about. That is why it is preferred to proximity-to-a-
+corner wherever it applies: closeness to an unattainable corner has no reading
+in those terms and depends on the aspect ratio of the normalised box.
+
+Both quantities are monotone on this run, which puts the chord endpoints at
+$(0,0)$ and $(1,1)$ and makes $d_k = |y_k - x_k|/\sqrt{2}$ — a rescaling of the
+`Utility_Neff_minus_RGV` column the decision table already carries. The
+perpendicular form is implemented anyway, so the rule survives a spread that
+dips.
 
 This gives $k = 9$, and **it should be read with its margin**: the lead over
-$k = 8$ is $+0.0017$, or 0.58%. The knee is where the curve turns, but the data
-does not place it sharply, and truncating the walk's upper end moves it to 8.
-`Distance_To_Ideal`, a different scalarisation of the same two axes, picks
-$k = 7$; it stays in the table as evidence but is not what selects a cut.
+$k = 8$ is $+0.0017$, or 0.58%. The turn is real but not sharply placed, and
+truncating the walk's upper end moves it to 8.
 
-**`intermediate` — equal weight on the two homogeneity measures.** RGV rises
-strictly with $k$ ($\rho = +1.00$) while the de-biased separation falls
-($\rho = -0.73$). Because they disagree about direction, blending them has an
-interior optimum that neither has alone — either one only trades against
-$N_{\mathrm{eff}}$:
+**`intermediate` — spread and separation counted.** Adding the de-biased
+separation folds the structure axis, because the two disagree about direction
+($\rho = +1.00$ against $-0.73$):
 
 ```math
 H_k(w) = w\,x_k + (1-w)\,s_k,
@@ -305,8 +327,10 @@ k_{\mathrm{inter}} = \arg\min_k \sqrt{H_k(w)^2 + (1 - y_k)^2},
 \qquad w = \tfrac{1}{2}
 ```
 
-with $s_k$ the min-max normalised `Mainland_CaseCtrl_D2_Unbiased`. This gives
-$k = 12$.
+The blended axis travels 0.238 between its ends against the spread axis's 1.000,
+leaving the chord near vertical. There is no turn in the exchange rate to find,
+so the knee is inadmissible and proximity to the ideal corner is what remains
+defined. This gives $k = 12$.
 
 $w$ encodes which kind of residual structure is judged to matter; no data can
 supply it. It is fixed at equal weight — the one value that needs no argument
@@ -326,9 +350,6 @@ that:
 This is also why the trade-off proper uses a single spread measure. One measure
 needs no weight; a second introduces a parameter with no principled value, which
 is why the blend fixes the intermediate cut and nothing else.
-
-**`full` — every major-cluster component.** Definitional, not a choice: it is
-the model's own boundary and the reference against which the other two are read.
 
 #### Automatic and manual selection
 
