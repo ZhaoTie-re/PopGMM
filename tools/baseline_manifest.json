@@ -4576,11 +4576,11 @@
       ]
     },
     "03_rank_selection/casectrl_separation.png": {
-      "bytes": 2590543,
+      "bytes": 2482173,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.96458336379635,
-      "sha256": "226653fe868b7798502fa94cbbe4ec80baaff3a2b00aa1238770d00ab6fec679",
+      "pixel_mean": 248.25208230416138,
+      "sha256": "b8cf8e21bc73f6d08214b3345a6a11994dc1392ec1dbe5687c36952b043bb3f5",
       "size": [
         11239,
         5586
@@ -4781,14 +4781,14 @@
       ]
     },
     "03_rank_selection/rank_cut_selection.png": {
-      "bytes": 3744723,
+      "bytes": 2404627,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.1500546063664,
-      "sha256": "ea502a9d87a6a5535e3e961d1abd11af7cac75eda1b356e0952b37531861b9fa",
+      "pixel_mean": 246.59150814568252,
+      "sha256": "9229c9a6002a0dea764e28a37a727d19fdc1ccab5308f28622227a22d3c5253a",
       "size": [
-        11845,
-        7639
+        11470,
+        6469
       ]
     },
     "03_rank_selection/rank_cut_selection.tsv": {
