@@ -1,0 +1,4 @@
+Variant	Rule	Source	Resolved_Rank	Auto_Rank	Manual_Rank	Auto_Manual_Agree	Statistic	Value	Margin	Margin_Kind
+full	definitional	definitional								
+narrow	knee	auto	9	9	9	True	distance_to_chord	0.2905305977216882	0.0016886475267409162	lead_over_runner_up
+intermediate	equal_weight_blend	auto	12	12	12	True	blended_distance_to_ideal	0.34455396685306267	0.128	weight_to_nearest_boundary

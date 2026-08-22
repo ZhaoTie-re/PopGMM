@@ -163,17 +163,34 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 # comparable with the others.
 
 #: Rank cut for a variant: an int keeps the components ranked 1..k, "full" keeps
-#: every major-cluster component, and "pareto" defers to the rank-selection
-#: analysis (the notebook then prints the chosen rank rather than asserting one).
-RankCut = int | Literal["full", "pareto"]
+#: every major-cluster component, and "auto" defers to the selection rule the
+#: rank-selection stage applies for that variant.
+RankCut = int | Literal["full", "auto"]
 
-#: Tightest cut. A deliberate override rather than the Pareto recommendation:
-#: `Distance_To_Ideal` is nearly flat across ranks 7-9 under this model, so the
-#: automatic pick is not meaningfully better than a neighbour, and the cut is
-#: recorded here as the human decision it is.
+#: How the narrow and intermediate cuts are arrived at.
+#:
+#: "auto"   -- each is derived by its stated rule from the decision table, and
+#:             the numbers below are carried only as a cross-check.
+#: "manual" -- the numbers below are used, and the rules are still evaluated and
+#:             reported so the two can be compared.
+#:
+#: Either way both rules run and `rank_cut_selection.tsv` records the resolved
+#: cut, the rule's own answer, the manual value, and whether they agree. The
+#: mode changes which column is *used*, never which are computed -- switching it
+#: can therefore never silently change a cut without the table saying so.
+#:
+#: A variant can also override the mode on its own: writing an int in
+#: SUBCLUSTER_VARIANTS pins that cut even under "auto", and writing "auto" lets
+#: the rule decide even under "manual".
+RANK_CUT_MODE: Literal["auto", "manual"] = "auto"
+
+#: Tightest cut. Under RANK_CUT_MODE = "auto" this is the cross-check value, not
+#: the one used; the rule is the knee of the N_eff-vs-RGV curve. Both give 9 on
+#: the committed run.
 NARROW_RANK_K: RankCut = 9
 
-#: Between narrow and full.
+#: Between narrow and full. Under "auto" the rule is the equal-weight optimum of
+#: residual spread against case/control separation. Both give 12.
 INTERMEDIATE_RANK_K: RankCut = 12
 
 #: Leading axes of the major-cluster PCA that RGV_Mainland is computed over,
@@ -198,8 +215,19 @@ MAINLAND_RGV_N_PCS: int = 4
 RGV_BASIS: Literal["global", "mainland"] = "mainland"
 
 #: Variant name -> rank cut. Drives the subcluster stage and the keep-list names.
+#:
+#: "full" is definitional -- every major-cluster component, no rule and no
+#: choice. The other two follow RANK_CUT_MODE unless an int is written here, in
+#: which case that variant is pinned whatever the mode.
 SUBCLUSTER_VARIANTS: dict[str, RankCut] = {
     "full": "full",
+    "narrow": "auto",
+    "intermediate": "auto",
+}
+
+#: Manual values, consulted when RANK_CUT_MODE = "manual" and reported as the
+#: cross-check otherwise. Keys must be a subset of SUBCLUSTER_VARIANTS.
+MANUAL_RANK_CUTS: dict[str, int] = {
     "narrow": NARROW_RANK_K,
     "intermediate": INTERMEDIATE_RANK_K,
 }

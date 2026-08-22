@@ -166,9 +166,12 @@ Every file is described in [`docs/outputs.md`](docs/outputs.md).
   infer ethnicity, identity, or ancestry independently of that reference.
 - The major cluster is defined algorithmically; its display name is an analyst's
   interpretation, not a model-discovered label.
-- The narrow and intermediate cuts are analysis choices on a power-versus-homogeneity
+- The narrow and intermediate cuts are points on a power-versus-homogeneity
   curve, not biological boundaries. Neither is the "better" list: a narrower set
   buys homogeneity with effective sample size, and a broader one the reverse.
+  Each is derived by a stated rule (`params.RANK_CUT_MODE = "auto"`) or set by
+  hand (`"manual"`); either way both answers are computed and compared in
+  `results/03_rank_selection/rank_cut_selection.tsv`.
 - A more homogeneous set removes one source of stratification, not all residual
   structure. Association-model covariates, relatedness handling and sensitivity
   analyses may still be required.
