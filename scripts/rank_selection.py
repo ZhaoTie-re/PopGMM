@@ -985,6 +985,8 @@ def run_rank_selection(
                 blend_weight=float(config.blend_weight),
                 rank_cuts=rank_cuts,
                 mode=str(config.rank_cut_mode),
+                case_label=str(config.case_label),
+                control_label=str(config.control_label),
             )
             if bool(config.save_plot):
                 cut_selection_figure_path = out_dir / str(config.cut_selection_figure_file)

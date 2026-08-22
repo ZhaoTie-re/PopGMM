@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from matplotlib.patches import FancyBboxPatch
 
 from scripts.common import to_numeric_array
 
@@ -545,16 +546,13 @@ def plot_casectrl_separation(
 
     _rule(0.286)
     _h(0.270, "Diagnostic only — never optimised against")
-    _b(0.233, r"1.  It is computed from the case/control labels, so minimising")
-    _b(0.209, r"     it optimises the very quantity the association test measures;")
-    _b(0.185, r"     an ancestry-linked risk would be selected away with the")
-    _b(0.161, r"     confounding.")
-    _b(0.131, r"2.  It is not monotone in $k$ ($\rho = -0.73$, against $+1.00$ for")
-    _b(0.107, r"     RGV) and bottoms out near the uncut set, where $N_{eff}$ is")
-    _b(0.083, r"     largest — so it would collapse the trade-off, not inform it.")
-    _b(0.045, r"The cuts are derived in rank_cut_selection.png, which uses the",
+    _b(0.233, r"Minimising it would optimise the quantity the association test")
+    _b(0.209, r"measures, and it bottoms out near the uncut set where $N_{eff}$ is")
+    _b(0.185, r"largest — so it would collapse the trade-off rather than inform it.")
+    _b(0.155, r"The full argument: docs/method.md § 6.", color=_DIM, style="italic")
+    _b(0.115, r"One of two inputs to the intermediate cut is the de-biased",
        size=11.0, color=_BK)
-    _b(0.021, r"de-biased column as one of two inputs but never this $p$.",
+    _b(0.091, r"column above; this $p$-value is an input to nothing.",
        size=11.0, color=_BK)
 
     fig.suptitle("Supplementary · Case/Control Ancestry Separation Across the Rank Walk",
@@ -562,6 +560,27 @@ def plot_casectrl_separation(
     fig.subplots_adjust(left=0.058, right=0.992, top=0.905, bottom=0.098)
     _series_footer(fig, "casectrl_separation")
     return fig
+
+
+def _flow_box(
+    ax: "plt.Axes", x: float, y: float, w: float, h: float, text: str,
+    *, face: str, edge: str, bold: bool = False, size: float = 10.0,
+) -> tuple[float, float]:
+    """One node of the decision flow. Returns its bottom-centre anchor."""
+    ax.add_patch(FancyBboxPatch(
+        (x - w / 2.0, y - h / 2.0), w, h,
+        boxstyle="round,pad=0.006,rounding_size=0.012",
+        facecolor=face, edgecolor=edge, linewidth=1.1, zorder=3,
+    ))
+    ax.text(x, y, text, fontsize=size, ha="center", va="center", zorder=4,
+            color=_BK, fontweight="bold" if bold else "normal", linespacing=1.35)
+    return x, y - h / 2.0
+
+
+def _flow_arrow(ax: "plt.Axes", x: float, y0: float, y1: float, colour: str) -> None:
+    ax.annotate("", xy=(x, y1), xytext=(x, y0), zorder=2,
+                arrowprops=dict(arrowstyle="-|>", color=colour, linewidth=1.3,
+                                shrinkA=0, shrinkB=0))
 
 
 def plot_rank_cut_selection(
@@ -575,16 +594,17 @@ def plot_rank_cut_selection(
     blend_weight: float,
     rank_cuts: "Mapping[str, int | None]",
     mode: str,
+    case_label: str = "Case",
+    control_label: str = "Control",
     safe_weight_floor: float = 0.5,
 ) -> Figure:
     """Return the figure that derives the delivered cuts.
 
-    Laid out as the argument runs -- define the space, derive, derive, validate:
-
-    ``A`` establishes the three quantities and shows which are monotone, which
-    is what decides the operator. ``B`` and ``C`` sit side by side because they
-    are the same procedure at two settings of what counts as residual structure.
-    ``D`` reports what each answer depends on.
+    Three data panels -- the two derivations, then what they depend on -- beside
+    a column that *draws* the procedure rather than describing it. The three
+    cuts are one question asked three ways, and a branching diagram carries that
+    in a glance where paragraphs did not. Everything the diagram omits is in
+    ``docs/method.md``; nothing here needs to restate it.
     """
     n_dim = len(mainland_axes)
     rank = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
@@ -593,7 +613,6 @@ def plot_rank_cut_selection(
     spread = objective_spaces["narrow"]
     blended = objective_spaces["intermediate"]
     b = np.asarray(blended.structure, dtype=float)
-    s_raw = _safe_norm(decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float, copy=False))
 
     cuts = {str(n): int(k) for n, k in rank_cuts.items() if k is not None}
     row = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
@@ -601,40 +620,20 @@ def plot_rank_cut_selection(
     k_knee = int(row["narrow"]["Resolved_Rank"])
     k_blend = int(row["intermediate"]["Resolved_Rank"])
 
-    _SPREAD, _POWER, _SEP = "#0571B0", "#212121", "#008837"
     _NARROW, _INTER, _FULL = "#0571B0", "#008837", "#B2182B"
-    _CHORD, _UNSAFE = "#B0B0B0", "#F4C7C3"
+    _CHORD = "#B0B0B0"
+    _TINT = {"full": "#FBEAEC", "narrow": "#E7F1F8", "intermediate": "#E6F4EC"}
+    _EDGE = {"full": _FULL, "narrow": _NARROW, "intermediate": _INTER}
 
-    fig = plt.figure(figsize=(20.0, 13.0))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.25, 2.75], wspace=0.055)
-    gs_l = gs[0, 0].subgridspec(3, 2, height_ratios=[0.78, 1.12, 0.80], hspace=0.36, wspace=0.20)
-    ax_sp = fig.add_subplot(gs_l[0, :])
-    ax_mo = fig.add_subplot(gs_l[1, 0])
-    ax_bl = fig.add_subplot(gs_l[1, 1])
-    ax_w = fig.add_subplot(gs_l[2, :])
+    fig = plt.figure(figsize=(19.5, 11.0))
+    gs = fig.add_gridspec(1, 2, width_ratios=[3.05, 2.95], wspace=0.055)
+    gs_l = gs[0, 0].subgridspec(2, 2, height_ratios=[1.16, 0.84], hspace=0.30, wspace=0.20)
+    ax_mo = fig.add_subplot(gs_l[0, 0])
+    ax_bl = fig.add_subplot(gs_l[0, 1])
+    ax_w = fig.add_subplot(gs_l[1, :])
     ax_note = fig.add_subplot(gs[0, 1])
 
-    # ══ A · The objective space ══════════════════════════════════════
-    ax_sp.plot(rank, y, "-o", color=_POWER, markersize=5.0, linewidth=1.8,
-               markerfacecolor="white", markeredgewidth=1.2, zorder=5,
-               label=r"$N_{eff}$  (maximise)  — monotone")
-    ax_sp.plot(rank, x, "-s", color=_SPREAD, markersize=5.0, linewidth=1.8,
-               markerfacecolor="white", markeredgewidth=1.2, zorder=4,
-               label="residual spread  (minimise)  — monotone")
-    ax_sp.plot(rank, s_raw, "-^", color=_SEP, markersize=5.4, linewidth=1.8,
-               markerfacecolor="white", markeredgewidth=1.2, zorder=3,
-               label=r"case/control separation  (minimise)  — $\bf{not}$ monotone")
-    ax_sp.set_ylabel("min-max normalised")
-    ax_sp.set_xlabel(r"Cumulative rank $k$", labelpad=1)
-    ax_sp.set_xticks(rank)
-    ax_sp.set_ylim(-0.06, 1.20)
-    ax_sp.set_title(
-        "A · The objective space — every cut below is an optimum over these, and they differ only in what is counted",
-        fontsize=13.5, fontweight="bold", loc="left", pad=9)
-    ax_sp.legend(loc="upper right", frameon=True, framealpha=0.95,
-                 edgecolor="#CFCFCF", fontsize=10.5, ncol=3, columnspacing=1.1)
-
-    # ══ B · Counting spread only — a monotone frontier ═══════════════
+    # ══ A · Counting spread only — a monotone frontier ═══════════════
     ax_mo.plot([x[0], x[-1]], [y[0], y[-1]], "-", color=_CHORD, linewidth=2.0,
                zorder=2, label="chord joining the ends")
     ax_mo.plot(x, y, "-o", color=_GR, markersize=5.0, linewidth=1.6,
@@ -659,12 +658,12 @@ def plot_rank_cut_selection(
                        color=_DIM, ha="center")
     ax_mo.set_xlabel("residual spread  (normalised)")
     ax_mo.set_ylabel(r"$N_{eff}$  (normalised)")
-    ax_mo.set_title(f"B · Counting spread — monotone, chord spans {spread.chord_span:.3f}",
+    ax_mo.set_title(f"A · Counting spread — monotone, chord spans {spread.chord_span:.3f}",
                     fontsize=13.5, fontweight="bold", loc="left", pad=9)
     ax_mo.legend(loc="lower right", frameon=True, framealpha=0.95,
                  edgecolor="#CFCFCF", fontsize=10.0)
 
-    # ══ C · Counting both — a folded axis, so the knee cannot apply ══
+    # ══ B · Counting both — a folded axis, so the knee cannot apply ══
     ax_bl.plot([b[0], b[-1]], [y[0], y[-1]], "-", color=_CHORD, linewidth=2.0,
                zorder=2, label="chord — near vertical, no leverage")
     ax_bl.plot(b, y, "-o", color=_GR, markersize=5.0, linewidth=1.2, alpha=0.75,
@@ -684,14 +683,14 @@ def plot_rank_cut_selection(
                        xytext=(0, -14) if i % 2 == 0 else (0, 8), fontsize=9.0,
                        color=_DIM, ha="center")
     ax_bl.set_xlabel(rf"$H(w)$ at $w = {blend_weight:g}$  (normalised)")
-    ax_bl.set_title(f"C · Counting both — folded, chord spans only {blended.chord_span:.3f}",
+    ax_bl.set_title(f"B · Counting both — folded, chord spans only {blended.chord_span:.3f}",
                     fontsize=13.5, fontweight="bold", loc="left", pad=9)
     ax_bl.legend(loc="lower right", frameon=True, framealpha=0.95,
                  edgecolor="#CFCFCF", fontsize=10.0)
 
-    # ══ D · What each answer depends on ══════════════════════════════
+    # ══ C · What each answer depends on ══════════════════════════════
     won = weight_winner[weight_winner > 0]
-    ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color=_UNSAFE, alpha=0.55,
+    ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color="#F4C7C3", alpha=0.55,
                       linewidth=0, zorder=1)
     ax_w.text(safe_weight_floor / 2.0, 0.05,
               "not usable — weights the case/control labels\nabove the residual spread",
@@ -708,9 +707,8 @@ def plot_rank_cut_selection(
         ax_w.plot([blend_weight], [k_blend], "s", color=_INTER, markersize=11.0,
                   markeredgecolor="white", markeredgewidth=1.5, zorder=8)
         ax_w.annotate(
-            rf"intermediate $k$ = {k_blend} holds on $w \in [{lo:.2f},\ {hi:.2f}]$"
-            "\n"
-            rf"evaluated at $w={blend_weight:g}$, {min(blend_weight - lo, hi - blend_weight):.2f} from the nearest edge",
+            rf"$k$ = {k_blend} holds on $w \in [{lo:.2f},\ {hi:.2f}]$ — "
+            rf"evaluated {min(blend_weight - lo, hi - blend_weight):.2f} from the nearest edge",
             xy=(blend_weight, k_blend), xytext=(0, 16), textcoords="offset points",
             fontsize=11.0, color=_BK, ha="center", va="bottom", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.32", facecolor="white", edgecolor=_INTER,
@@ -719,10 +717,10 @@ def plot_rank_cut_selection(
     for name, k in sorted(cuts.items(), key=lambda kv: kv[1]):
         if np.any(weight_winner == k):
             continue
-        colour = _NARROW if name == "narrow" else _FULL
+        colour = _EDGE[name]
         ax_w.axhline(k, color=colour, linewidth=1.1, linestyle=":", alpha=0.9, zorder=2)
-        why = (rf"{name} ($k$={k}) — fixed in panel B, lead {float(row[name]['Margin']):+.4f}"
-               if name == "narrow" else rf"{name} ($k$={k}) — fixed in panel B")
+        why = (rf"{name} ($k$={k}) — fixed in panel A, lead {float(row[name]['Margin']):+.4f}"
+               if name == "narrow" else rf"{name} ($k$={k}) — fixed in panel A")
         ax_w.text(0.995, k, why, color=colour, fontsize=10.5, va="center", ha="right",
                   fontstyle="italic", zorder=6,
                   bbox=dict(boxstyle="round,pad=0.22", facecolor="white",
@@ -732,102 +730,106 @@ def plot_rank_cut_selection(
     ax_w.set_yticks(sorted(set(int(v) for v in np.unique(won)) | set(cuts.values())))
     ax_w.set_ylabel(r"winning cut  $k^{*}(w)$")
     ax_w.set_xlabel(r"$w$ — weight on residual spread;  $1-w$ on case/control separation")
-    ax_w.set_title("D · What the answers depend on — the blend swept over its weight, the knee's lead marked",
+    ax_w.set_title("C · What the answers depend on — only the blend has a weight to depend on",
                    fontsize=13.5, fontweight="bold", loc="left", pad=9)
 
-    for axis in (ax_sp, ax_mo, ax_bl, ax_w):
+    for axis in (ax_mo, ax_bl, ax_w):
         axis.grid(True, alpha=0.30, linewidth=0.7)
         axis.set_axisbelow(True)
 
-    # ══ Right column: the framework, in the panels' order ════════════
+    # ══ Right column: the procedure, drawn ═══════════════════════════
     _note_axis(ax_note)
+    ax_note.text(0.5, 0.985, "One question, asked three ways",
+                 fontsize=14.5, fontweight="bold", ha="center", va="top", color=_BK)
+    ax_note.text(0.5, 0.949, "what counts as residual structure?",
+                 fontsize=12.0, ha="center", va="top", color=_GR, fontstyle="italic")
 
-    def _rule(yy: float) -> None:
-        ax_note.plot([0.0, 1.0], [yy, yy], color="#E0E0E0", linewidth=0.9)
+    # Branch geometry: one column per cut, four tiers down the column.
+    lanes = {"full": 0.175, "narrow": 0.500, "intermediate": 0.825}
+    tiers = (0.868, 0.758, 0.648, 0.534)
+    counted = {"full": "nothing", "narrow": "residual\nspread",
+               "intermediate": "spread  +\ncase/control\nseparation"}
+    geometry = {
+        "full": "no trade\nto make",
+        "narrow": f"monotone\nchord spans {spread.chord_span:.3f}",
+        "intermediate": f"folded\nchord spans {blended.chord_span:.3f}",
+    }
+    operator = {"full": r"$\arg\max N_{eff}$", "narrow": "knee",
+                "intermediate": "nearest ideal"}
+    answer = {"full": k_full, "narrow": k_knee, "intermediate": k_blend}
 
-    def _h(yy: float, txt: str) -> None:
-        ax_note.text(_X_INDENT, yy, txt, fontsize=13.5, fontweight="bold", va="top",
-                     ha="left", color=_BK)
+    ax_note.annotate("", xy=(lanes["full"], 0.925), xytext=(lanes["intermediate"], 0.925),
+                     arrowprops=dict(arrowstyle="-", color="#CFCFCF", linewidth=1.1), zorder=1)
+    for name, cx in lanes.items():
+        tint, edge = _TINT[name], _EDGE[name]
+        _flow_arrow(ax_note, cx, 0.925, tiers[0] + 0.038, edge)
+        prev = None
+        for tier, label, bold, size in (
+            (tiers[0], counted[name], False, 10.0),
+            (tiers[1], geometry[name], False, 10.0),
+            (tiers[2], operator[name], True, 11.0),
+            (tiers[3], f"{name}\n$k$ = {answer[name]}", True, 12.5),
+        ):
+            _, bottom = _flow_box(ax_note, cx, tier, 0.275,
+                                  0.086 if tier == tiers[3] else 0.072, label,
+                                  face=tint, edge=edge, bold=bold, size=size)
+            if prev is not None:
+                _flow_arrow(ax_note, cx, prev,
+                            tier + (0.043 if tier == tiers[3] else 0.036), edge)
+            prev = bottom
 
-    def _m(yy: float, txt: str, size: float = 13.0) -> None:
-        ax_note.text(0.5, yy, txt, fontsize=size, va="top", ha="center", color=_BK)
+    # The defining equations only; the derivations are in docs/method.md.
+    ax_note.plot([0.0, 1.0], [0.470, 0.470], color="#E0E0E0", linewidth=0.9)
+    ax_note.text(_X_INDENT, 0.454, "Definitions", fontsize=12.5, fontweight="bold",
+                 va="top", ha="left", color=_BK)
+    ax_note.text(0.5, 0.410,
+                 r"$x_k,\ y_k,\ s_k$ : spread, $N_{eff}$, de-biased $D^2$, each min-max to $[0,1]$",
+                 fontsize=11.0, ha="center", va="top", color=_GR)
+    ax_note.text(0.5, 0.358,
+                 r"$d_k = \dfrac{\left|\Delta y\,x_k - \Delta x\,y_k "
+                 r"+ x_K y_1 - y_K x_1\right|}{\sqrt{\Delta x^2 + \Delta y^2}}$"
+                 r"$\qquad$"
+                 r"$H_k = \dfrac{x_k + s_k}{2}$",
+                 fontsize=12.5, ha="center", va="top", color=_BK)
+    ax_note.text(0.5, 0.276,
+                 r"knee $= \arg\max_k d_k$"
+                 r"$\qquad$"
+                 r"nearest ideal $= \arg\min_k \sqrt{H_k^2 + (1-y_k)^2}$",
+                 fontsize=12.0, ha="center", va="top", color=_BK)
+    ax_note.text(_X_INDENT, 0.228,
+                 "Derivations, margins and caveats: docs/method.md § 6b",
+                 fontsize=10.0, va="top", ha="left", color=_DIM, fontstyle="italic")
 
-    def _b(yy: float, txt: str, size: float = 11.5, style: str = "normal",
-           color: str = _GR) -> None:
-        ax_note.text(_X_INDENT, yy, txt, fontsize=size, va="top", ha="left",
-                     color=color, fontstyle=style)
-
-    _rule(0.984)
-    _h(0.971, "One procedure, three settings")
-    _b(0.940, r"Every cut minimises residual structure against $N_{eff}$ over the")
-    _b(0.918, r"same normalised axes. The cuts differ only in what is counted as")
-    _b(0.896, r"structure, and the operator then follows from the geometry that")
-    _b(0.874, r"produces — it is a property of the space, not a preference.")
-    _m(0.838, r"$x_k = \dfrac{H_k - \min_j H_j}{\max_j H_j - \min_j H_j}$"
-              r"$\qquad$"
-              r"$y_k = \dfrac{N_k - \min_j N_j}{\max_j N_j - \min_j N_j}$", 12.5)
-
-    _rule(0.772)
-    _h(0.759, r"full — nothing counted   (panel B, circle)")
-    _m(0.726, r"$k_{\mathrm{full}} = \arg\max_k\ y_k$", 12.5)
-    _b(0.692, r"With no homogeneity term there is no trade to make, so the")
-    _b(0.670, r"optimum is the largest set: every major-cluster component.")
-    _b(0.648, r"Derived, not asserted — which is what places it in this family.")
-
-    _rule(0.628)
-    _h(0.615, r"narrow — residual spread counted   (panel B, diamond)")
-    _m(0.578, r"$k_{\mathrm{narrow}} = \arg\max_k\ d_k,\quad$"
-              r"$d_k = \dfrac{\left|\Delta y\,x_k - \Delta x\,y_k + x_K y_1 - y_K x_1\right|}"
-              r"{\sqrt{\Delta x^2 + \Delta y^2}}$", 11.5)
-    _b(0.522, r"Spread is strictly monotone in $k$, so the frontier is a curve and")
-    _b(0.500, r"the chord spans it. The knee is the turn in the exchange rate —")
-    _b(0.478, r"the last cut before $N_{eff}$ stops repaying the spread it costs")
-    _b(0.456, r"(Satopää et al. 2011). Preferred to proximity-to-a-corner wherever")
-    _b(0.434, r"it applies, because only it reads in those terms.")
-    _b(0.406, rf"Lead over the runner-up is {float(row['narrow']['Margin']):+.4f}. The turn is real but",
-       color=_DIM, style="italic")
-    _b(0.384, r"not sharply placed; panel D marks it.", color=_DIM, style="italic")
-
-    _rule(0.364)
-    _h(0.351, r"intermediate — spread and separation counted   (panel C, square)")
-    _m(0.316, r"$H_k(w) = w\,x_k + (1-w)\,s_k,\qquad w = 1/2$", 12.5)
-    _m(0.274, r"$k_{\mathrm{inter}} = \arg\min_k \sqrt{H_k(w)^2 + (1 - y_k)^2}$", 12.5)
-    _b(0.232, r"Separation falls with $k$ while spread rises, so the blended axis")
-    _b(0.210, r"folds: it travels " + f"{blended.chord_span:.3f}" + r" between the ends against spread's")
-    _b(0.188, f"{spread.chord_span:.3f}" + r", leaving the chord near vertical. There is no turn to")
-    _b(0.166, r"find, so the knee is inadmissible here and proximity to the ideal")
-    _b(0.144, r"corner is what remains defined.")
-    _b(0.116, r"$w$ cannot be estimated from data. It is fixed at equal weight and",
-       color=_DIM, style="italic")
-    _b(0.094, r"swept in panel D, which reports where the answer would change.",
-       color=_DIM, style="italic")
-
-    # ── The resolved cuts, as delivered ──────────────────────────────
-    _rule(0.074)
-    _b(0.062, f"Resolved   (mode: {mode})", size=11.0, color=_BK)
-    hdr = ("variant", "operator", "k", "auto", "manual", "agree")
-    xs = (0.05, 0.230, 0.500, 0.585, 0.680, 0.800)
+    # ── What the procedure produced ──────────────────────────────────
+    ax_note.plot([0.0, 1.0], [0.204, 0.204], color="#E0E0E0", linewidth=0.9)
+    ax_note.text(_X_INDENT, 0.188, f"What it produced   (mode: {mode})",
+                 fontsize=12.5, fontweight="bold", va="top", ha="left", color=_BK)
+    hdr = ("cut", "k", case_label, control_label, "n", r"$N_{eff}$", "RGV")
+    xs = (0.05, 0.230, 0.330, 0.470, 0.610, 0.725, 0.855)
     for xx, t in zip(xs, hdr):
-        ax_note.text(xx, 0.040, t, fontsize=9.5, va="top", ha="left", color=_DIM,
+        ax_note.text(xx, 0.148, t, fontsize=10.0, va="top", ha="left", color=_DIM,
                      fontstyle="italic")
+    ax_note.plot([0.0, 1.0], [0.129, 0.129], color="#E0E0E0", linewidth=0.9)
     for i, (_, r) in enumerate(cut_selection.iterrows()):
-        yy = 0.021 - i * 0.018
-        agree = r.get("Auto_Manual_Agree")
-        vals = (
-            str(r["Variant"]),
-            str(r["Operator"]).replace("_", " "),
-            "—" if pd.isna(r["Resolved_Rank"]) else str(int(r["Resolved_Rank"])),
-            "—" if pd.isna(r["Auto_Rank"]) else str(int(r["Auto_Rank"])),
-            "—" if pd.isna(r["Manual_Rank"]) else str(int(r["Manual_Rank"])),
-            "—" if pd.isna(agree) else ("yes" if bool(agree) else "NO"),
-        )
+        name = str(r["Variant"])
+        k = int(r["Resolved_Rank"])
+        d_row = decision_table.loc[decision_table["Included_Max_Rank"] == k]
+        def _v(col: str) -> str:
+            if col not in d_row.columns or d_row.empty:
+                return "—"
+            val = float(to_numeric_array(d_row[col])[0])
+            return f"{val:,.0f}" if col != "RGV_Mainland" else f"{val:.5f}"
+        yy = 0.110 - i * 0.032
+        vals = (name, str(k),
+                _v(f"{case_label}_Count"), _v(f"{control_label}_Count"),
+                _v("Total_Count"), _v("GWAS_Neff"), _v("RGV_Mainland"))
         for j, (xx, t) in enumerate(zip(xs, vals)):
-            ax_note.text(xx, yy, t, fontsize=9.5, va="top", ha="left",
-                         color=_BK if j == 0 else _GR,
-                         fontweight="bold" if j == 0 or t == "NO" else "normal")
+            ax_note.text(xx, yy, t, fontsize=10.5, va="top", ha="left",
+                         color=_EDGE.get(name, _BK) if j == 0 else _GR,
+                         fontweight="bold" if j == 0 else "normal")
 
     fig.suptitle(f"Deriving the Delivered Cuts — Mainland PCA, PC1-PC{n_dim}",
-                 fontsize=18, fontweight="bold", y=0.977)
-    fig.subplots_adjust(left=0.052, right=0.992, top=0.930, bottom=0.070)
+                 fontsize=18, fontweight="bold", y=0.975)
+    fig.subplots_adjust(left=0.055, right=0.992, top=0.918, bottom=0.082)
     _series_footer(fig, "rank_cut_selection")
     return fig

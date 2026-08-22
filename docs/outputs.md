@@ -125,7 +125,7 @@ region rather than jumping elsewhere.
 | `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
 | `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
 | `rank_cut_selection.tsv` | How each cut was arrived at: what it counts as residual structure, the frontier that produces, the operator that admits, and the resolved rank |
-| `rank_cut_selection.png` | The selection framework drawn — the objective space, both derivations, and what each answer depends on |
+| `rank_cut_selection.png` | The two derivations, what they depend on, and the procedure drawn as a branching diagram |
 | `casectrl_separation.png` | Supplementary: case/control separation across the walk |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
@@ -181,6 +181,15 @@ neighbours in a footer:
 The blue diamond on the first is labelled `narrow`, not "recommended": all three
 figures use the variant names, and none of them implies one cut is better than
 another.
+
+`rank_cut_selection.png` states what the procedure produced — the three cuts
+with their counts, $N_{\mathrm{eff}}$ and RGV — so the figures no longer derive
+an answer they never show. Its right-hand column is a branching diagram of the
+procedure rather than prose: one lane per cut, from what it counts as residual
+structure, through the geometry that produces, to the operator that admits and
+the rank that follows. The derivations, margins and caveats live in
+[`method.md`](method.md#6b-deriving-the-three-cuts) and are not repeated on the
+figure.
 
 `casectrl_separation.png` is the separation diagnostic alone — the statistic and
 its sampling floor (A), and the evidence for it (B). It drives no cut; see
