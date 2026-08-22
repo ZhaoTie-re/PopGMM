@@ -124,7 +124,9 @@ region rather than jumping elsewhere.
 | `rank_cumulative_metrics.tsv` | Each cumulative top-$k$ set with its counts |
 | `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
 | `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
-| `casectrl_separation.png` | Supplementary: case/control separation across the walk, and the re-weighting argument behind the intermediate cut |
+| `rank_cut_selection.tsv` | How each delivered cut was arrived at: rule, resolved rank, the automatic and manual answers, and whether they agree |
+| `rank_cut_selection.png` | The two selection rules drawn — the knee construction and the weight sweep — with their definitions |
+| `casectrl_separation.png` | Supplementary: case/control separation across the walk |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
 the numbers both figures draw.
@@ -139,13 +141,29 @@ set grows, so it drifts downwards across the walk on its own. Negative means the
 separation is below that floor. Neither `_HotellingT2` nor `_P` needs the
 correction.
 
-`casectrl_separation.png` carries three panels and a methods column: the
-separation and its sampling floor (A), the evidence for it (B), and which cut
-wins as residual spread and separation are re-weighted against each other (C).
-Panel C is what fixes the intermediate cut. The separation itself is diagnostic
-and drives no cut — see
+`rank_cut_selection.tsv` is the reproducibility record for the three cuts. One
+row per variant:
+
+| Column | Contents |
+|---|---|
+| `Rule` | `knee`, `equal_weight_blend`, or `definitional` |
+| `Resolved_Rank` | the cut actually used downstream; empty for the uncut full set |
+| `Source` | `auto`, `manual`, `pinned`, or `definitional` |
+| `Auto_Rank` / `Manual_Rank` | what the rule and `params.MANUAL_RANK_CUTS` each say |
+| `Auto_Manual_Agree` | whether those two agree — computed in either mode |
+| `Statistic` / `Value` | the quantity the rule optimises, at the chosen cut |
+| `Margin` / `Margin_Kind` | how safe the answer is *in that rule's own terms*; the two kinds are not comparable with each other |
+
+Both rules run whatever `params.RANK_CUT_MODE` is set to, so the mode can never
+move a cut without this table showing it. `Margin` is worth reading: the knee
+leads its runner-up by 0.58%, while the blend's evaluation point sits 0.13 from
+the nearest boundary of the interval on which its answer is constant.
+
+`casectrl_separation.png` is the separation diagnostic alone — the statistic and
+its sampling floor (A), and the evidence for it (B). It drives no cut; see
 [`method.md`](method.md#supplementary-casecontrol-separation) for why selecting
-on it would be the wrong objective.
+on it would be the wrong objective. Its de-biased column is one of the two
+inputs to the intermediate rule, which is derived in `rank_cut_selection.png`.
 
 ### `04_subcluster_variants/<variant>/` [7]
 

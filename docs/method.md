@@ -248,45 +248,113 @@ in $k$ (Spearman $-0.78$ on the mainland axes, against $+1.00$ for RGV) and
 bottoms out near the *uncut* set, where $N_{\mathrm{eff}}$ is largest — so
 selecting on it would collapse the trade-off rather than inform it.
 
-It is still informative about *where* to place a cut, as long as it is not what
-the cut is minimised on. RGV rises strictly with $k$ ($\rho = +1.00$) while the
-de-biased separation falls ($\rho = -0.73$), so blending the two produces an
-interior optimum where either alone would only trade against
-$N_{\mathrm{eff}}$. Both are min-max normalised and combined at a weight $w$:
+The de-biased separation is still an *input* to one of the cuts, as long as it is
+not the quantity that cut minimises. That distinction is what the next section
+formalises.
+
+### 6b. Deriving the three cuts
+
+The three delivered sets are fixed by three different rules, stated here and
+implemented in `scripts/rank_selection.py`. Both selection rules operate on the
+same min-max normalisation, so neither quantity's unit can dominate the other:
 
 ```math
-H(w) \;=\; w \cdot \mathrm{RGV} \;+\; (1-w)\cdot \hat{D}^2_{\mathrm{unb}},
+x_k = \frac{H_k - \min_j H_j}{\max_j H_j - \min_j H_j},
 \qquad
-k^{*}(w) \;=\; \arg\min_k \sqrt{H(w)^2 + \left(1 - N_{\mathrm{eff}}\right)^2}
+y_k = \frac{N_k - \min_j N_j}{\max_j N_j - \min_j N_j}
 ```
 
-$w$ encodes which kind of residual structure is judged to matter; no data can
-supply it. It is therefore swept from 0 to 1 rather than picked, and panel C of
-`casectrl_separation.png` reports the result. **$k = 12$ wins across
-$w \in [0.37, 0.71]$** — the whole band in which neither measure dominates — so
-the intermediate cut does not rest on having chosen a $w$. Two caveats belong
-with that number:
+with $H_k$ the residual spread of cut $k$ (the column `params.RGV_BASIS` selects)
+and $N_k$ its $N_{\mathrm{eff}}$.
 
-- **$w < 0.5$ is not usable.** It weights the labels above the spread, which is
-  the failure mode above. The cuts that win there ($k = 15, 16$) are artefacts
-  of optimising the association signal.
+**`narrow` — the knee of the trade-off curve.** The curve climbs steeply while
+each added component brings real samples, then flattens once the remaining ones
+are small or control-heavy. The knee is the last cut before that flattening: the
+point furthest from the chord joining the two ends of the curve
+(Satopää et al. 2011):
+
+```math
+k_{\mathrm{narrow}} = \arg\max_k d_k,
+\qquad
+d_k = \frac{\left|\Delta y\,x_k - \Delta x\,y_k + x_K y_1 - y_K x_1\right|}
+            {\sqrt{\Delta x^2 + \Delta y^2}}
+```
+
+Both quantities are monotone in $k$ on this run, which puts the chord endpoints
+at $(0,0)$ and $(1,1)$ and makes $d_k = |y_k - x_k|/\sqrt{2}$ — a rescaling of
+the `Utility_Neff_minus_RGV` column the decision table already carries. The
+perpendicular form is implemented anyway, so the rule stays correct if the
+spread ever dips.
+
+This gives $k = 9$, and **it should be read with its margin**: the lead over
+$k = 8$ is $+0.0017$, or 0.58%. The knee is where the curve turns, but the data
+does not place it sharply, and truncating the walk's upper end moves it to 8.
+`Distance_To_Ideal`, a different scalarisation of the same two axes, picks
+$k = 7$; it stays in the table as evidence but is not what selects a cut.
+
+**`intermediate` — equal weight on the two homogeneity measures.** RGV rises
+strictly with $k$ ($\rho = +1.00$) while the de-biased separation falls
+($\rho = -0.73$). Because they disagree about direction, blending them has an
+interior optimum that neither has alone — either one only trades against
+$N_{\mathrm{eff}}$:
+
+```math
+H_k(w) = w\,x_k + (1-w)\,s_k,
+\qquad
+k_{\mathrm{inter}} = \arg\min_k \sqrt{H_k(w)^2 + (1 - y_k)^2},
+\qquad w = \tfrac{1}{2}
+```
+
+with $s_k$ the min-max normalised `Mainland_CaseCtrl_D2_Unbiased`. This gives
+$k = 12$.
+
+$w$ encodes which kind of residual structure is judged to matter; no data can
+supply it. It is fixed at equal weight — the one value that needs no argument
+for preferring either measure — and then *swept*, which is what shows the answer
+is not an artefact of the value: $k = 12$ wins across $w \in [0.37, 0.71]$, so
+the evaluation point sits 0.13 from the nearest boundary. Two limits belong with
+that:
+
+- **$w < 0.5$ is not usable.** It weights the case/control labels above the
+  spread, which is the failure mode above. The cuts that win there
+  ($k = 15, 16$) are artefacts of optimising the association signal.
 - **$w$ is not an absolute scale.** Min-max normalisation is anchored on the
-  observed extremes, so the plateau boundaries shift if the walk is truncated —
-  $[0.45, 0.78]$ without $k=1$, $[0.31, 0.66]$ without $k=17$. The winner inside
-  the balanced band is $k = 12$ in every case; only the edges move.
+  observed extremes, so the interval shifts if the walk is truncated —
+  $[0.45, 0.78]$ without $k=1$, $[0.31, 0.66]$ without $k=17$. The winner at
+  $w = \tfrac{1}{2}$ is $k = 12$ in every case tested; only the edges move.
 
 This is also why the trade-off proper uses a single spread measure. One measure
 needs no weight; a second introduces a parameter with no principled value, which
-is a reason to keep this analysis supplementary rather than promote it.
+is why the blend fixes the intermediate cut and nothing else.
 
-The three delivered cuts are each fixed by a different rule, and only the middle
-one comes from here:
+**`full` — every major-cluster component.** Definitional, not a choice: it is
+the model's own boundary and the reference against which the other two are read.
 
-| Cut | Fixed by |
+#### Automatic and manual selection
+
+`params.RANK_CUT_MODE` selects which answer is *used*:
+
+| Mode | Effect |
 |---|---|
-| `narrow` | the knee of the $N_{\mathrm{eff}}$-vs-RGV curve |
-| `intermediate` | the re-weighting sweep above |
-| `full` | every major-cluster component — definitional, not a choice |
+| `"auto"` (default) | each cut comes from its rule above |
+| `"manual"` | each comes from `params.MANUAL_RANK_CUTS` |
+
+**Both are always computed, whichever mode is set.** The mode never changes
+which quantities are evaluated, only which column is consumed, so switching it
+cannot move a cut without `rank_cut_selection.tsv` recording that it moved — the
+table carries `Resolved_Rank`, `Auto_Rank`, `Manual_Rank` and
+`Auto_Manual_Agree` side by side. On the committed run the two agree for both
+cuts, so the mode is currently inert.
+
+A single variant can also override the mode: writing an integer in
+`params.SUBCLUSTER_VARIANTS` pins that cut whatever the mode, and `"auto"` lets
+the rule decide even under `"manual"`. That makes "pin narrow, leave
+intermediate automatic" expressible without a global switch.
+
+The resolution happens in the rank-selection stage rather than in the subcluster
+stage, because that is where the evidence is: a cut derived beside the table
+that justifies it cannot drift from that table. The subcluster stage consumes
+`rank_out.rank_cuts` and derives nothing of its own.
 
 What the diagnostic is good for beyond that is auditing a cut after the fact.
 Two things it surfaces on the committed run, neither visible in RGV:

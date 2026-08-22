@@ -4576,14 +4576,14 @@
       ]
     },
     "03_rank_selection/casectrl_separation.png": {
-      "bytes": 3032330,
+      "bytes": 2501821,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.36762985924898,
-      "sha256": "b14587d3afa011b3d93569fe9e1bbe306f1c82ace0d5ed0532d1563af529a095",
+      "pixel_mean": 248.051341311904,
+      "sha256": "c0aa919c4eeaeca3319e577325694cf0d05c08c7806aca78290fe27d2a16af7c",
       "size": [
-        11519,
-        7055
+        11239,
+        5569
       ]
     },
     "03_rank_selection/component_rank_table.tsv": {
@@ -4778,6 +4778,71 @@
       "shape": [
         17,
         18
+      ]
+    },
+    "03_rank_selection/rank_cut_selection.png": {
+      "bytes": 2688596,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 247.182436759988,
+      "sha256": "9f119bca5436f1ded6ee5dd22e3e45112c72a305cdde1aa76bb5c792ccf09e2d",
+      "size": [
+        11470,
+        7026
+      ]
+    },
+    "03_rank_selection/rank_cut_selection.tsv": {
+      "bytes": 385,
+      "columns": [
+        "Variant",
+        "Rule",
+        "Source",
+        "Resolved_Rank",
+        "Auto_Rank",
+        "Manual_Rank",
+        "Auto_Manual_Agree",
+        "Statistic",
+        "Value",
+        "Margin",
+        "Margin_Kind"
+      ],
+      "kind": "tsv",
+      "numeric": {
+        "Auto_Rank": [
+          9.0,
+          12.0,
+          21.0,
+          10.5
+        ],
+        "Manual_Rank": [
+          9.0,
+          12.0,
+          21.0,
+          10.5
+        ],
+        "Margin": [
+          0.0016886475267409,
+          0.128,
+          0.1296886475267409,
+          0.06484432376337045
+        ],
+        "Resolved_Rank": [
+          9.0,
+          12.0,
+          21.0,
+          10.5
+        ],
+        "Value": [
+          0.2905305977216882,
+          0.3445539668530626,
+          0.6350845645747508,
+          0.3175422822873754
+        ]
+      },
+      "sha256": "e27e58db51d80cc022ea1e231451f7a74eb4b6175061dc5f69b24d6000cf9b0e",
+      "shape": [
+        3,
+        11
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {
