@@ -46,7 +46,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.plotting.rank import plot_methods, plot_selection
+from scripts.plotting.rank import plot_selection
 from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
@@ -90,7 +90,6 @@ class RankSelectionOutput(NamedTuple):
     rank_table_path: Path
     decision_table_path: Path
     selection_figure_path: Path | None
-    methods_figure_path: Path | None
     #: Variant name -> resolved rank; None is the uncut full set. This is what
     #: the subcluster stage consumes, so the two cannot drift apart.
     rank_cuts: dict[str, int | None]
@@ -106,7 +105,6 @@ class RankSelectionConfig:
     # Two numbered figures, in reading order; tables carry descriptive names
     # because they are reference rather than steps of the argument.
     selection_figure_file: str = "00_selection.png"
-    methods_figure_file: str = "01_methods.png"
     rank_table_file: str = "component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
 
@@ -883,14 +881,13 @@ def run_rank_selection(
     )
 
     selection_figure_path: Path | None = None
-    methods_figure_path: Path | None = None
     if (bool(config.save_plot) or bool(config.show_plot)) and have_sep:
-        neff_arr_f = decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False)
-        het_arr_f = decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False)
-        sep_arr_f = decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=np.float64, copy=False)
-        rank_arr_f = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
-        w_grid, w_winner = _weight_sweep(neff_arr_f, het_arr_f, sep_arr_f, rank_arr_f)
-
+        w_grid, w_winner = _weight_sweep(
+            decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False),
+            decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False),
+            decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=np.float64, copy=False),
+            decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False),
+        )
         with figure_context(THEME_RANK):
             fig_sel = plot_selection(
                 decision_table=decision_table,
@@ -899,9 +896,12 @@ def run_rank_selection(
                 objective_spaces=objective_spaces,
                 rgv_column=rgv_column,
                 mainland_axes=mainland_axes,
+                weight_grid=w_grid,
+                weight_winner=w_winner,
                 blend_weight=float(config.blend_weight),
                 rank_cuts=rank_cuts,
                 mode=str(config.rank_cut_mode),
+                basis=str(config.rgv_basis),
                 case_label=str(config.case_label),
                 control_label=str(config.control_label),
             )
@@ -914,26 +914,6 @@ def run_rank_selection(
             else:
                 plt.close(fig_sel)
 
-            fig_met = plot_methods(
-                decision_table=decision_table,
-                cut_selection=cut_selection_table,
-                rgv_column=rgv_column,
-                mainland_axes=mainland_axes,
-                weight_grid=w_grid,
-                weight_winner=w_winner,
-                blend_weight=float(config.blend_weight),
-                rank_cuts=rank_cuts,
-                config=config,
-            )
-            if bool(config.save_plot):
-                methods_figure_path = out_dir / str(config.methods_figure_file)
-                save_figure(fig_met, methods_figure_path,
-                            dpi=int(config.figure_dpi), bbox_inches=None)
-            if bool(config.show_plot):
-                plt.show()
-            else:
-                plt.close(fig_met)
-
     if bool(config.verbose):
         print("\n" + "=" * 92)
         print("RANK SELECTION: EFFECTIVE SAMPLE SIZE vs RESIDUAL SPREAD".center(92))
@@ -944,10 +924,8 @@ def run_rank_selection(
         print(f"Rank table saved      : {rank_table_path}")
         print(f"Decision table saved  : {decision_table_path}")
         print(f"Cut record saved      : {cut_selection_path}")
-        for _label, _path in (("Selection figure", selection_figure_path),
-                              ("Methods figure  ", methods_figure_path)):
-            if _path is not None:
-                print(f"{_label}      : {_path}")
+        if selection_figure_path is not None:
+            print(f"Selection figure      : {selection_figure_path}")
         print("-" * 92)
         print(decision_table.to_string(index=False))
         print("=" * 92 + "\n")
@@ -960,7 +938,6 @@ def run_rank_selection(
         rank_table_path=rank_table_path,
         decision_table_path=decision_table_path,
         selection_figure_path=selection_figure_path,
-        methods_figure_path=methods_figure_path,
         rank_cuts=rank_cuts,
         cut_selection_table=cut_selection_table,
         cut_selection_path=cut_selection_path,

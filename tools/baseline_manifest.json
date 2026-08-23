@@ -4576,25 +4576,14 @@
       ]
     },
     "03_rank_selection/00_selection.png": {
-      "bytes": 2310735,
+      "bytes": 3078430,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.96741163419912,
-      "sha256": "ea2c91f2967b133df67c11033b4208329bd5227619cd2a0221c86a77fd969dea",
+      "pixel_mean": 249.69577431125708,
+      "sha256": "7a8075734d7279356d81c4273b1ea70c2cf71b066ec79ae583cfab1c83cdb4fb",
       "size": [
         12600,
-        6600
-      ]
-    },
-    "03_rank_selection/01_methods.png": {
-      "bytes": 2874471,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 248.44285961399711,
-      "sha256": "7117697e1effe851d52332b5fbfda1e741453092988dc5be96151cc817a79e2f",
-      "size": [
-        12600,
-        6600
+        8700
       ]
     },
     "03_rank_selection/component_ranking.tsv": {
