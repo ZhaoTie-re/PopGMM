@@ -339,7 +339,7 @@ def plot_rank_tradeoff(
         "Mainland Rank-Cumulative Trade-off Analysis",
         fontsize=18, fontweight="bold", y=0.972,
     )
-    _series_footer(fig, "rank_selection_tradeoff")
+    _series_footer(fig, "02_tradeoff")
     return fig
 
 
@@ -352,9 +352,10 @@ _X_INDENT = 0.05
 #: and its neighbours, so one lifted out of the directory still says where it
 #: sits in the argument.
 FIGURE_SERIES: "tuple[tuple[str, str], ...]" = (
-    ("rank_selection_tradeoff", "what is being traded"),
-    ("casectrl_separation", "the second homogeneity axis"),
-    ("rank_cut_selection", "the cuts the two of them fix"),
+    ("00_overview", "the cohorts and the basis for each"),
+    ("02_tradeoff", "what is being traded"),
+    ("03_separation", "the second homogeneity axis"),
+    ("04_cut_selection", "how the two of them fix the cuts"),
 )
 
 
@@ -379,6 +380,11 @@ def _series_tag(name: str) -> str:
     if i < len(names) - 1:
         parts.append(f"before {names[i + 1]}.png")
     return "   —   ".join(parts)
+
+
+#: Per-cut identity, shared by every figure that names a cut.
+_TINT = {"full": "#FBEAEC", "narrow": "#E7F1F8", "intermediate": "#E6F4EC"}
+_EDGE = {"full": "#B2182B", "narrow": "#0571B0", "intermediate": "#008837"}
 
 
 def _safe_norm(arr: np.ndarray) -> np.ndarray:
@@ -558,7 +564,7 @@ def plot_casectrl_separation(
     fig.suptitle("Supplementary · Case/Control Ancestry Separation Across the Rank Walk",
                  fontsize=18, fontweight="bold", y=0.972)
     fig.subplots_adjust(left=0.058, right=0.992, top=0.905, bottom=0.098)
-    _series_footer(fig, "casectrl_separation")
+    _series_footer(fig, "03_separation")
     return fig
 
 
@@ -622,8 +628,6 @@ def plot_rank_cut_selection(
 
     _NARROW, _INTER, _FULL = "#0571B0", "#008837", "#B2182B"
     _CHORD = "#B0B0B0"
-    _TINT = {"full": "#FBEAEC", "narrow": "#E7F1F8", "intermediate": "#E6F4EC"}
-    _EDGE = {"full": _FULL, "narrow": _NARROW, "intermediate": _INTER}
 
     fig = plt.figure(figsize=(19.5, 11.0))
     gs = fig.add_gridspec(1, 2, width_ratios=[3.05, 2.95], wspace=0.055)
@@ -831,5 +835,183 @@ def plot_rank_cut_selection(
     fig.suptitle(f"Deriving the Delivered Cuts — Mainland PCA, PC1-PC{n_dim}",
                  fontsize=18, fontweight="bold", y=0.975)
     fig.subplots_adjust(left=0.055, right=0.992, top=0.918, bottom=0.082)
-    _series_footer(fig, "rank_cut_selection")
+    _series_footer(fig, "04_cut_selection")
+    return fig
+
+
+def plot_cut_overview(
+    *,
+    decision_table: pd.DataFrame,
+    cut_selection: pd.DataFrame,
+    rank_table: pd.DataFrame,
+    rgv_column: str,
+    mainland_axes: Sequence[str],
+    case_label: str = "Case",
+    control_label: str = "Control",
+) -> Figure:
+    """Return the one-glance summary of what was chosen and on what basis.
+
+    The other three figures each carry one step of the argument. This one is
+    read first and answers the two questions a reader actually arrives with:
+    *what are the three cohorts*, and *what fixed each of them*. Everything on
+    it is drawn from the same decision table the later figures use, so it
+    restates rather than adds.
+    """
+    n_dim = len(mainland_axes)
+    ranks = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
+    neff = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
+    het = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
+
+    rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
+    order = sorted(rows, key=lambda n: int(rows[n]["Resolved_Rank"]))   # narrow -> full
+    k_of = {n: int(rows[n]["Resolved_Rank"]) for n in order}
+    rank_sorted = rank_table.sort_values("Rank")
+    comps = {
+        n: [int(c) for c in rank_sorted.loc[rank_sorted["Rank"] <= k_of[n], "Cluster"]]
+        for n in order
+    }
+
+    def d_row(name: str) -> "pd.Series":
+        return decision_table.loc[decision_table["Included_Max_Rank"] == k_of[name]].iloc[0]
+
+    def val(name: str, col: str) -> float:
+        r = d_row(name)
+        return float(to_numeric_array(r[[col]])[0]) if col in r.index else float("nan")
+
+    fig = plt.figure(figsize=(19.0, 10.5))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.62], width_ratios=[1.0, 1.12],
+                          hspace=0.24, wspace=0.14)
+    ax_set = fig.add_subplot(gs[0, 0])
+    ax_loc = fig.add_subplot(gs[0, 1])
+    ax_tab = fig.add_subplot(gs[1, :])
+
+    # ══ A · The three cohorts are nested ═════════════════════════════
+    _note_axis(ax_set)
+    ax_set.set_title("A · The three cohorts are nested sets",
+                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    # Outermost first, so each smaller set is drawn over the one containing it.
+    for depth, name in enumerate(reversed(order)):
+        inset = 0.085 * depth
+        x0, y0 = 0.045 + inset, 0.075 + inset
+        w, h = 0.910 - 2 * inset, 0.815 - 2 * inset
+        ax_set.add_patch(FancyBboxPatch(
+            (x0, y0), w, h, boxstyle="round,pad=0.004,rounding_size=0.018",
+            facecolor=_TINT[name], edgecolor=_EDGE[name], linewidth=2.0,
+            zorder=2 + depth,
+        ))
+        ax_set.text(
+            x0 + 0.018, y0 + h - 0.030,
+            f"{name}   $k$ = {k_of[name]}",
+            fontsize=13.5, fontweight="bold", ha="left", va="top",
+            color=_EDGE[name], zorder=10 + depth,
+        )
+        ax_set.text(
+            x0 + w - 0.018, y0 + h - 0.030,
+            f"{len(comps[name])} components   n = {val(name, 'Total_Count'):,.0f}",
+            fontsize=11.5, ha="right", va="top", color=_GR, zorder=10 + depth,
+        )
+
+    # What each widening step buys, written in the band it opens up.
+    for depth, name in enumerate(order[:-1]):
+        outer = order[depth + 1]
+        added = sorted(set(comps[outer]) - set(comps[name]))
+        d_n = val(outer, "Total_Count") - val(name, "Total_Count")
+        band_y = 0.075 + 0.085 * (len(order) - 2 - depth) + 0.030
+        ax_set.text(
+            0.5, band_y,
+            f"+{len(added)} components ({', '.join(str(c) for c in added)})"
+            f"   +{d_n:,.0f} samples",
+            fontsize=11.0, ha="center", va="bottom", color=_EDGE[outer],
+            zorder=20, fontstyle="italic",
+        )
+    inner = order[0]
+    ax_set.text(
+        0.5, 0.505,
+        "components, in rank order\n" + "   ".join(str(c) for c in comps[inner]),
+        fontsize=12.0, ha="center", va="center", color=_EDGE[inner],
+        zorder=15, linespacing=1.9, fontweight="bold",
+    )
+    ax_set.text(0.5, 0.028,
+                "Every sample in a smaller cohort is in every larger one — "
+                "the cuts are nested by construction.",
+                fontsize=10.5, ha="center", va="bottom", color=_DIM, fontstyle="italic")
+
+    # ══ B · Where each sits on the trade-off ═════════════════════════
+    ax_loc.plot(het, neff, "-o", color=_GR, markersize=4.6, linewidth=1.5,
+                markerfacecolor="white", markeredgewidth=1.1, zorder=3,
+                label="the 17 cumulative cuts")
+    for name in order:
+        r = d_row(name)
+        ax_loc.plot([float(r[rgv_column])], [float(r["GWAS_Neff"])], "o",
+                    color=_EDGE[name], markersize=15.0, markeredgecolor="white",
+                    markeredgewidth=1.8, zorder=6)
+        ax_loc.annotate(
+            f"{name}\n$k$ = {k_of[name]}",
+            xy=(float(r[rgv_column]), float(r["GWAS_Neff"])),
+            # Placed off the curve on the side each point has room on; the
+            # cuts sit close together on the flat arm.
+            xytext={"narrow": (-22, -36), "intermediate": (10, 26),
+                    "full": (-10, -30)}.get(name, (14, -4)),
+            textcoords="offset points", fontsize=11.5, fontweight="bold",
+            color=_EDGE[name], ha={"intermediate": "left"}.get(name, "right"),
+            va="center", zorder=7,
+        )
+    ax_loc.set_xlabel(rf"residual spread — RGV on mainland PC1-PC{n_dim}   $\rightarrow$ less homogeneous")
+    ax_loc.set_ylabel(r"GWAS $N_{eff}$   $\rightarrow$ more power")
+    ax_loc.set_title("B · and where each sits on the trade-off",
+                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    ax_loc.legend(loc="lower right", frameon=True, framealpha=0.95,
+                  edgecolor="#CFCFCF", fontsize=11.0)
+    ax_loc.grid(True, alpha=0.30, linewidth=0.7)
+    ax_loc.set_axisbelow(True)
+    ax_loc.margins(x=0.16, y=0.10)
+
+    # ══ C · The basis, beside the consequence ════════════════════════
+    _note_axis(ax_tab)
+    ax_tab.set_title("C · What fixed each cut, and what it delivers",
+                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    basis = {
+        "narrow": "counts residual spread — knee of the trade-off curve",
+        "intermediate": "counts spread and case/control separation — nearest the ideal corner",
+        "full": "counts nothing — every major-cluster component",
+    }
+    cols = ("cohort", "basis", "$k$", case_label, control_label,
+            "n", r"$N_{eff}$", "RGV")
+    xs = (0.008, 0.098, 0.505, 0.606, 0.694, 0.784, 0.858, 0.932)
+    ax_tab.plot([0.0, 1.0], [0.865, 0.865], color="#CFCFCF", linewidth=1.0)
+    for xx, c in zip(xs, cols):
+        ax_tab.text(xx, 0.815, c, fontsize=11.0, ha="left", va="top",
+                    color=_DIM, fontstyle="italic")
+    ax_tab.plot([0.0, 1.0], [0.700, 0.700], color="#CFCFCF", linewidth=1.0)
+    for i, name in enumerate(order):
+        yy = 0.600 - i * 0.200
+        ax_tab.add_patch(FancyBboxPatch(
+            (0.0, yy - 0.072), 1.0, 0.150,
+            boxstyle="square,pad=0", facecolor=_TINT[name], edgecolor="none",
+            alpha=0.55, zorder=1,
+        ))
+        vals = (
+            name, basis[name], str(k_of[name]),
+            f"{val(name, f'{case_label}_Count'):,.0f}",
+            f"{val(name, f'{control_label}_Count'):,.0f}",
+            f"{val(name, 'Total_Count'):,.0f}",
+            f"{val(name, 'GWAS_Neff'):,.0f}",
+            f"{val(name, rgv_column):.5f}",
+        )
+        for j, (xx, t) in enumerate(zip(xs, vals)):
+            ax_tab.text(xx, yy, t, fontsize=12.0 if j == 0 else 11.5,
+                        ha="left", va="center", zorder=3,
+                        color=_EDGE[name] if j == 0 else _BK,
+                        fontweight="bold" if j in (0, 2) else "normal",
+                        fontstyle="italic" if j == 1 else "normal")
+    ax_tab.text(0.0, 0.010,
+                "Neither cut is the better list: a narrower set buys homogeneity with "
+                "effective sample size, and a broader one the reverse. "
+                "Derivations: 04_cut_selection.png.",
+                fontsize=10.5, ha="left", va="bottom", color=_DIM, fontstyle="italic")
+
+    fig.suptitle("Rank Selection — the three delivered cohorts and the basis for each",
+                 fontsize=18, fontweight="bold", y=0.972)
+    fig.subplots_adjust(left=0.050, right=0.988, top=0.905, bottom=0.070)
+    _series_footer(fig, "00_overview")
     return fig
