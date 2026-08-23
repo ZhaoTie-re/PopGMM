@@ -4576,14 +4576,14 @@
       ]
     },
     "03_rank_selection/00_overview.png": {
-      "bytes": 1772695,
+      "bytes": 1862138,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.6976642970801,
-      "sha256": "c29b5c0be39b96df17277c9b8e1e36ee8f350c5e8940e8e9097b7d0f5c595cda",
+      "pixel_mean": 245.25669565928712,
+      "sha256": "153d5c1420199b5b225bce32eeca1dfa7e87011efa4283738f06fdccdab52ff8",
       "size": [
-        10915,
-        6161
+        11400,
+        6300
       ]
     },
     "03_rank_selection/01_component_ranking.tsv": {
@@ -4642,36 +4642,36 @@
       ]
     },
     "03_rank_selection/02_tradeoff.png": {
-      "bytes": 1822161,
+      "bytes": 1890981,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 250.94073061423475,
-      "sha256": "fc73a3b3fca1d2b2b8918232799a60cc53664207a1b771abf8b017f5357f529d",
+      "pixel_mean": 251.37726131996658,
+      "sha256": "8eada0f0e5e20d86c3e4382c59087c89c872a9f583a56612a002dc8e50effd4e",
       "size": [
-        10544,
-        5586
+        11400,
+        6300
       ]
     },
     "03_rank_selection/03_separation.png": {
-      "bytes": 2471751,
+      "bytes": 2507142,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.267348705232,
-      "sha256": "a5fb9bfabe7ac2ccd856b568b0dc086528ba25a00722dc5d6a5e3ed6c617f81a",
+      "pixel_mean": 249.22924704469506,
+      "sha256": "722b9376be59ff9d85343f9a09c13369d0190d56809a9596156bec76d4f0ba3a",
       "size": [
-        11239,
-        5586
+        11400,
+        6300
       ]
     },
     "03_rank_selection/04_cut_selection.png": {
-      "bytes": 2403458,
+      "bytes": 2379942,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 246.59238960461016,
-      "sha256": "0a4be746a6425c2124154670f2595ad1aeffccf1077bded1e312690cded58755",
+      "pixel_mean": 246.73535772417154,
+      "sha256": "f09018a4ae46d4c54bf900cf0affdc78ac2e681573d574978c4d4a826ad72e51",
       "size": [
-        11470,
-        6469
+        11400,
+        6300
       ]
     },
     "03_rank_selection/04_cut_selection.tsv": {

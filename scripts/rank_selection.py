@@ -929,7 +929,7 @@ def run_rank_selection(
             )
             if bool(config.save_plot):
                 overview_figure_path = out_dir / str(config.overview_figure_file)
-                save_figure(fig_ov, overview_figure_path, dpi=int(config.figure_dpi))
+                save_figure(fig_ov, overview_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
             if bool(config.show_plot):
                 plt.show()
             else:
@@ -943,16 +943,13 @@ def run_rank_selection(
                 rgv_column=rgv_column,
                 mainland_axes=mainland_axes,
                 config=config,
-                # Name the marked cut by its variant, not "recommended": all
-                # three figures then use one vocabulary, and none of them
-                # implies one cut is better than the others.
-                cut_label=next(
-                    (n for n, k in rank_cuts.items() if k == recommended_rank), "recommended"
-                ),
+                # Every delivered cut, so the figure names them the way the rest
+                # of the family does and implies nothing about which is better.
+                rank_cuts=rank_cuts,
             )
             if bool(config.save_plot):
                 figure_path = out_dir / str(config.figure_file)
-                save_figure(fig, figure_path, dpi=int(config.figure_dpi))
+                save_figure(fig, figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
             if bool(config.show_plot):
                 plt.show()
             else:
@@ -989,7 +986,7 @@ def run_rank_selection(
             )
             if bool(config.save_plot):
                 separation_figure_path = out_dir / str(config.separation_figure_file)
-                save_figure(fig_sep, separation_figure_path, dpi=int(config.figure_dpi))
+                save_figure(fig_sep, separation_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
             if bool(config.show_plot):
                 plt.show()
             else:
@@ -1010,7 +1007,7 @@ def run_rank_selection(
             )
             if bool(config.save_plot):
                 cut_selection_figure_path = out_dir / str(config.cut_selection_figure_file)
-                save_figure(fig_cut, cut_selection_figure_path, dpi=int(config.figure_dpi))
+                save_figure(fig_cut, cut_selection_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
             if bool(config.show_plot):
                 plt.show()
             else:
