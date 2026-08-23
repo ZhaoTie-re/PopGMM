@@ -1,4 +1,4 @@
-Variant	Structure_Counted	Frontier_Monotone	Chord_Span	Operator	Resolved_Rank	Source	Auto_Rank	Manual_Rank	Auto_Manual_Agree	Statistic	Value	Margin	Margin_Kind
-full	nothing			argmax_power	17	definitional	17			gwas_neff	1507.407932924863		
-narrow	residual spread	True	1.0	knee	9	auto	9	9	True	distance_to_chord	0.2905305977216882	0.0016886475267409162	lead_over_runner_up
-intermediate	residual spread and case/control separation, weighted 0.5 / 0.5	False	0.23778383642097733	nearest_ideal	12	auto	12	12	True	distance_to_ideal	0.3596056685377501	0.128	weight_to_nearest_boundary
+Variant	Structure_Counted	Frontier_Monotone	Chord_Span	Operator	Resolved_Rank	Source	Auto_Rank	Manual_Rank	Auto_Manual_Agree	Statistic	Value	Axis_Reversals	Exchange_Rate	Margin	Margin_Kind
+full	nothing			whole_cluster	17	definitional	17			components	17.0				
+narrow	residual spread	True	1.0	peak_excess_return	9	auto	9	9	True	excess_neff	525.1187842582931	0	381518.9003833502	3.0521416444142915	lead_over_runner_up
+intermediate	residual spread and case/control separation, weighted 0.5 / 0.5	False	0.23778383642097733	nearest_ideal	12	auto	12	12	True	distance_to_ideal	0.3596056685377501	7		0.128	weight_to_nearest_boundary

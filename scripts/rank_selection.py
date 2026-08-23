@@ -80,9 +80,9 @@ INTERMEDIATE_BLEND_WEIGHT: float = 0.5
 #: Operator names written to ``04_cut_selection.tsv``. Which one applies to a
 #: cut follows from the geometry of its objective space, not from a choice; see
 #: ``_choose_operator``.
-OPERATOR_KNEE = "knee"
+OPERATOR_EXCESS_RETURN = "peak_excess_return"
 OPERATOR_NEAREST_IDEAL = "nearest_ideal"
-OPERATOR_ARGMAX_POWER = "argmax_power"
+OPERATOR_WHOLE_CLUSTER = "whole_cluster"
 
 
 class RankSelectionOutput(NamedTuple):
@@ -364,40 +364,50 @@ def _objective_space(counted: str, structure: np.ndarray, power: np.ndarray) -> 
     return ObjectiveSpace(counted=counted, structure=s, power=p, monotone=mono, chord_span=span)
 
 
-def _knee(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None, float, float, str]:
-    """The point of the frontier furthest from the chord joining its ends.
+def _excess_return(
+    ranks: np.ndarray, power: np.ndarray, structure: np.ndarray
+) -> tuple[int | None, float, float, float, str]:
+    """The cut that has bought the most effective sample size for its cost.
 
-    The curve climbs steeply while each added component brings real samples,
-    then flattens once the remaining ones are small or control-heavy. The knee
-    is the last cut before that flattening -- where an extra unit of residual
-    structure stops buying as much effective sample size (Satopaa et al. 2011).
+    Both quantities rise strictly with the cut here, so the walk has a
+    well-defined average exchange rate -- how much ``GWAS_Neff`` one unit of
+    residual spread buys, taken end to end:
 
-    It measures a turn in the exchange rate, which is the quantity the decision
-    is actually about, and this is why it is preferred to ``_nearest_ideal``
-    wherever it applies: closeness to an unattainable corner has no reading in
-    those terms and depends on the aspect ratio of the normalised box.
+        rate = (N_K - N_1) / (H_K - H_1)
 
-    Only admissible on a monotone frontier. ``_choose_operator`` enforces that.
+    Against that benchmark each cut has bought a surplus or a shortfall:
 
-    Returns the knee, its distance, its lead over the runner-up, and the
-    statistic's name. A knee that leads by a hair is a knee the data does not
-    really place, so the lead is reported beside the answer, never behind it.
+        excess(k) = (N_k - N_1) - rate * (H_k - H_1)
+
+    and the cut where that surplus peaks is the last one that still repays what
+    it costs. Beyond it the curve flattens and later components never make the
+    accumulated shortfall back.
+
+    Cumulative rather than per-step, because the per-step rate is not monotone:
+    on this dataset ranks 10-12 fall below the average and rank 13 springs back
+    above it, so "the last step above the average rate" would answer 13. The
+    cumulative form answers 9, and is exactly the knee of the curve -- the point
+    furthest from the chord joining its ends -- rescaled into N_eff.
+
+    Returns the cut, its excess, its lead over the runner-up, the average rate,
+    and the statistic's name. The lead is reported beside the answer, never
+    behind it: a peak that leads by a hair is a peak the data does not place.
     """
-    x, y = space.structure, space.power
-    ok = np.isfinite(x) & np.isfinite(y)
+    ok = np.isfinite(power) & np.isfinite(structure)
     if int(ok.sum()) < 3:
-        return None, float("nan"), float("nan"), "distance_to_chord"
+        return None, float("nan"), float("nan"), float("nan"), "excess_neff"
 
-    x_v, y_v, r_v = x[ok], y[ok], ranks[ok]
-    dx, dy = x_v[-1] - x_v[0], y_v[-1] - y_v[0]
-    chord = float(np.hypot(dx, dy))
-    if not np.isfinite(chord) or chord <= 0:
-        return None, float("nan"), float("nan"), "distance_to_chord"
+    n_v, h_v, r_v = power[ok], structure[ok], ranks[ok]
+    span = float(h_v[-1] - h_v[0])
+    if not np.isfinite(span) or span == 0.0:
+        return None, float("nan"), float("nan"), float("nan"), "excess_neff"
 
-    dist = np.abs(dy * x_v - dx * y_v + x_v[-1] * y_v[0] - y_v[-1] * x_v[0]) / chord
-    best = int(np.argmax(dist))
-    runner = float(np.sort(dist)[-2]) if dist.size >= 2 else float("nan")
-    return int(r_v[best]), float(dist[best]), float(dist[best] - runner), "distance_to_chord"
+    rate = float(n_v[-1] - n_v[0]) / span
+    excess = (n_v - n_v[0]) - rate * (h_v - h_v[0])
+    best = int(np.argmax(excess))
+    runner = float(np.sort(excess)[-2]) if excess.size >= 2 else float("nan")
+    return (int(r_v[best]), float(excess[best]), float(excess[best] - runner),
+            rate, "excess_neff")
 
 
 def _nearest_ideal(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None, float, str]:
@@ -415,18 +425,21 @@ def _nearest_ideal(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None
     return int(ranks[ok][int(np.argmin(dist))]), float(np.min(dist)), "distance_to_ideal"
 
 
-def _choose_operator(space: ObjectiveSpace) -> str:
-    """Which operator the geometry of this space admits.
+def _direction_reversals(values: np.ndarray) -> int:
+    """How many times a series changes direction.
 
-    Not a preference. ``_knee`` reads a corner off a curve, which needs the
-    frontier to be a curve: monotone in the cut, so the chord spans the axis and
-    the perpendicular has leverage. Blending a non-monotone quantity into the
-    structure axis folds it -- on this dataset the blended axis travels 0.094
-    between its ends against the spread axis's 1.000, leaving the chord nearly
-    vertical and the knee degenerate. Where that happens ``_nearest_ideal`` is
-    what remains well defined.
+    Zero for a monotone series. It is what separates the two cuts: residual
+    spread never reverses, so a rate can be read off it; case/control separation
+    reverses repeatedly, so it has no rate to read and must be combined with
+    something that does.
     """
-    return OPERATOR_KNEE if space.monotone else OPERATOR_NEAREST_IDEAL
+    v = np.asarray(values, dtype=np.float64)
+    v = v[np.isfinite(v)]
+    if v.size < 3:
+        return 0
+    signs = np.sign(np.diff(v))
+    signs = signs[signs != 0]
+    return int(np.sum(np.diff(signs) != 0)) if signs.size >= 2 else 0
 
 
 def _blend_margin(
@@ -456,17 +469,23 @@ def resolve_rank_cuts(
 ) -> tuple[dict[str, int | None], pd.DataFrame, dict[str, ObjectiveSpace]]:
     """Resolve every variant's cut, and record how each one was arrived at.
 
-    The three cuts are one procedure at three settings of a single question --
-    what counts as residual structure:
+    The three cuts are a chain of reasoning, not three settings of one knob:
 
-    ``full``          nothing is counted, so the optimum is the largest set.
-    ``narrow``        residual spread is counted.
-    ``intermediate``  spread and case/control separation are both counted.
+    ``full``          the major cluster itself -- every component of it. Not an
+                      optimum of anything; it is the population the other two
+                      are selected *within*.
+    ``narrow``        inside it, effective sample size and residual spread both
+                      rise strictly with the cut, so the walk has an average
+                      exchange rate and ``_excess_return`` can ask which cut has
+                      bought the most power for its cost.
+    ``intermediate``  case/control separation does *not* fall monotonically as
+                      spread improves -- it reverses direction repeatedly -- so
+                      there is no rate to read off that axis. The two are
+                      combined into one parameter instead, and the cut nearest
+                      the ideal corner is taken.
 
-    Each setting defines an ``ObjectiveSpace``; the operator then follows from
-    that space's geometry rather than from taste (``_choose_operator``). Widening
-    what is counted moves the cut outwards here because the separation term falls
-    with the cut while spread rises.
+    That is why there are three: one population, one cut priced on the axis that
+    has a price, and one that answers the axis that does not.
 
     Both the rule and the manual value are evaluated whatever the mode, so the
     record can always say whether they agree. The mode selects which is *used*;
@@ -488,7 +507,6 @@ def resolve_rank_cuts(
     max_rank = int(ranks.max()) if ranks.size else 0
     w = float(blend_weight)
 
-    # ── The three settings of "what counts as residual structure" ────
     spread = _objective_space("residual spread", het, neff)
     blended = _objective_space(
         f"residual spread and case/control separation, weighted {w:g} / {1 - w:g}",
@@ -497,33 +515,38 @@ def resolve_rank_cuts(
     )
     spaces: dict[str, ObjectiveSpace] = {"narrow": spread, "intermediate": blended}
 
-    # narrow and intermediate: operator chosen by the geometry of each space.
-    derived: dict[str, dict[str, Any]] = {}
-    for variant, space in spaces.items():
-        operator = _choose_operator(space)
-        if operator == OPERATOR_KNEE:
-            rank, value, margin, stat = _knee(space, ranks)
-            margin_kind = "lead_over_runner_up"
-        else:
-            rank, value, stat = _nearest_ideal(space, ranks)
-            margin = _blend_margin(ranks, neff, het, sep, w, rank)
-            margin_kind = "weight_to_nearest_boundary"
-        derived[variant] = {
-            "space": space, "operator": operator, "rank": rank,
-            "statistic": stat, "value": value,
-            "margin": margin, "margin_kind": margin_kind,
+    # narrow: priced on the axis that has a price.
+    n_rank, n_val, n_margin, exchange_rate, n_stat = _excess_return(ranks, neff, het)
+    derived: dict[str, dict[str, Any]] = {
+        "narrow": {
+            "space": spread, "operator": OPERATOR_EXCESS_RETURN, "rank": n_rank,
+            "statistic": n_stat, "value": n_val,
+            "margin": n_margin, "margin_kind": "lead_over_runner_up",
         }
+    }
 
-    # full: nothing is counted as structure, so the optimum is simply the most
-    # powerful set. Derived rather than asserted, which is what puts it in the
-    # same family as the other two.
-    finite_power = np.isfinite(neff)
-    full_rank = int(ranks[finite_power][int(np.argmax(neff[finite_power]))]) if finite_power.any() else None
+    # intermediate: the separation axis reverses, so it is combined rather than
+    # priced. The reversal count is what justifies the different treatment, so
+    # it is recorded beside the answer.
+    i_rank, i_val, i_stat = _nearest_ideal(blended, ranks)
+    derived["intermediate"] = {
+        "space": blended, "operator": OPERATOR_NEAREST_IDEAL, "rank": i_rank,
+        "statistic": i_stat, "value": i_val,
+        "margin": _blend_margin(ranks, neff, het, sep, w, i_rank),
+        "margin_kind": "weight_to_nearest_boundary",
+    }
+
+    # full: the cluster, not an optimum. Its "rank" is the last one walked
+    # because that is every component, and nothing was selected to get there.
     derived["full"] = {
-        "space": None, "operator": OPERATOR_ARGMAX_POWER, "rank": full_rank,
-        "statistic": "gwas_neff",
-        "value": float(np.nanmax(neff)) if finite_power.any() else float("nan"),
-        "margin": float("nan"), "margin_kind": "",
+        "space": None, "operator": OPERATOR_WHOLE_CLUSTER,
+        "rank": max_rank or None, "statistic": "components",
+        "value": float(max_rank), "margin": float("nan"), "margin_kind": "",
+    }
+
+    reversals = {
+        "residual spread": _direction_reversals(het),
+        "case/control separation": _direction_reversals(sep),
     }
 
     cuts: dict[str, int | None] = {}
@@ -588,6 +611,14 @@ def resolve_rank_cuts(
             ),
             "Statistic": spec["statistic"],
             "Value": float(spec["value"]),
+            "Axis_Reversals": (
+                pd.NA if space is None
+                else int(reversals["case/control separation" if variant == "intermediate"
+                                   else "residual spread"])
+            ),
+            "Exchange_Rate": (
+                float(exchange_rate) if variant == "narrow" else np.nan
+            ),
             "Margin": float(spec["margin"]),
             "Margin_Kind": spec["margin_kind"],
         })
@@ -940,6 +971,7 @@ def run_rank_selection(
         with figure_context(THEME_RANK):
             fig = plot_rank_tradeoff(
                 decision_table=decision_table,
+                cut_selection=cut_selection_table,
                 rgv_column=rgv_column,
                 mainland_axes=mainland_axes,
                 config=config,
