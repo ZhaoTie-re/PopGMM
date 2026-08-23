@@ -171,7 +171,7 @@ Every file is described in [`docs/outputs.md`](docs/outputs.md).
   buys homogeneity with effective sample size, and a broader one the reverse.
   Each is derived by a stated rule (`params.RANK_CUT_MODE = "auto"`) or set by
   hand (`"manual"`); either way both answers are computed and compared in
-  `results/03_rank_selection/04_cut_selection.tsv`.
+  `results/03_rank_selection/cut_record.tsv`.
 - A more homogeneous set removes one source of stratification, not all residual
   structure. Association-model covariates, relatedness handling and sensitivity
   analyses may still be required.

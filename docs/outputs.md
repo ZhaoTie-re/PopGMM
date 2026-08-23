@@ -118,93 +118,40 @@ region rather than jumping elsewhere.
 
 ### `03_rank_selection/` [6]
 
-Files are numbered in reading order: `00` summarises, `01` is the ordering
-everything else walks, and `02`–`04` are the argument. The four figures share
-one canvas, one column split, one title grammar and one palette, set once in
-`scripts/plotting/rank.py` — blue is `narrow`, green `intermediate`, red `full`
-on every figure, and the three are always listed narrow → intermediate → full. `rank_decision_table.tsv`
-is unnumbered because it backs all of them rather than being a step of its own.
-Nothing downstream reads these files — the subcluster stage consumes the
-resolved cuts in memory — so they exist to be read by a person.
+Two figures and three tables. The figures are numbered in reading order; the
+tables carry descriptive names because they are reference rather than steps.
 
 | File | Contents |
 |---|---|
-| `00_overview.png` | Read first: the three cohorts as nested sets, where each sits on the trade-off, and what fixed each |
-| `01_component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
-| `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
-| `02_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
-| `04_cut_selection.tsv` | How each cut was arrived at: what it counts as residual structure, the frontier that produces, the operator that admits, and the resolved rank |
-| `04_cut_selection.png` | The two derivations, what they depend on, and the procedure drawn as a branching diagram |
-| `03_separation.png` | Supplementary: case/control separation across the walk |
+| `00_selection.png` | **The whole argument.** Four panels, one per step of the reasoning, then the three cohorts it produces |
+| `01_methods.png` | The definitions, the significance test, and what each answer depends on |
+| `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
+| `cut_record.tsv` | How each cut was arrived at: structure counted, frontier geometry, operator, resolved rank, and whether the automatic and manual answers agree |
+| `rank_decision_table.tsv` | Every number the figures draw: $N_{\mathrm{eff}}$, both RGV columns, both separation blocks, Pareto flag |
 
-`rank_decision_table.tsv` is the file to read when questioning a cut — it holds
-the numbers both figures draw.
+`00_selection.png` reads left to right as one chain:
 
-The separation diagnostics come in two blocks, one per basis, matching the two
-RGV columns. `PC12_CaseCtrl_*` is on the global PC1–PC2; `Mainland_CaseCtrl_*`
-is over the same `params.MAINLAND_RGV_N_PCS` mainland axes the trade-off is
-judged on, and on exactly the same retained samples as `RGV_Mainland` and
-`GWAS_Neff`. Read `_D2_Unbiased` rather than `_Mahalanobis` when comparing cuts:
-the raw distance carries a sampling floor of `_Noise_Floor` that shrinks as the
-set grows, so it drifts downwards across the walk on its own. Negative means the
-separation is below that floor. Neither `_HotellingT2` nor `_P` needs the
-correction.
+1. **`full`** — every component of the mainland cluster. Not an optimum of
+   anything: it is the population the other two are chosen inside.
+2. **`narrow`** — inside it, $N_{\mathrm{eff}}$ and residual spread both rise
+   strictly with $k$, so the walk has one average exchange rate. Each cut's
+   surplus over that rate peaks at $k = 9$.
+3. **The observation** — case/control centroid distance does *not* fall as
+   spread improves; it reverses direction 7 times. Step 2 cannot be repeated on
+   that axis.
+4. **`intermediate`** — so the two axes are combined into one parameter and the
+   cut nearest the ideal corner is taken: $k = 12$, between narrow and full.
 
-`04_cut_selection.tsv` is the reproducibility record for the three cuts. One
-row per variant:
+It was four figures until recently, and every step was told twice across them.
+Nothing downstream reads any file here — the subcluster stage consumes the
+resolved cuts in memory — so these exist to be read by a person.
 
-| Column | Contents |
-|---|---|
-| `Structure_Counted` | what this cut treats as residual structure — the only thing that differs between the three |
-| `Frontier_Monotone` / `Chord_Span` | the geometry that produces, which is what selects the operator |
-| `Operator` | `knee`, `nearest_ideal`, or `argmax_power` |
-| `Resolved_Rank` | the cut actually used downstream |
-| `Source` | `auto`, `manual`, `pinned`, or `definitional` |
-| `Auto_Rank` / `Manual_Rank` | what the rule and `params.MANUAL_RANK_CUTS` each say |
-| `Auto_Manual_Agree` | whether those two agree — computed in either mode |
-| `Statistic` / `Value` | the quantity the rule optimises, at the chosen cut |
-| `Margin` / `Margin_Kind` | how safe the answer is *in that rule's own terms*; the two kinds are not comparable with each other |
-
-The three cuts are one procedure at three settings of `Structure_Counted`, and
-the operator follows from the geometry each setting produces rather than being
-paired with it by hand — see
-[`method.md`](method.md#6b-deriving-the-three-cuts). `Resolved_Rank` for `full`
-is the last walked rank; the subcluster stage expresses that same set as
-"exclude nothing".
-
-Both the rule and the manual value run whatever `params.RANK_CUT_MODE` is set
-to, so the mode can never move a cut without this table showing it. `Margin` is
-worth reading: the knee leads its runner-up by 0.58%, while the blend's
+`cut_record.tsv` is the reproducibility record. Both the rule and the manual
+value are evaluated whatever `params.RANK_CUT_MODE` is set to, so the mode can
+never move a cut without this table showing it. `Margin` is worth reading: the
+narrow peak leads its runner-up by 3.1 $N_{\mathrm{eff}}$, while the blend's
 evaluation point sits 0.13 from the nearest boundary of the interval on which
 its answer is constant.
-
-### Reading order
-
-The three figures are one argument and are numbered on the page, each naming its
-neighbours in a footer:
-
-1. `02_tradeoff.png` — what is being traded
-2. `03_separation.png` — the second homogeneity axis
-3. `04_cut_selection.png` — the cuts the two of them fix
-
-The blue diamond on the first is labelled `narrow`, not "recommended": all three
-figures use the variant names, and none of them implies one cut is better than
-another.
-
-`04_cut_selection.png` states what the procedure produced — the three cuts
-with their counts, $N_{\mathrm{eff}}$ and RGV — so the figures no longer derive
-an answer they never show. Its right-hand column is a branching diagram of the
-procedure rather than prose: one lane per cut, from what it counts as residual
-structure, through the geometry that produces, to the operator that admits and
-the rank that follows. The derivations, margins and caveats live in
-[`method.md`](method.md#6b-deriving-the-three-cuts) and are not repeated on the
-figure.
-
-`03_separation.png` is the separation diagnostic alone — the statistic and
-its sampling floor (A), and the evidence for it (B). It drives no cut; see
-[`method.md`](method.md#supplementary-casecontrol-separation) for why selecting
-on it would be the wrong objective. Its de-biased column is one of the two
-inputs to the intermediate rule, which is derived in `04_cut_selection.png`.
 
 ### `04_subcluster_variants/<variant>/` [7]
 
