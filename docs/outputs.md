@@ -118,54 +118,48 @@ region rather than jumping elsewhere.
 
 ### `03_rank_selection/` [6]
 
-Two figures and three tables. The figures are numbered in reading order; the
-tables carry descriptive names because they are reference rather than steps.
+One figure and three tables.
 
 | File | Contents |
 |---|---|
-| `00_selection.png` | **The whole argument.** Four panels, one per step of the reasoning, then the three cohorts it produces |
-| `01_methods.png` | The definitions, the significance test, and every parameter the selection used |
+| `00_selection.png` | **The whole stage.** Seven numbered steps: six formulas with what each means, then the three cohorts they fix |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at: structure counted, frontier geometry, operator, resolved rank, and whether the automatic and manual answers agree |
-| `rank_decision_table.tsv` | Every number the figures draw: counts, $N_{\mathrm{eff}}$, both RGV columns, both separation blocks |
+| `rank_decision_table.tsv` | Every number the figure draws: counts, $N_{\mathrm{eff}}$, both RGV columns, both separation blocks |
 
-`00_selection.png` reads left to right as one chain:
+The figure reads top to bottom as one chain:
 
-1. **`full`** — every component of the mainland cluster. Not an optimum of
-   anything: it is the population the other two are chosen inside.
-2. **`narrow`** — inside it, $N_{\mathrm{eff}}$ and residual spread both rise
-   strictly with $k$, so the walk has one average exchange rate. Each cut's
-   surplus over that rate peaks at $k = 9$.
-3. **The observation** — case/control centroid distance does *not* fall as
-   spread improves; it reverses direction 7 times. Step 2 cannot be repeated on
-   that axis.
-4. **`intermediate`** — so the two axes are combined into one parameter and the
-   cut nearest the ideal corner is taken: $k = 12$, between narrow and full.
+1. $N_k = 4n_1n_2/(n_1+n_2)$ — the balanced-study size with the same power.
+   Rises with every component added.
+2. $H_k = |\Sigma_k|^{1/2d}$, $d = 4$ — geometric-mean SD over the leading four
+   mainland PCs. Also rises.
+3. $E_k = (N_k-N_1) - r(H_k-H_1)$ with $r = (N_K-N_1)/(H_K-H_1) = 381{,}519$ —
+   the power a cut bought above the walk's average exchange rate. **Peaks at
+   $k = 9$.**
+4. $s_k = \hat{D}^2_k - p(1/n_1+1/n_2)$ — the case/control centroid gap with the
+   sampling floor removed. **Reverses direction 7 times**, so step 3 cannot be
+   repeated on it.
+5. $H_k(w) = w x_k + (1-w)s_k$, $k^{*}(w) = \arg\min_k\sqrt{H_k(w)^2+(1-y_k)^2}$
+   — the two axes blended into one, and the cut nearest the ideal corner taken.
+6. $w = \tfrac{1}{2}$, because $w \geq \tfrac{1}{2} \iff w \geq 1-w$: below it
+   the term built from phenotype labels would outweigh the one built from
+   genotypes, and minimising *that* optimises what the association test
+   measures. Half is the boundary, so the distance carries all the weight it
+   legitimately can. The answer holds across $w \in [0.37, 0.71]$.
+7. **`full`** every component of the mainland cluster — the population steps 2–6
+   work inside; **`narrow`** $= \arg\max_k E_k = 9$; **`intermediate`**
+   $= \arg\min_k$ of step 5 at $w = \tfrac{1}{2} = 12$.
 
-It was four figures until recently, and every step was told twice across them.
+Every input parameter appears inside the formula that uses it — $d$ and the
+basis in step 2, $w$ and the safe floor in step 6, the sweep resolution on its
+plot, the resolution mode in step 7 — so nothing on the page has to be taken on
+trust. Derived values are read from `cut_record.tsv` rather than recomputed, so
+the figure and the tables cannot disagree.
+
 Nothing downstream reads any file here — the subcluster stage consumes the
-resolved cuts in memory — so these exist to be read by a person.
-
-Panel C of `01_methods.png` lists **every** parameter the selection used, in
-three groups — the inputs that were set rather than fitted, the quantities
-computed for each cut, and the values derived once when the cuts were resolved
-— each with its symbol, its value and the formula or config key it comes from.
-It exists because an audit found the opposite: of 49 computed fields, 33
-appeared on no figure and in no document, and three of the four inputs
-($d$, the sweep step, the safe floor) were nowhere to be seen. Nine columns
-that nothing read — the per-step slopes and the scalarisations the current
-rules replaced — were removed rather than documented, since they contradicted
-the derivation the figures show.
-
-The figures read the derived values from `cut_record.tsv` rather than
-recomputing them, so the table and the figure cannot disagree.
-
-`cut_record.tsv` is the reproducibility record. Both the rule and the manual
-value are evaluated whatever `params.RANK_CUT_MODE` is set to, so the mode can
-never move a cut without this table showing it. `Margin` is worth reading: the
-narrow peak leads its runner-up by 3.1 $N_{\mathrm{eff}}$, while the blend's
-evaluation point sits 0.13 from the nearest boundary of the interval on which
-its answer is constant.
+resolved cuts in memory — so these exist to be read by a person. The fuller
+derivations (the $N_{\mathrm{eff}}$ algebra, the sampling floor, the
+significance test) are in [`method.md`](method.md#6b-deriving-the-three-cuts).
 
 ### `04_subcluster_variants/<variant>/` [7]
 
