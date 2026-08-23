@@ -118,48 +118,48 @@ region rather than jumping elsewhere.
 
 ### `03_rank_selection/` [6]
 
-One figure and three tables.
+Four figures and three tables. The figures are numbered in reading order and
+answer one question each; every formula is given in full, and every symbol in it
+has a row in that figure's symbol table giving what it is and its value here.
 
 | File | Contents |
 |---|---|
-| `00_selection.png` | **The whole stage.** Seven numbered steps: six formulas with what each means, then the three cohorts they fix |
+| `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$, each derived |
+| `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
+| `02_intermediate.png` | The obstacle that blocks repeating that, and the cut it forces |
+| `03_cohorts.png` | The three delivered sets, where they sit, and what each costs |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
-| `cut_record.tsv` | How each cut was arrived at: structure counted, frontier geometry, operator, resolved rank, and whether the automatic and manual answers agree |
-| `rank_decision_table.tsv` | Every number the figure draws: counts, $N_{\mathrm{eff}}$, both RGV columns, both separation blocks |
+| `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
+| `rank_decision_table.tsv` | Every number the figures draw |
 
-The figure reads top to bottom as one chain:
+The argument runs across the four in order:
 
-1. $N_k = 4n_1n_2/(n_1+n_2)$ — the balanced-study size with the same power.
-   Rises with every component added.
-2. $H_k = |\Sigma_k|^{1/2d}$, $d = 4$ — geometric-mean SD over the leading four
-   mainland PCs. Also rises.
-3. $E_k = (N_k-N_1) - r(H_k-H_1)$ with $r = (N_K-N_1)/(H_K-H_1) = 381{,}519$ —
-   the power a cut bought above the walk's average exchange rate. **Peaks at
-   $k = 9$.**
-4. $s_k = \hat{D}^2_k - p(1/n_1+1/n_2)$ — the case/control centroid gap with the
-   sampling floor removed. **Reverses direction 7 times**, so step 3 cannot be
-   repeated on it.
-5. $H_k(w) = w x_k + (1-w)s_k$, $k^{*}(w) = \arg\min_k\sqrt{H_k(w)^2+(1-y_k)^2}$
-   — the two axes blended into one, and the cut nearest the ideal corner taken.
-6. $w = \tfrac{1}{2}$, because $w \geq \tfrac{1}{2} \iff w \geq 1-w$: below it
-   the term built from phenotype labels would outweigh the one built from
-   genotypes, and minimising *that* optimises what the association test
-   measures. Half is the boundary, so the distance carries all the weight it
-   legitimately can. The answer holds across $w \in [0.37, 0.71]$.
-7. **`full`** every component of the mainland cluster — the population steps 2–6
-   work inside; **`narrow`** $= \arg\max_k E_k = 9$; **`intermediate`**
-   $= \arg\min_k$ of step 5 at $w = \tfrac{1}{2} = 12$.
+1. The major cluster has $K = 17$ components. Order them by case/control ratio;
+   cut $k$ keeps the top $k$. Along that walk
+   $N_k = 4n_1n_2/(n_1+n_2)$ rises — the allele frequency cancels, so an
+   unbalanced set is worth less than its raw total — and so does
+   $H_k = |\Sigma_k|^{1/2d} = (\prod\sqrt{\lambda_i})^{1/d}$ with $d = 4$.
+2. Because both rise, the walk has one average exchange rate
+   $r = (N_K-N_1)/(H_K-H_1) = 381{,}519$, and each cut can be scored by
+   $E_k = (N_k-N_1) - r(H_k-H_1)$ — its surplus in effective samples over paying
+   that price. **`narrow` $= \arg\max_k E_k = 9$.** Cumulative rather than
+   per-step: the per-step rate rebounds and would answer 13.
+3. Case/control centroid distance
+   $s_k = \hat{D}^2_k - d(1/n_1+1/n_2)$ reverses direction **7 times**, so it has
+   no rate and step 2 cannot be repeated on it. The two axes are blended
+   instead — $u_k(w) = wx_k + (1-w)\tilde{s}_k$, rescaled to $\tilde{H}_k$, then
+   $k^{*}(w) = \arg\min_k\sqrt{\tilde{H}_k^2+(1-y_k)^2}$ — at
+   $w = \tfrac{1}{2}$, which is the boundary of $w \geq 1-w$: below it the term
+   built from phenotype labels would outweigh the one built from genotypes.
+   **`intermediate` $= 12$**, stable across $w \in [0.37, 0.71]$.
+4. **`full`** is every major-cluster component — no rule; the population the
+   other two are chosen inside.
 
-Every input parameter appears inside the formula that uses it — $d$ and the
-basis in step 2, $w$ and the safe floor in step 6, the sweep resolution on its
-plot, the resolution mode in step 7 — so nothing on the page has to be taken on
-trust. Derived values are read from `cut_record.tsv` rather than recomputed, so
-the figure and the tables cannot disagree.
-
-Nothing downstream reads any file here — the subcluster stage consumes the
-resolved cuts in memory — so these exist to be read by a person. The fuller
-derivations (the $N_{\mathrm{eff}}$ algebra, the sampling floor, the
-significance test) are in [`method.md`](method.md#6b-deriving-the-three-cuts).
+The second rescaling in step 3 is not cosmetic: without it the recorded distance
+0.3596 is not reproducible (you get 0.3446). Derived values on the figures are
+read from `cut_record.tsv` rather than recomputed, so figures and tables cannot
+disagree. Nothing downstream reads any file here — the subcluster stage consumes
+the resolved cuts in memory.
 
 ### `04_subcluster_variants/<variant>/` [7]
 

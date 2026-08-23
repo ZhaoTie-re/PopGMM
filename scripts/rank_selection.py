@@ -46,7 +46,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.plotting.rank import plot_selection
+from scripts.plotting.rank import (
+    plot_cohorts,
+    plot_intermediate,
+    plot_narrow,
+    plot_problem,
+)
 from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
@@ -89,7 +94,7 @@ class RankSelectionOutput(NamedTuple):
     output_dir: Path
     rank_table_path: Path
     decision_table_path: Path
-    selection_figure_path: Path | None
+    figure_paths: dict[str, Path]
     #: Variant name -> resolved rank; None is the uncut full set. This is what
     #: the subcluster stage consumes, so the two cannot drift apart.
     rank_cuts: dict[str, int | None]
@@ -104,7 +109,10 @@ class RankSelectionConfig:
     output_dir: str | Path = "results/03_rank_selection"
     # Two numbered figures, in reading order; tables carry descriptive names
     # because they are reference rather than steps of the argument.
-    selection_figure_file: str = "00_selection.png"
+    problem_figure_file: str = "00_problem.png"
+    narrow_figure_file: str = "01_narrow.png"
+    intermediate_figure_file: str = "02_intermediate.png"
+    cohorts_figure_file: str = "03_cohorts.png"
     rank_table_file: str = "component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
 
@@ -880,7 +888,7 @@ def run_rank_selection(
         )))
     )
 
-    selection_figure_path: Path | None = None
+    figure_paths: dict[str, Path] = {}
     if (bool(config.save_plot) or bool(config.show_plot)) and have_sep:
         w_grid, w_winner = _weight_sweep(
             decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False),
@@ -888,31 +896,42 @@ def run_rank_selection(
             decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=np.float64, copy=False),
             decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False),
         )
-        with figure_context(THEME_RANK):
-            fig_sel = plot_selection(
-                decision_table=decision_table,
-                cut_selection=cut_selection_table,
-                rank_table=rank_table,
-                objective_spaces=objective_spaces,
-                rgv_column=rgv_column,
-                mainland_axes=mainland_axes,
-                weight_grid=w_grid,
-                weight_winner=w_winner,
-                blend_weight=float(config.blend_weight),
-                rank_cuts=rank_cuts,
-                mode=str(config.rank_cut_mode),
+        shared = dict(
+            decision_table=decision_table,
+            cut_selection=cut_selection_table,
+            rgv_column=rgv_column,
+            case_label=str(config.case_label),
+            control_label=str(config.control_label),
+        )
+        # One figure per question, in reading order.
+        builders = (
+            (config.problem_figure_file, lambda: plot_problem(
+                rank_table=rank_table, mainland_axes=mainland_axes,
                 basis=str(config.rgv_basis),
-                case_label=str(config.case_label),
-                control_label=str(config.control_label),
-            )
-            if bool(config.save_plot):
-                selection_figure_path = out_dir / str(config.selection_figure_file)
-                save_figure(fig_sel, selection_figure_path,
-                            dpi=int(config.figure_dpi), bbox_inches=None)
-            if bool(config.show_plot):
-                plt.show()
-            else:
-                plt.close(fig_sel)
+                **{k: v for k, v in shared.items() if k != "cut_selection"})),
+            (config.narrow_figure_file, lambda: plot_narrow(
+                rank_cuts=rank_cuts,
+                **{k: v for k, v in shared.items()
+                   if k not in ("case_label", "control_label")})),
+            (config.intermediate_figure_file, lambda: plot_intermediate(
+                objective_spaces=objective_spaces, mainland_axes=mainland_axes,
+                weight_grid=w_grid, weight_winner=w_winner,
+                blend_weight=float(config.blend_weight), **shared)),
+            (config.cohorts_figure_file, lambda: plot_cohorts(
+                rank_table=rank_table, rank_cuts=rank_cuts,
+                mode=str(config.rank_cut_mode), **shared)),
+        )
+        with figure_context(THEME_RANK):
+            for _name, _build in builders:
+                _fig = _build()
+                if bool(config.save_plot):
+                    _path = out_dir / str(_name)
+                    save_figure(_fig, _path, dpi=int(config.figure_dpi), bbox_inches=None)
+                    figure_paths[str(_name)] = _path
+                if bool(config.show_plot):
+                    plt.show()
+                else:
+                    plt.close(_fig)
 
     if bool(config.verbose):
         print("\n" + "=" * 92)
@@ -924,8 +943,8 @@ def run_rank_selection(
         print(f"Rank table saved      : {rank_table_path}")
         print(f"Decision table saved  : {decision_table_path}")
         print(f"Cut record saved      : {cut_selection_path}")
-        if selection_figure_path is not None:
-            print(f"Selection figure      : {selection_figure_path}")
+        for _n, _p in figure_paths.items():
+            print(f"Figure saved          : {_p}")
         print("-" * 92)
         print(decision_table.to_string(index=False))
         print("=" * 92 + "\n")
@@ -937,7 +956,7 @@ def run_rank_selection(
         output_dir=out_dir,
         rank_table_path=rank_table_path,
         decision_table_path=decision_table_path,
-        selection_figure_path=selection_figure_path,
+        figure_paths=figure_paths,
         rank_cuts=rank_cuts,
         cut_selection_table=cut_selection_table,
         cut_selection_path=cut_selection_path,
