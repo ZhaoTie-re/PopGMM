@@ -358,7 +358,7 @@ is why the blend fixes the intermediate cut and nothing else.
 
 **Both are always computed, whichever mode is set.** The mode never changes
 which quantities are evaluated, only which column is consumed, so switching it
-cannot move a cut without `04_cut_selection.tsv` recording that it moved — the
+cannot move a cut without `cut_record.tsv` recording that it moved — the
 table carries `Resolved_Rank`, `Auto_Rank`, `Manual_Rank` and
 `Auto_Manual_Agree` side by side. On the committed run the two agree for both
 cuts, so the mode is currently inert.

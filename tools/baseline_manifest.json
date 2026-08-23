@@ -4575,18 +4575,29 @@
         10
       ]
     },
-    "03_rank_selection/00_overview.png": {
-      "bytes": 1983179,
+    "03_rank_selection/00_selection.png": {
+      "bytes": 2310735,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.69293415135058,
-      "sha256": "1beb3c14667a10c2bc4262c7e6336dab54ef6af41ec065afec943cb01dd705e6",
+      "pixel_mean": 249.96741163419912,
+      "sha256": "ea2c91f2967b133df67c11033b4208329bd5227619cd2a0221c86a77fd969dea",
       "size": [
-        11400,
-        6300
+        12600,
+        6600
       ]
     },
-    "03_rank_selection/01_component_ranking.tsv": {
+    "03_rank_selection/01_methods.png": {
+      "bytes": 2163760,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 248.96738293951418,
+      "sha256": "e069f51fdf5d208fe6d6ced89ee2436f4ba4f1e0d813e91dad76dee5bf53a4ef",
+      "size": [
+        12600,
+        6600
+      ]
+    },
+    "03_rank_selection/component_ranking.tsv": {
       "bytes": 611,
       "columns": [
         "Rank",
@@ -4641,40 +4652,7 @@
         6
       ]
     },
-    "03_rank_selection/02_tradeoff.png": {
-      "bytes": 2250955,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 250.03400672514618,
-      "sha256": "48299d50e69fa3af7170e2d224f38a1aa3ced746b72ca7e93339aec5cf282398",
-      "size": [
-        11400,
-        6300
-      ]
-    },
-    "03_rank_selection/03_separation.png": {
-      "bytes": 2666127,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 248.87488799081035,
-      "sha256": "270cfe835f1b8067dee2e9f32650d6f64c93cb9bebedba2175ff79cf041c3cfe",
-      "size": [
-        11400,
-        6300
-      ]
-    },
-    "03_rank_selection/04_cut_selection.png": {
-      "bytes": 2514354,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 246.44936213798385,
-      "sha256": "2564b6a441736e88932cfbc13e39347583117bd327c38a54b18637f03ad96d38",
-      "size": [
-        11400,
-        6300
-      ]
-    },
-    "03_rank_selection/04_cut_selection.tsv": {
+    "03_rank_selection/cut_record.tsv": {
       "bytes": 624,
       "columns": [
         "Variant",

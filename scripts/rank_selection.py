@@ -46,12 +46,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.plotting.rank import (
-    plot_casectrl_separation,
-    plot_cut_overview,
-    plot_rank_cut_selection,
-    plot_rank_tradeoff,
-)
+from scripts.plotting.rank import plot_methods, plot_selection
 from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
 from scripts.common import to_numeric_array, to_numeric_series
@@ -77,7 +72,7 @@ _SEPARATION_NAN = _CaseControlSeparation(
 #: argument for preferring either measure.
 INTERMEDIATE_BLEND_WEIGHT: float = 0.5
 
-#: Operator names written to ``04_cut_selection.tsv``. Which one applies to a
+#: Operator names written to ``cut_record.tsv``. Which one applies to a
 #: cut follows from the geometry of its objective space, not from a choice; see
 #: ``_choose_operator``.
 OPERATOR_EXCESS_RETURN = "peak_excess_return"
@@ -94,10 +89,8 @@ class RankSelectionOutput(NamedTuple):
     output_dir: Path
     rank_table_path: Path
     decision_table_path: Path
-    overview_figure_path: Path | None
-    figure_path: Path | None
-    separation_figure_path: Path | None
-    cut_selection_figure_path: Path | None
+    selection_figure_path: Path | None
+    methods_figure_path: Path | None
     #: Variant name -> resolved rank; None is the uncut full set. This is what
     #: the subcluster stage consumes, so the two cannot drift apart.
     rank_cuts: dict[str, int | None]
@@ -110,17 +103,16 @@ class RankSelectionConfig:
     """Configuration for the rank-selection trade-off analysis."""
 
     output_dir: str | Path = "results/03_rank_selection"
-    # Numbered files are the walkthrough, in reading order; the decision table
-    # stays unnumbered because it backs all of them rather than being a step.
-    overview_figure_file: str = "00_overview.png"
-    rank_table_file: str = "01_component_ranking.tsv"
+    # Two numbered figures, in reading order; tables carry descriptive names
+    # because they are reference rather than steps of the argument.
+    selection_figure_file: str = "00_selection.png"
+    methods_figure_file: str = "01_methods.png"
+    rank_table_file: str = "component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
-    figure_file: str = "02_tradeoff.png"
 
     # Supplementary case/control separation figure, in the mainland basis over
     # the same axes as RGV_Mainland. Only written when a mainland projection was
     # supplied, since without one its four columns are all NaN.
-    separation_figure_file: str = "03_separation.png"
 
     # Variant name -> declared cut: an int pins it, "auto" defers to that
     # variant's rule, "full" is the uncut set. The stage resolves these and
@@ -133,15 +125,14 @@ class RankSelectionConfig:
 
     # "auto" derives narrow and intermediate from their rules; "manual" takes
     # them from manual_cuts. Either way both are evaluated and written to
-    # cut_selection_file, so switching cannot move a cut silently.
+    # cut_record.tsv, so switching cannot move a cut silently.
     rank_cut_mode: Literal["auto", "manual"] = "auto"
 
     # Weight given to residual spread when the intermediate cut is derived; the
     # remainder goes to case/control separation. Equal weight by default.
     blend_weight: float = INTERMEDIATE_BLEND_WEIGHT
 
-    cut_selection_file: str = "04_cut_selection.tsv"
-    cut_selection_figure_file: str = "04_cut_selection.png"
+    cut_selection_file: str = "cut_record.tsv"
 
     # How many of the ranked mainland components to walk. None means "all of
     # them", discovered from the mainland component list rather than stated as a
@@ -166,7 +157,7 @@ class RankSelectionConfig:
 
     # Last-resort override of the recommended rank, which is otherwise the
     # resolved narrow cut. Prefer pinning "narrow" in variant_cuts: that goes
-    # through the same resolver and is recorded in cut_selection_file, where a
+    # through the same resolver and is recorded in cut_record.tsv, where a
     # value set here is only visible in the config snapshot.
     forced_recommended_rank: int | None = None
 
@@ -946,54 +937,8 @@ def run_rank_selection(
     cut_selection_path = out_dir / str(config.cut_selection_file)
     cut_selection_table.to_csv(cut_selection_path, sep="\t", index=False)
 
-    overview_figure_path: Path | None = None
-    if bool(config.save_plot) or bool(config.show_plot):
-        with figure_context(THEME_RANK):
-            fig_ov = plot_cut_overview(
-                decision_table=decision_table,
-                cut_selection=cut_selection_table,
-                rank_table=rank_table,
-                rgv_column=rgv_column,
-                mainland_axes=mainland_axes,
-                case_label=str(config.case_label),
-                control_label=str(config.control_label),
-            )
-            if bool(config.save_plot):
-                overview_figure_path = out_dir / str(config.overview_figure_file)
-                save_figure(fig_ov, overview_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
-            if bool(config.show_plot):
-                plt.show()
-            else:
-                plt.close(fig_ov)
-
-    figure_path: Path | None = None
-    if bool(config.save_plot) or bool(config.show_plot):
-        with figure_context(THEME_RANK):
-            fig = plot_rank_tradeoff(
-                decision_table=decision_table,
-                cut_selection=cut_selection_table,
-                rgv_column=rgv_column,
-                mainland_axes=mainland_axes,
-                config=config,
-                # Every delivered cut, so the figure names them the way the rest
-                # of the family does and implies nothing about which is better.
-                rank_cuts=rank_cuts,
-            )
-            if bool(config.save_plot):
-                figure_path = out_dir / str(config.figure_file)
-                save_figure(fig, figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
-            if bool(config.show_plot):
-                plt.show()
-            else:
-                plt.close(fig)
-
-    # Resolved cuts, not declared ones: the figures must mark the ranks that are
-    # actually delivered. "full" carries no rank, so it is drawn at the last one.
-    marks: dict[str, int] = {
-        str(name): (max_rank if rank is None else int(rank))
-        for name, rank in rank_cuts.items()
-        if (max_rank if rank is None else int(rank)) >= 1
-    }
+    # Both figures need the separation column: it is step 3 of the argument and
+    # the subject of the methods figure's second half.
     have_sep = (
         mainland_xy is not None
         and bool(np.any(np.isfinite(
@@ -1001,8 +946,8 @@ def run_rank_selection(
         )))
     )
 
-    separation_figure_path: Path | None = None
-    cut_selection_figure_path: Path | None = None
+    selection_figure_path: Path | None = None
+    methods_figure_path: Path | None = None
     if (bool(config.save_plot) or bool(config.show_plot)) and have_sep:
         neff_arr_f = decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False)
         het_arr_f = decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False)
@@ -1011,26 +956,13 @@ def run_rank_selection(
         w_grid, w_winner = _weight_sweep(neff_arr_f, het_arr_f, sep_arr_f, rank_arr_f)
 
         with figure_context(THEME_RANK):
-            fig_sep = plot_casectrl_separation(
-                decision_table=decision_table,
-                mainland_axes=mainland_axes,
-                variant_cuts=marks or None,
-            )
-            if bool(config.save_plot):
-                separation_figure_path = out_dir / str(config.separation_figure_file)
-                save_figure(fig_sep, separation_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
-            if bool(config.show_plot):
-                plt.show()
-            else:
-                plt.close(fig_sep)
-
-            fig_cut = plot_rank_cut_selection(
+            fig_sel = plot_selection(
                 decision_table=decision_table,
                 cut_selection=cut_selection_table,
+                rank_table=rank_table,
                 objective_spaces=objective_spaces,
+                rgv_column=rgv_column,
                 mainland_axes=mainland_axes,
-                weight_grid=w_grid,
-                weight_winner=w_winner,
                 blend_weight=float(config.blend_weight),
                 rank_cuts=rank_cuts,
                 mode=str(config.rank_cut_mode),
@@ -1038,12 +970,33 @@ def run_rank_selection(
                 control_label=str(config.control_label),
             )
             if bool(config.save_plot):
-                cut_selection_figure_path = out_dir / str(config.cut_selection_figure_file)
-                save_figure(fig_cut, cut_selection_figure_path, dpi=int(config.figure_dpi), bbox_inches=None)
+                selection_figure_path = out_dir / str(config.selection_figure_file)
+                save_figure(fig_sel, selection_figure_path,
+                            dpi=int(config.figure_dpi), bbox_inches=None)
             if bool(config.show_plot):
                 plt.show()
             else:
-                plt.close(fig_cut)
+                plt.close(fig_sel)
+
+            fig_met = plot_methods(
+                decision_table=decision_table,
+                cut_selection=cut_selection_table,
+                rgv_column=rgv_column,
+                mainland_axes=mainland_axes,
+                weight_grid=w_grid,
+                weight_winner=w_winner,
+                blend_weight=float(config.blend_weight),
+                rank_cuts=rank_cuts,
+                config=config,
+            )
+            if bool(config.save_plot):
+                methods_figure_path = out_dir / str(config.methods_figure_file)
+                save_figure(fig_met, methods_figure_path,
+                            dpi=int(config.figure_dpi), bbox_inches=None)
+            if bool(config.show_plot):
+                plt.show()
+            else:
+                plt.close(fig_met)
 
     if bool(config.verbose):
         print("\n" + "=" * 92)
@@ -1054,8 +1007,11 @@ def run_rank_selection(
         print(f"Recommended rank k   : {recommended_rank}  {_rec_source}")
         print(f"Rank table saved      : {rank_table_path}")
         print(f"Decision table saved  : {decision_table_path}")
-        if figure_path is not None:
-            print(f"Figure saved          : {figure_path}")
+        print(f"Cut record saved      : {cut_selection_path}")
+        for _label, _path in (("Selection figure", selection_figure_path),
+                              ("Methods figure  ", methods_figure_path)):
+            if _path is not None:
+                print(f"{_label}      : {_path}")
         print("-" * 92)
         print(decision_table.to_string(index=False))
         print("=" * 92 + "\n")
@@ -1067,10 +1023,8 @@ def run_rank_selection(
         output_dir=out_dir,
         rank_table_path=rank_table_path,
         decision_table_path=decision_table_path,
-        overview_figure_path=overview_figure_path,
-        figure_path=figure_path,
-        separation_figure_path=separation_figure_path,
-        cut_selection_figure_path=cut_selection_figure_path,
+        selection_figure_path=selection_figure_path,
+        methods_figure_path=methods_figure_path,
         rank_cuts=rank_cuts,
         cut_selection_table=cut_selection_table,
         cut_selection_path=cut_selection_path,
