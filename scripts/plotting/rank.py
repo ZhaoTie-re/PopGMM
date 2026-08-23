@@ -13,7 +13,7 @@ figures answer different questions and only the first selects a cut.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,22 +33,20 @@ def plot_rank_tradeoff(
     rgv_column: str,
     mainland_axes: Sequence[str],
     config: "RankSelectionConfig",
-    cut_label: str = "recommended",
+    rank_cuts: "Mapping[str, int | None] | None" = None,
 ) -> Figure:
     """Return the trade-off figure; the caller styles, saves and closes it.
 
-    ``cut_label`` names the marked cut. It is the variant name -- "narrow" --
-    rather than "recommended", which would read as a claim that this cut is
-    better than the other two when the whole point is that each buys one thing
-    with another.
+    Marks every delivered cut, not just one. Marking a single cut and calling it
+    "recommended" read as a claim that it was the better list, when the point of
+    the stage is that each buys one thing with another -- and it left the other
+    two invisible on the one figure that shows what they cost.
     """
 
     # ── Figure & axes layout ──────────────────────────────────────────
-    fig = plt.figure(figsize=(18.0, 9.5))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.2, 2.8], wspace=0.06)
-    ax = fig.add_subplot(gs[0, 0])
-    ax_note = fig.add_subplot(gs[0, 1])
-    fig.subplots_adjust(left=0.075, right=0.990, top=0.882, bottom=0.115)
+    fig, gs_left, ax_note = _split_figure()
+    ax = fig.add_subplot(gs_left)
+    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
 
     rank_vals = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
     neff_vals = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
@@ -62,7 +60,6 @@ def plot_rank_tradeoff(
         rgv_dim = 2
         rgv_axis_label = "global PCA, PC1-PC2"
     pareto_vals = decision_table["Is_Pareto"].to_numpy(dtype=bool, copy=False)
-    rec_vals = decision_table["Is_Recommended"].to_numpy(dtype=bool, copy=False)
 
     valid_mask = np.isfinite(neff_vals) & np.isfinite(het_vals)
     if bool(np.any(valid_mask)):
@@ -70,14 +67,12 @@ def plot_rank_tradeoff(
         y_valid = neff_vals[valid_mask]
         rank_valid = rank_vals[valid_mask]
         p_valid = pareto_vals[valid_mask]
-        r_valid = rec_vals[valid_mask]
 
         order = np.argsort(rank_valid)
         x_plot = x_valid[order]
         y_plot = y_valid[order]
         rank_plot = rank_valid[order]
         p_plot = p_valid[order]
-        r_plot = r_valid[order]
 
         x_range = float(x_plot.max() - x_plot.min()) if len(x_plot) > 1 else 1.0
         y_range = float(y_plot.max() - y_plot.min()) if len(y_plot) > 1 else 1.0
@@ -99,72 +94,69 @@ def plot_rank_tradeoff(
             pf_order = np.argsort(x_plot[p_plot])
             x_pf = x_plot[p_plot][pf_order]
             y_pf = y_plot[p_plot][pf_order]
+            # Neutral, not red: colour on this figure means a cohort, and the
+            # ring lands on every point anyway -- both quantities rise strictly
+            # with k, so no cut dominates another. Saying that plainly is the
+            # point, because it is why a selection rule is needed at all.
             ax.plot(
                 x_pf, y_pf,
-                color="#D32F2F", linewidth=1.8, alpha=0.95,
+                color="#9E9E9E", linewidth=1.8, alpha=0.95,
                 zorder=3, solid_capstyle="round",
             )
+            n_pf, n_all = int(np.sum(p_plot)), int(p_plot.size)
             ax.scatter(
                 x_pf, y_pf,
                 s=130, facecolors="none",
-                edgecolors="#D32F2F", linewidths=1.6,
-                label="Pareto-optimal frontier", zorder=4,
+                edgecolors="#9E9E9E", linewidths=1.6, zorder=4,
+                label=(f"Pareto-optimal — all {n_pf} of {n_all}, so it cannot choose"
+                       if n_pf == n_all else f"Pareto-optimal ({n_pf} of {n_all})"),
             )
-        # ── Recommended rank highlight ────────────────────────────────
-        if bool(np.any(r_plot)):
-            rec_idx = int(np.where(r_plot)[0][0])
+        # ── The delivered cuts ────────────────────────────────────────
+        marked: dict[int, str] = {}
+        for _name in CUT_ORDER:
+            _k = (rank_cuts or {}).get(_name)
+            _k = int(rank_plot.max()) if _k is None and _name in (rank_cuts or {}) else _k
+            if _k is None:
+                continue
+            _hit = np.where(rank_plot == int(_k))[0]
+            if not _hit.size:
+                continue
+            _i = int(_hit[0])
+            marked[int(_k)] = _name
             ax.scatter(
-                x_plot[r_plot], y_plot[r_plot],
-                marker="D", s=180,
-                facecolors="none", edgecolors="#1565C0", linewidths=2.2,
-                label=f"{cut_label} cut", zorder=5,
+                [x_plot[_i]], [y_plot[_i]],
+                marker=_MARK[_name], s=210,
+                facecolors="none", edgecolors=_EDGE[_name], linewidths=2.4,
+                label=f"{_name}  (k = {int(_k)})", zorder=5,
             )
-            # build sample-size annotation, placed in lower-right empty space
-            rec_k = int(rank_plot[rec_idx])
-            rec_row = decision_table[decision_table["Included_Max_Rank"] == rec_k]
-            _case_col = f"{config.case_label}_Count"
-            _ctrl_col = f"{config.control_label}_Count"
-            def _rec_count(col: str) -> int | None:
-                """The recommended row's value in a count column, if present."""
-                if col not in rec_row.columns:
+            _row = decision_table[decision_table["Included_Max_Rank"] == int(_k)]
+            def _count(col: str) -> int | None:
+                if col not in _row.columns or _row.empty:
                     return None
-                return int(to_numeric_array(rec_row[col])[0])
-
-            _case_n = _rec_count(_case_col)
-            _ctrl_n = _rec_count(_ctrl_col)
-            _total_n = _rec_count("Total_Count")
-            if _case_n is not None and _ctrl_n is not None and _total_n is not None:
-                _ann_lines = [
-                    f"k = {rec_k}  ({cut_label})",
-                    f"{config.case_label}: {_case_n:,}  |  {config.control_label}: {_ctrl_n:,}",
-                    f"Total: {_total_n:,}  (composite posterior)",
-                ]
-            else:
-                _ann_lines = [f"k = {rec_k}  ({cut_label})"]
-            # place annotation box in the lower-right empty area of the plot
+                return int(to_numeric_array(_row[col])[0])
+            _n = _count("Total_Count")
+            _lines = [f"{_name}   k = {int(_k)}"]
+            if _n is not None:
+                _lines.append(f"n = {_n:,}")
             ax.annotate(
-                "\n".join(_ann_lines),
-                xy=(float(x_plot[rec_idx]), float(y_plot[rec_idx])),
-                xycoords="data",
-                xytext=(0.68, 0.12),
-                textcoords="axes fraction",
-                fontsize=11.5, fontweight="normal",
-                color="#0D2B6E",
-                bbox={
-                    "boxstyle": "round,pad=0.45",
-                    "fc": "#EEF2FF", "ec": "#1565C0",
-                    "alpha": 0.97, "lw": 1.1,
-                },
-                arrowprops={
-                    "arrowstyle": "->",
-                    "color": "#1565C0",
-                    "lw": 1.1,
-                    "connectionstyle": "arc3,rad=-0.25",
-                },
+                "\n".join(_lines),
+                xy=(float(x_plot[_i]), float(y_plot[_i])), xycoords="data",
+                # All three below their point: the band above the curve is
+                # narrow and the three cuts sit close together on the flat arm.
+                xytext={"narrow": (-40, -20), "intermediate": (6, -34),
+                        "full": (-14, -34)}[_name],
+                textcoords="offset points",
+                fontsize=11.0, fontweight="bold",
+                ha={"narrow": "right"}.get(_name, "center"),
+                va="center" if _name == "narrow" else "top",
+                color=_EDGE[_name],
+                bbox={"boxstyle": "round,pad=0.30", "fc": _TINT[_name],
+                      "ec": _EDGE[_name], "alpha": 0.97, "lw": 1.1},
+                zorder=7,
             )
-        # ── Rank number labels (skip recommended k — already annotated) ──
+        # ── Rank number labels (the marked cuts carry their own box) ──
         for i, (xv, yv, kv) in enumerate(zip(x_plot, y_plot, rank_plot)):
-            if r_plot[i]:   # recommended k has its own annotation box
+            if int(kv) in marked:
                 continue
             ax.text(
                 float(xv) + x_range * 0.007,
@@ -180,9 +172,10 @@ def plot_rank_tradeoff(
             handlelength=1.8, handleheight=1.2,
             fontsize=13, borderpad=0.6,
         )
-        # Caption explaining the numeric label — italic, top-left, no box
+        # Caption explaining the numeric label. Top-left is free because every
+        # cut label sits below its point.
         ax.text(
-            0.018, 0.970,
+            0.018, 0.985,
             r"Label = cumulative rank $k$  (top-1 $\ldots$ top-$k$ mainland clusters included)",
             transform=ax.transAxes,
             fontsize=11, color="#757575",
@@ -191,10 +184,7 @@ def plot_rank_tradeoff(
 
     ax.set_xlabel(f"Residual spread  $H$  (RGV on {rgv_axis_label})", labelpad=10)
     ax.set_ylabel(r"GWAS  $N_{eff}$", labelpad=10)
-    ax.set_title(
-        r"Trade-off: Residual Spread vs. GWAS $N_{eff}$",
-        loc="left", fontweight="bold", pad=11, fontsize=15,
-    )
+    _panel_title(ax, "A", r"Residual spread against GWAS $N_{eff}$, with the three delivered cuts")
     ax.grid(True, linestyle=":", linewidth=0.55, alpha=0.30, color="#9E9E9E")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -335,10 +325,7 @@ def plot_rank_tradeoff(
         fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
     )
 
-    fig.suptitle(
-        "Mainland Rank-Cumulative Trade-off Analysis",
-        fontsize=18, fontweight="bold", y=0.972,
-    )
+    _figure_title(fig, "The Trade-off", "effective sample size against residual spread")
     _series_footer(fig, "02_tradeoff")
     return fig
 
@@ -382,9 +369,59 @@ def _series_tag(name: str) -> str:
     return "   —   ".join(parts)
 
 
-#: Per-cut identity, shared by every figure that names a cut.
-_TINT = {"full": "#FBEAEC", "narrow": "#E7F1F8", "intermediate": "#E6F4EC"}
-_EDGE = {"full": "#B2182B", "narrow": "#0571B0", "intermediate": "#008837"}
+# ---------------------------------------------------------------------------
+# One spec for the whole family
+# ---------------------------------------------------------------------------
+#
+# The four figures are read together, so they share a canvas, a column split, a
+# title grammar and a palette. Anything set here must not be re-declared inside
+# a figure: a second copy is how the same cut ended up drawn in two blues.
+
+#: Canvas every figure in this directory uses.
+FIGURE_SIZE: "tuple[float, float]" = (19.0, 10.5)
+
+#: Data on the left, typeset methods on the right, in this ratio.
+COLUMN_RATIOS: "tuple[float, float]" = (3.15, 2.85)
+COLUMN_WSPACE: float = 0.055
+
+#: Canonical order of the delivered cuts: ascending in k, which is also the
+#: nesting order (narrow subset of intermediate subset of full). Every figure
+#: that lists all three lists them this way.
+CUT_ORDER: "tuple[str, str, str]" = ("narrow", "intermediate", "full")
+
+#: Per-cut identity. The only source of these colours.
+_TINT = {"narrow": "#E7F1F8", "intermediate": "#E6F4EC", "full": "#FBEAEC"}
+_EDGE = {"narrow": "#0571B0", "intermediate": "#008837", "full": "#B2182B"}
+
+#: Marker shape per cut, so the three stay distinguishable without colour.
+_MARK = {"narrow": "D", "intermediate": "s", "full": "o"}
+
+_PANEL_TITLE_SIZE = 14.0
+_SUPTITLE_SIZE = 18.0
+
+
+def _panel_title(ax: "plt.Axes", letter: str, text: str) -> None:
+    """Panel heading, in the one style the family uses."""
+    ax.set_title(f"{letter} · {text}", fontsize=_PANEL_TITLE_SIZE,
+                 fontweight="bold", loc="left", pad=9)
+
+
+def _figure_title(fig: Figure, title: str, qualifier: str) -> None:
+    """Figure heading: Title Case noun phrase, em dash, lowercase qualifier."""
+    fig.suptitle(f"{title} — {qualifier}", fontsize=_SUPTITLE_SIZE,
+                 fontweight="bold", y=0.972)
+
+
+def _split_figure(n_left: int = 1, **kwargs: "Any") -> "tuple[Figure, Any, Any]":
+    """A figure in the family layout: ``n_left`` stacked data panels, then the column.
+
+    Returns the figure, the left-hand gridspec and the note axes. Callers that
+    need a different left-hand arrangement subdivide the gridspec themselves.
+    """
+    fig = plt.figure(figsize=FIGURE_SIZE)
+    gs = fig.add_gridspec(1, 2, width_ratios=list(COLUMN_RATIOS), wspace=COLUMN_WSPACE)
+    gs_left = gs[0, 0].subgridspec(n_left, 1, **kwargs) if n_left > 1 else gs[0, 0]
+    return fig, gs_left, fig.add_subplot(gs[0, 1])
 
 
 def _safe_norm(arr: np.ndarray) -> np.ndarray:
@@ -452,14 +489,13 @@ def plot_casectrl_separation(
     d2_raw = d_raw ** 2
     cuts = dict(variant_cuts or {})
 
-    _RAW, _UNB, _FLOOR, _SIG = "#7B3294", "#008837", "#BDBDBD", "#D7191C"
+    # Deliberately outside the cohort palette: on this figure the two lines are
+    # two versions of one statistic, not two cohorts.
+    _RAW, _UNB, _FLOOR, _SIG = "#7B3294", "#B35806", "#BDBDBD", "#D7191C"
 
-    fig = plt.figure(figsize=(19.0, 9.5))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.25, 2.75], wspace=0.055)
-    gs_l = gs[0, 0].subgridspec(2, 1, height_ratios=[1.06, 0.94], hspace=0.20)
+    fig, gs_l, ax_note = _split_figure(2, height_ratios=[1.06, 0.94], hspace=0.20)
     ax_d = fig.add_subplot(gs_l[0, 0])
     ax_p = fig.add_subplot(gs_l[1, 0], sharex=ax_d)
-    ax_note = fig.add_subplot(gs[0, 1])
 
     # ══ A · How far apart, and how much of that is sampling ══════════
     ax_d.fill_between(
@@ -474,8 +510,7 @@ def plot_casectrl_separation(
               markeredgecolor="white", markeredgewidth=0.9, zorder=5,
               label=r"De-biased  $\hat{D}^2 - E[D^2]$")
     ax_d.set_ylabel(r"Mahalanobis  $D^2$")
-    ax_d.set_title("A · Separation of the case and control centroids",
-                   fontsize=14, fontweight="bold", loc="left", pad=9)
+    _panel_title(ax_d, "A", "Separation of the case and control centroids")
     ax_d.legend(loc="center right", frameon=True, framealpha=0.95,
                 edgecolor="#CFCFCF", fontsize=11.5)
     ax_d.tick_params(labelbottom=False)
@@ -490,8 +525,7 @@ def plot_casectrl_separation(
     ax_p.axhline(0.05, color=_SIG, linewidth=1.1, linestyle="--", zorder=2)
     ax_p.set_yscale("log")
     ax_p.set_ylabel(r"Hotelling's $T^2$  $p$")
-    ax_p.set_title(r"B · Evidence for it. The exact $F$ test already accounts for sampling.",
-                   fontsize=14, fontweight="bold", loc="left", pad=9)
+    _panel_title(ax_p, "B", r"Evidence for it — the exact $F$ test already accounts for sampling")
     ax_p.legend(loc="lower left", frameon=True, framealpha=0.95,
                 edgecolor="#CFCFCF", fontsize=11.5, ncol=2)
     ax_p.set_xlabel(r"Cumulative rank $k$   (top-1 … top-$k$ mainland components included)")
@@ -561,9 +595,8 @@ def plot_casectrl_separation(
     _b(0.091, r"column above; this $p$-value is an input to nothing.",
        size=11.0, color=_BK)
 
-    fig.suptitle("Supplementary · Case/Control Ancestry Separation Across the Rank Walk",
-                 fontsize=18, fontweight="bold", y=0.972)
-    fig.subplots_adjust(left=0.058, right=0.992, top=0.905, bottom=0.098)
+    _figure_title(fig, "Case/Control Separation", "the second homogeneity axis")
+    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
     _series_footer(fig, "03_separation")
     return fig
 
@@ -626,16 +659,14 @@ def plot_rank_cut_selection(
     k_knee = int(row["narrow"]["Resolved_Rank"])
     k_blend = int(row["intermediate"]["Resolved_Rank"])
 
-    _NARROW, _INTER, _FULL = "#0571B0", "#008837", "#B2182B"
-    _CHORD = "#B0B0B0"
+    _NARROW, _INTER = _EDGE["narrow"], _EDGE["intermediate"]
+    _FULL, _CHORD = _EDGE["full"], "#B0B0B0"
 
-    fig = plt.figure(figsize=(19.5, 11.0))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.05, 2.95], wspace=0.055)
-    gs_l = gs[0, 0].subgridspec(2, 2, height_ratios=[1.16, 0.84], hspace=0.30, wspace=0.20)
+    fig, gs_outer, ax_note = _split_figure()
+    gs_l = gs_outer.subgridspec(2, 2, height_ratios=[1.16, 0.84], hspace=0.32, wspace=0.20)
     ax_mo = fig.add_subplot(gs_l[0, 0])
     ax_bl = fig.add_subplot(gs_l[0, 1])
     ax_w = fig.add_subplot(gs_l[1, :])
-    ax_note = fig.add_subplot(gs[0, 1])
 
     # ══ A · Counting spread only — a monotone frontier ═══════════════
     ax_mo.plot([x[0], x[-1]], [y[0], y[-1]], "-", color=_CHORD, linewidth=2.0,
@@ -662,8 +693,7 @@ def plot_rank_cut_selection(
                        color=_DIM, ha="center")
     ax_mo.set_xlabel("residual spread  (normalised)")
     ax_mo.set_ylabel(r"$N_{eff}$  (normalised)")
-    ax_mo.set_title(f"A · Counting spread — monotone, chord spans {spread.chord_span:.3f}",
-                    fontsize=13.5, fontweight="bold", loc="left", pad=9)
+    _panel_title(ax_mo, "A", f"Counting spread — monotone, chord spans {spread.chord_span:.3f}")
     ax_mo.legend(loc="lower right", frameon=True, framealpha=0.95,
                  edgecolor="#CFCFCF", fontsize=10.0)
 
@@ -687,8 +717,7 @@ def plot_rank_cut_selection(
                        xytext=(0, -14) if i % 2 == 0 else (0, 8), fontsize=9.0,
                        color=_DIM, ha="center")
     ax_bl.set_xlabel(rf"$H(w)$ at $w = {blend_weight:g}$  (normalised)")
-    ax_bl.set_title(f"B · Counting both — folded, chord spans only {blended.chord_span:.3f}",
-                    fontsize=13.5, fontweight="bold", loc="left", pad=9)
+    _panel_title(ax_bl, "B", f"Counting both — folded, chord spans only {blended.chord_span:.3f}")
     ax_bl.legend(loc="lower right", frameon=True, framealpha=0.95,
                  edgecolor="#CFCFCF", fontsize=10.0)
 
@@ -734,8 +763,7 @@ def plot_rank_cut_selection(
     ax_w.set_yticks(sorted(set(int(v) for v in np.unique(won)) | set(cuts.values())))
     ax_w.set_ylabel(r"winning cut  $k^{*}(w)$")
     ax_w.set_xlabel(r"$w$ — weight on residual spread;  $1-w$ on case/control separation")
-    ax_w.set_title("C · What the answers depend on — only the blend has a weight to depend on",
-                   fontsize=13.5, fontweight="bold", loc="left", pad=9)
+    _panel_title(ax_w, "C", "What the answers depend on — only the blend has a weight to depend on")
 
     for axis in (ax_mo, ax_bl, ax_w):
         axis.grid(True, alpha=0.30, linewidth=0.7)
@@ -749,7 +777,7 @@ def plot_rank_cut_selection(
                  fontsize=12.0, ha="center", va="top", color=_GR, fontstyle="italic")
 
     # Branch geometry: one column per cut, four tiers down the column.
-    lanes = {"full": 0.175, "narrow": 0.500, "intermediate": 0.825}
+    lanes = dict(zip(CUT_ORDER, (0.175, 0.500, 0.825)))
     tiers = (0.868, 0.758, 0.648, 0.534)
     counted = {"full": "nothing", "narrow": "residual\nspread",
                "intermediate": "spread  +\ncase/control\nseparation"}
@@ -832,9 +860,8 @@ def plot_rank_cut_selection(
                          color=_EDGE.get(name, _BK) if j == 0 else _GR,
                          fontweight="bold" if j == 0 else "normal")
 
-    fig.suptitle(f"Deriving the Delivered Cuts — Mainland PCA, PC1-PC{n_dim}",
-                 fontsize=18, fontweight="bold", y=0.975)
-    fig.subplots_adjust(left=0.055, right=0.992, top=0.918, bottom=0.082)
+    _figure_title(fig, "Deriving the Cuts", "one procedure, three settings")
+    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
     _series_footer(fig, "04_cut_selection")
     return fig
 
@@ -878,22 +905,18 @@ def plot_cut_overview(
         r = d_row(name)
         return float(to_numeric_array(r[[col]])[0]) if col in r.index else float("nan")
 
-    fig = plt.figure(figsize=(19.0, 10.5))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.62], width_ratios=[1.0, 1.12],
-                          hspace=0.24, wspace=0.14)
-    ax_set = fig.add_subplot(gs[0, 0])
-    ax_loc = fig.add_subplot(gs[0, 1])
-    ax_tab = fig.add_subplot(gs[1, :])
+    fig, gs_l, ax_tab = _split_figure(2, height_ratios=[1.0, 0.94], hspace=0.26)
+    ax_set = fig.add_subplot(gs_l[0, 0])
+    ax_loc = fig.add_subplot(gs_l[1, 0])
 
     # ══ A · The three cohorts are nested ═════════════════════════════
     _note_axis(ax_set)
-    ax_set.set_title("A · The three cohorts are nested sets",
-                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    _panel_title(ax_set, "A", "The three cohorts are nested sets")
     # Outermost first, so each smaller set is drawn over the one containing it.
     for depth, name in enumerate(reversed(order)):
-        inset = 0.085 * depth
-        x0, y0 = 0.045 + inset, 0.075 + inset
-        w, h = 0.910 - 2 * inset, 0.815 - 2 * inset
+        inset = 0.075 * depth
+        x0, y0 = 0.030 + inset, 0.100 + inset
+        w, h = 0.940 - 2 * inset, 0.855 - 2 * inset
         ax_set.add_patch(FancyBboxPatch(
             (x0, y0), w, h, boxstyle="round,pad=0.004,rounding_size=0.018",
             facecolor=_TINT[name], edgecolor=_EDGE[name], linewidth=2.0,
@@ -916,7 +939,7 @@ def plot_cut_overview(
         outer = order[depth + 1]
         added = sorted(set(comps[outer]) - set(comps[name]))
         d_n = val(outer, "Total_Count") - val(name, "Total_Count")
-        band_y = 0.075 + 0.085 * (len(order) - 2 - depth) + 0.030
+        band_y = 0.100 + 0.075 * (len(order) - 2 - depth) + 0.024
         ax_set.text(
             0.5, band_y,
             f"+{len(added)} components ({', '.join(str(c) for c in added)})"
@@ -926,12 +949,12 @@ def plot_cut_overview(
         )
     inner = order[0]
     ax_set.text(
-        0.5, 0.505,
+        0.5, 0.545,
         "components, in rank order\n" + "   ".join(str(c) for c in comps[inner]),
         fontsize=12.0, ha="center", va="center", color=_EDGE[inner],
         zorder=15, linespacing=1.9, fontweight="bold",
     )
-    ax_set.text(0.5, 0.028,
+    ax_set.text(0.5, 0.016,
                 "Every sample in a smaller cohort is in every larger one — "
                 "the cuts are nested by construction.",
                 fontsize=10.5, ha="center", va="bottom", color=_DIM, fontstyle="italic")
@@ -950,7 +973,7 @@ def plot_cut_overview(
             xy=(float(r[rgv_column]), float(r["GWAS_Neff"])),
             # Placed off the curve on the side each point has room on; the
             # cuts sit close together on the flat arm.
-            xytext={"narrow": (-22, -36), "intermediate": (10, 26),
+            xytext={"narrow": (-34, -46), "intermediate": (10, 26),
                     "full": (-10, -30)}.get(name, (14, -4)),
             textcoords="offset points", fontsize=11.5, fontweight="bold",
             color=_EDGE[name], ha={"intermediate": "left"}.get(name, "right"),
@@ -958,8 +981,7 @@ def plot_cut_overview(
         )
     ax_loc.set_xlabel(rf"residual spread — RGV on mainland PC1-PC{n_dim}   $\rightarrow$ less homogeneous")
     ax_loc.set_ylabel(r"GWAS $N_{eff}$   $\rightarrow$ more power")
-    ax_loc.set_title("B · and where each sits on the trade-off",
-                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    _panel_title(ax_loc, "B", "and where each sits on the trade-off")
     ax_loc.legend(loc="lower right", frameon=True, framealpha=0.95,
                   edgecolor="#CFCFCF", fontsize=11.0)
     ax_loc.grid(True, alpha=0.30, linewidth=0.7)
@@ -968,50 +990,46 @@ def plot_cut_overview(
 
     # ══ C · The basis, beside the consequence ════════════════════════
     _note_axis(ax_tab)
-    ax_tab.set_title("C · What fixed each cut, and what it delivers",
-                     fontsize=14, fontweight="bold", loc="left", pad=10)
+    _panel_title(ax_tab, "C", "What fixed each cut, and what it delivers")
     basis = {
         "narrow": "counts residual spread — knee of the trade-off curve",
         "intermediate": "counts spread and case/control separation — nearest the ideal corner",
         "full": "counts nothing — every major-cluster component",
     }
-    cols = ("cohort", "basis", "$k$", case_label, control_label,
-            "n", r"$N_{eff}$", "RGV")
-    xs = (0.008, 0.098, 0.505, 0.606, 0.694, 0.784, 0.858, 0.932)
-    ax_tab.plot([0.0, 1.0], [0.865, 0.865], color="#CFCFCF", linewidth=1.0)
-    for xx, c in zip(xs, cols):
-        ax_tab.text(xx, 0.815, c, fontsize=11.0, ha="left", va="top",
-                    color=_DIM, fontstyle="italic")
-    ax_tab.plot([0.0, 1.0], [0.700, 0.700], color="#CFCFCF", linewidth=1.0)
+    # One card per cohort rather than a wide table row: the column is narrow,
+    # and stacking keeps each cohort's basis next to its own numbers.
     for i, name in enumerate(order):
-        yy = 0.600 - i * 0.200
+        top = 0.895 - i * 0.290
         ax_tab.add_patch(FancyBboxPatch(
-            (0.0, yy - 0.072), 1.0, 0.150,
-            boxstyle="square,pad=0", facecolor=_TINT[name], edgecolor="none",
-            alpha=0.55, zorder=1,
+            (0.012, top - 0.250), 0.976, 0.250,
+            boxstyle="round,pad=0.004,rounding_size=0.014",
+            facecolor=_TINT[name], edgecolor=_EDGE[name], linewidth=1.4, zorder=1,
         ))
-        vals = (
-            name, basis[name], str(k_of[name]),
-            f"{val(name, f'{case_label}_Count'):,.0f}",
-            f"{val(name, f'{control_label}_Count'):,.0f}",
-            f"{val(name, 'Total_Count'):,.0f}",
-            f"{val(name, 'GWAS_Neff'):,.0f}",
-            f"{val(name, rgv_column):.5f}",
+        ax_tab.text(0.040, top - 0.045, name, fontsize=14.0, fontweight="bold",
+                    ha="left", va="center", color=_EDGE[name], zorder=3)
+        ax_tab.text(0.040, top - 0.100, basis[name], fontsize=11.0, ha="left",
+                    va="center", color=_GR, fontstyle="italic", zorder=3)
+        stats = (
+            ("$k$", f"{k_of[name]}"),
+            (case_label, f"{val(name, f'{case_label}_Count'):,.0f}"),
+            (control_label, f"{val(name, f'{control_label}_Count'):,.0f}"),
+            ("n", f"{val(name, 'Total_Count'):,.0f}"),
+            (r"$N_{eff}$", f"{val(name, 'GWAS_Neff'):,.0f}"),
+            ("RGV", f"{val(name, rgv_column):.5f}"),
         )
-        for j, (xx, t) in enumerate(zip(xs, vals)):
-            ax_tab.text(xx, yy, t, fontsize=12.0 if j == 0 else 11.5,
-                        ha="left", va="center", zorder=3,
-                        color=_EDGE[name] if j == 0 else _BK,
-                        fontweight="bold" if j in (0, 2) else "normal",
-                        fontstyle="italic" if j == 1 else "normal")
-    ax_tab.text(0.0, 0.010,
-                "Neither cut is the better list: a narrower set buys homogeneity with "
-                "effective sample size, and a broader one the reverse. "
+        for j, (lab, v) in enumerate(stats):
+            xx = 0.048 + j * 0.157
+            ax_tab.text(xx, top - 0.160, lab, fontsize=9.5, ha="left", va="center",
+                        color=_DIM, fontstyle="italic", zorder=3)
+            ax_tab.text(xx, top - 0.207, v, fontsize=12.0, ha="left", va="center",
+                        color=_BK, fontweight="bold", zorder=3)
+    ax_tab.text(0.012, 0.012,
+                "Neither is the better list: a narrower set buys homogeneity with "
+                "effective sample size,\nand a broader one the reverse.  "
                 "Derivations: 04_cut_selection.png.",
-                fontsize=10.5, ha="left", va="bottom", color=_DIM, fontstyle="italic")
+                fontsize=10.0, ha="left", va="bottom", color=_DIM, fontstyle="italic")
 
-    fig.suptitle("Rank Selection — the three delivered cohorts and the basis for each",
-                 fontsize=18, fontweight="bold", y=0.972)
-    fig.subplots_adjust(left=0.050, right=0.988, top=0.905, bottom=0.070)
+    _figure_title(fig, "The Delivered Cohorts", "and the basis for each")
+    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
     _series_footer(fig, "00_overview")
     return fig

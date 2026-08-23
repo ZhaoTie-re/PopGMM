@@ -119,7 +119,10 @@ region rather than jumping elsewhere.
 ### `03_rank_selection/` [6]
 
 Files are numbered in reading order: `00` summarises, `01` is the ordering
-everything else walks, and `02`–`04` are the argument. `rank_decision_table.tsv`
+everything else walks, and `02`–`04` are the argument. The four figures share
+one canvas, one column split, one title grammar and one palette, set once in
+`scripts/plotting/rank.py` — blue is `narrow`, green `intermediate`, red `full`
+on every figure, and the three are always listed narrow → intermediate → full. `rank_decision_table.tsv`
 is unnumbered because it backs all of them rather than being a step of its own.
 Nothing downstream reads these files — the subcluster stage consumes the
 resolved cuts in memory — so they exist to be read by a person.
