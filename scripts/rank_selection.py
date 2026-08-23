@@ -255,19 +255,6 @@ def _align_mainland(
     return merged[axes].to_numpy(dtype=np.float64, copy=False)
 
 
-def _pareto_front_indices(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """Return indices of Pareto-optimal points for minimizing x and maximizing y."""
-    n = int(len(x))
-    keep = np.ones(n, dtype=bool)
-    for i in range(n):
-        if not keep[i]:
-            continue
-        dominated = (x <= x[i]) & (y >= y[i]) & ((x < x[i]) | (y > y[i]))
-        if np.any(dominated):
-            keep[i] = False
-    return np.where(keep)[0]
-
-
 def _safe_minmax_norm(arr: np.ndarray) -> np.ndarray:
     arr = np.asarray(arr, dtype=np.float64)
     a_min = float(np.nanmin(arr))
@@ -839,68 +826,10 @@ def run_rank_selection(
     decision_table = pd.DataFrame.from_records(cum_records)
     decision_table = decision_table.sort_values("Included_Max_Rank").reset_index(drop=True)
 
-    # The Pareto front, the normalisation and the recommendation all read one
-    # basis; the other is carried alongside for reference only. The two are on
-    # different scales and must never be mixed within a comparison.
+    # One basis drives everything; the other is carried in the table for
+    # reference only. The two are on different scales and must never be mixed
+    # within a comparison.
     rgv_column = "RGV_Mainland" if config.rgv_basis == "mainland" else "RGV_Global"
-    neff_arr = decision_table["GWAS_Neff"].to_numpy(dtype=np.float64, copy=False)
-    het_arr = decision_table[rgv_column].to_numpy(dtype=np.float64, copy=False)
-
-    delta_neff = np.diff(neff_arr, prepend=np.nan)
-    delta_het = np.diff(het_arr, prepend=np.nan)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        neff_gain_per_het = delta_neff / delta_het
-
-    neff_norm = _safe_minmax_norm(neff_arr)
-    het_norm = _safe_minmax_norm(het_arr)
-    utility_score = neff_norm - het_norm
-
-    valid_mask = np.isfinite(neff_arr) & np.isfinite(het_arr)
-    pareto_mask = np.zeros_like(valid_mask, dtype=bool)
-    dist_to_ideal = np.full_like(neff_arr, np.nan, dtype=np.float64)
-    recommended_rank: int | None = None
-
-    if bool(np.any(valid_mask)):
-        valid_idx = np.where(valid_mask)[0]
-        x_valid = het_arr[valid_mask]
-        y_valid = neff_arr[valid_mask]
-
-        pf_local = _pareto_front_indices(x_valid, y_valid)
-        pf_global = valid_idx[pf_local]
-        pareto_mask[pf_global] = True
-
-        x_norm = _safe_minmax_norm(x_valid)
-        y_norm = _safe_minmax_norm(y_valid)
-        # Ideal corner is (min heterogeneity, max Neff) -> (0, 1)
-        d_valid = np.sqrt((x_norm - 0.0) ** 2 + (1.0 - y_norm) ** 2)
-        dist_to_ideal[valid_idx] = d_valid
-
-        if pf_global.size > 0:
-            d_pf = dist_to_ideal[pf_global]
-            k_pf = decision_table.loc[pf_global, "Included_Max_Rank"].to_numpy(dtype=int, copy=False)
-            order = np.lexsort((k_pf, d_pf))
-            best_idx = int(pf_global[int(order[0])])
-            recommended_rank = int(decision_table.loc[best_idx, "Included_Max_Rank"])
-
-    # Override with user-specified rank when provided.
-    if config.forced_recommended_rank is not None:
-        forced = int(config.forced_recommended_rank)
-        valid_ranks = decision_table["Included_Max_Rank"].tolist()
-        if forced not in valid_ranks:
-            raise ValueError(
-                f"forced_recommended_rank={forced} is not in the valid rank range "
-                f"{valid_ranks[0]}..{valid_ranks[-1]}."
-            )
-        recommended_rank = forced
-
-    decision_table["Delta_Neff"] = delta_neff
-    decision_table["Delta_RGV"] = delta_het
-    decision_table["Neff_Gain_per_RGV"] = neff_gain_per_het
-    decision_table["Neff_Norm"] = neff_norm
-    decision_table["RGV_Norm"] = het_norm
-    decision_table["Utility_Neff_minus_RGV"] = utility_score
-    decision_table["Is_Pareto"] = pareto_mask
-    decision_table["Distance_To_Ideal"] = dist_to_ideal
 
     # ===== Resolve the delivered cuts =====
     #
@@ -918,13 +847,20 @@ def run_rank_selection(
     )
 
     # The recommendation *is* the narrow cut -- the tightest set the evidence
-    # supports -- rather than a separate scalarisation. Distance_To_Ideal stays
-    # in the table as evidence, but it answers a different question and picks a
-    # different rank; see docs/method.md.
-    if config.forced_recommended_rank is None and rank_cuts.get("narrow") is not None:
-        recommended_rank = int(rank_cuts["narrow"])
-
-    decision_table["Is_Recommended"] = decision_table["Included_Max_Rank"].eq(recommended_rank)
+    # supports. It used to be a separate scalarisation (Distance_To_Ideal, which
+    # answers a different question and picks a different rank); that column and
+    # the other eight the old rules wrote are gone, since nothing read them and
+    # they contradicted the derivation the figures now show.
+    recommended_rank: int | None = rank_cuts.get("narrow")
+    if config.forced_recommended_rank is not None:
+        forced = int(config.forced_recommended_rank)
+        valid_ranks = decision_table["Included_Max_Rank"].tolist()
+        if forced not in valid_ranks:
+            raise ValueError(
+                f"forced_recommended_rank={forced} is not in the valid rank range "
+                f"{valid_ranks[0]}..{valid_ranks[-1]}."
+            )
+        recommended_rank = forced
 
     out_dir = Path(str(config.output_dir))
     out_dir.mkdir(parents=True, exist_ok=True)

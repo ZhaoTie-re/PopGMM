@@ -210,11 +210,15 @@ def plot_selection(
     blended = np.asarray(objective_spaces["intermediate"].structure, dtype=float)
     y_norm = _safe_norm(neff)
 
-    rate = float(neff[-1] - neff[0]) / float(het[-1] - het[0])
-    excess = (neff - neff[0]) - rate * (het - het[0])
-    reversals = _reversals(sep)
-
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
+
+    # Read from the record rather than recomputing: these were derived once when
+    # the cuts were resolved, and a second copy here is a second thing that can
+    # drift. The excess series is then built from that same rate, so the curve
+    # and its peak cannot disagree with the table.
+    rate = float(rows["narrow"]["Exchange_Rate"])
+    excess = (neff - neff[0]) - rate * (het - het[0])
+    reversals = int(rows["intermediate"]["Axis_Reversals"])
     k_of = {n: int(rows[n]["Resolved_Rank"]) for n in rows}
     rank_sorted = rank_table.sort_values("Rank")
     comps = {n: [int(c) for c in rank_sorted.loc[rank_sorted["Rank"] <= k_of[n], "Cluster"]]
@@ -393,14 +397,27 @@ def plot_methods(
                       else "global PCA, PC1-PC2")
     rank = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
     pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
+    neff = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
+    het = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
+    sepr = decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float, copy=False)
+    d2raw = decision_table["Mainland_CaseCtrl_Mahalanobis"].to_numpy(dtype=float, copy=False) ** 2
+    floor = decision_table["Mainland_CaseCtrl_Noise_Floor"].to_numpy(dtype=float, copy=False)
+    t2 = decision_table["Mainland_CaseCtrl_HotellingT2"].to_numpy(dtype=float, copy=False)
     cuts = {str(n): int(k) for n, k in rank_cuts.items() if k is not None}
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_blend = int(rows["intermediate"]["Resolved_Rank"])
     k_narrow = int(rows["narrow"]["Resolved_Rank"])
 
-    fig, gs_l, ax_note = _split_figure(2, height_ratios=[1.0, 0.92], hspace=0.34)
-    ax_p = fig.add_subplot(gs_l[0, 0])
-    ax_w = fig.add_subplot(gs_l[1, 0])
+    fig = plt.figure(figsize=FIGURE_SIZE)
+    gs = fig.add_gridspec(3, 2, height_ratios=[1.0, 0.86, 0.90],
+                          width_ratios=list(COLUMN_RATIOS),
+                          wspace=COLUMN_WSPACE, hspace=0.38)
+    ax_p = fig.add_subplot(gs[0, 0])
+    ax_w = fig.add_subplot(gs[1, 0])
+    ax_par = fig.add_subplot(gs[2, 0])
+    # Full height: the column's blocks were laid out for it, and squeezing them
+    # into two of three rows put the formulas on top of each other.
+    ax_note = fig.add_subplot(gs[0:3, 1])
 
     # ══ A · is the separation in step 3 real? ════════════════════════
     sig = np.isfinite(pval) & (pval < 0.05)
@@ -546,7 +563,60 @@ def plot_methods(
     _t(0.026, r"Two means never coincide and $D^2$ squares the gap, so scatter only adds;")
     _t(0.000, r"the set grows tenfold, so a raw $\hat{D}^2$ would drift down on its own.")
 
-    _figure_title(fig, "Methods", "definitions, significance, and what the answers depend on")
-    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
+    # ══ C · every parameter the selection used ══════════════════════
+    #
+    # Listed because they are what a reader would have to take on trust
+    # otherwise: three of the four inputs appeared nowhere on any figure before
+    # this block existed. Values are read from the record, not restated.
+    _note_axis(ax_par)
+    _panel_title(ax_par, "C", "Every parameter the selection used")
+    narrow_row, inter_row = rows["narrow"], rows["intermediate"]
+    blocks = (
+        ("Inputs — set, not fitted", (
+            (r"$d$   RGV axes", f"{rgv_dim}", "params.MAINLAND_RGV_N_PCS"),
+            (r"basis", config.rgv_basis, "params.RGV_BASIS"),
+            (r"$w$   blend weight", f"{blend_weight:g}", "equal weight on both axes"),
+            (r"$w$ sweep step", f"{float(np.diff(weight_grid)[0]):.3f}", "panel B resolution"),
+            (r"$w$ safe floor", f"{safe_weight_floor:g}", "below it, labels outweigh spread"),
+        )),
+        ("Computed for every cut", (
+            (r"$N_k$   GWAS $N_{eff}$", f"{neff.min():,.0f} → {neff.max():,.0f}",
+             r"$4/(1/n_1+1/n_2)$"),
+            (r"$H_k$   residual spread", f"{het.min():.5f} → {het.max():.5f}",
+             rf"$\det(\Sigma)^{{1/2d}}$, $d={rgv_dim}$"),
+            (r"$\hat{D}^2_k$   raw", f"{d2raw.min():.5f} → {d2raw.max():.5f}", r"$\Delta\mu^{\top}S^{-1}\Delta\mu$"),
+            (r"floor", f"{floor.min():.5f} → {floor.max():.5f}", r"$p(1/n_1+1/n_2)$"),
+            (r"$s_k$   de-biased", f"{sepr.min():+.5f} → {sepr.max():+.5f}", r"$\hat{D}^2 - $ floor"),
+            (r"$T^2_k$,  $p_k$", f"{t2.max():.1f} max,  {pval.min():.1e} min", "exact $F$ transform"),
+        )),
+        ("Derived once, when the cuts were resolved", (
+            (r"$r$   exchange rate", f"{float(narrow_row['Exchange_Rate']):,.0f}",
+             r"$(N_K-N_1)/(H_K-H_1)$"),
+            (r"peak excess", f"+{float(narrow_row['Value']):.1f} $N_{{eff}}$ at $k$={int(narrow_row['Resolved_Rank'])}",
+             r"$\max_k[(N_k-N_1)-r(H_k-H_1)]$"),
+            (r"narrow margin", f"{float(narrow_row['Margin']):.1f} $N_{{eff}}$", "lead over the runner-up"),
+            (r"reversals", f"spread {int(narrow_row['Axis_Reversals'])},  distance {int(inter_row['Axis_Reversals'])}",
+             "direction changes along the walk"),
+            (r"min distance", f"{float(inter_row['Value']):.4f} at $k$={int(inter_row['Resolved_Rank'])}",
+             r"$\min_k\sqrt{H_k(w)^2+(1-y_k)^2}$"),
+            (r"inter. margin", f"{float(inter_row['Margin']):.2f} in $w$", "to the nearest plateau edge"),
+        )),
+    )
+    for col, (head, items) in enumerate(blocks):
+        x0 = 0.006 + col * 0.335
+        ax_par.text(x0, 0.955, head, fontsize=11.5, fontweight="bold", ha="left",
+                    va="top", color=_BK)
+        ax_par.plot([x0, x0 + 0.318], [0.885, 0.885], color="#CFCFCF", linewidth=1.0)
+        for j, (nm, v, how) in enumerate(items):
+            yy = 0.775 - j * 0.152
+            ax_par.text(x0 + 0.004, yy + 0.036, nm, fontsize=10.5, ha="left",
+                        va="center", color=_BK)
+            ax_par.text(x0 + 0.148, yy + 0.036, v, fontsize=10.5, ha="left",
+                        va="center", color=_BK, fontweight="bold")
+            ax_par.text(x0 + 0.148, yy - 0.044, how, fontsize=8.5, ha="left",
+                        va="center", color=_DIM, fontstyle="italic")
+
+    _figure_title(fig, "Methods", "definitions, significance, and every parameter used")
+    fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.070)
     _series_footer(fig, "01_methods")
     return fig

@@ -124,10 +124,10 @@ tables carry descriptive names because they are reference rather than steps.
 | File | Contents |
 |---|---|
 | `00_selection.png` | **The whole argument.** Four panels, one per step of the reasoning, then the three cohorts it produces |
-| `01_methods.png` | The definitions, the significance test, and what each answer depends on |
+| `01_methods.png` | The definitions, the significance test, and every parameter the selection used |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at: structure counted, frontier geometry, operator, resolved rank, and whether the automatic and manual answers agree |
-| `rank_decision_table.tsv` | Every number the figures draw: $N_{\mathrm{eff}}$, both RGV columns, both separation blocks, Pareto flag |
+| `rank_decision_table.tsv` | Every number the figures draw: counts, $N_{\mathrm{eff}}$, both RGV columns, both separation blocks |
 
 `00_selection.png` reads left to right as one chain:
 
@@ -145,6 +145,20 @@ tables carry descriptive names because they are reference rather than steps.
 It was four figures until recently, and every step was told twice across them.
 Nothing downstream reads any file here — the subcluster stage consumes the
 resolved cuts in memory — so these exist to be read by a person.
+
+Panel C of `01_methods.png` lists **every** parameter the selection used, in
+three groups — the inputs that were set rather than fitted, the quantities
+computed for each cut, and the values derived once when the cuts were resolved
+— each with its symbol, its value and the formula or config key it comes from.
+It exists because an audit found the opposite: of 49 computed fields, 33
+appeared on no figure and in no document, and three of the four inputs
+($d$, the sweep step, the safe floor) were nowhere to be seen. Nine columns
+that nothing read — the per-step slopes and the scalarisations the current
+rules replaced — were removed rather than documented, since they contradicted
+the derivation the figures show.
+
+The figures read the derived values from `cut_record.tsv` rather than
+recomputing them, so the table and the figure cannot disagree.
 
 `cut_record.tsv` is the reproducibility record. Both the rule and the manual
 value are evaluated whatever `params.RANK_CUT_MODE` is set to, so the mode can

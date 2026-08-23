@@ -4587,11 +4587,11 @@
       ]
     },
     "03_rank_selection/01_methods.png": {
-      "bytes": 2163760,
+      "bytes": 2874471,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.96738293951418,
-      "sha256": "e069f51fdf5d208fe6d6ced89ee2436f4ba4f1e0d813e91dad76dee5bf53a4ef",
+      "pixel_mean": 248.44285961399711,
+      "sha256": "7117697e1effe851d52332b5fbfda1e741453092988dc5be96151cc817a79e2f",
       "size": [
         12600,
         6600
@@ -4730,7 +4730,7 @@
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {
-      "bytes": 7591,
+      "bytes": 5150,
       "columns": [
         "Included_Max_Rank",
         "Included_Cluster_Count",
@@ -4749,16 +4749,7 @@
         "Mainland_CaseCtrl_D2_Unbiased",
         "Mainland_CaseCtrl_HotellingT2",
         "Mainland_CaseCtrl_P",
-        "Mainland_CaseCtrl_Noise_Floor",
-        "Delta_Neff",
-        "Delta_RGV",
-        "Neff_Gain_per_RGV",
-        "Neff_Norm",
-        "RGV_Norm",
-        "Utility_Neff_minus_RGV",
-        "Is_Pareto",
-        "Distance_To_Ideal",
-        "Is_Recommended"
+        "Mainland_CaseCtrl_Noise_Floor"
       ],
       "kind": "tsv",
       "numeric": {
@@ -4779,24 +4770,6 @@
           0.5870967741935483,
           4.706649787050407,
           0.2768617521794357
-        ],
-        "Delta_Neff": [
-          4.372928623723283,
-          334.3883977704406,
-          1278.058339428928,
-          79.878646214308
-        ],
-        "Delta_RGV": [
-          4.166296355020884e-05,
-          0.0006464866734582,
-          0.00334992142760021,
-          0.00020937008922501313
-        ],
-        "Distance_To_Ideal": [
-          0.472245053787348,
-          1.0,
-          11.14925221226522,
-          0.6558383654273658
         ],
         "GWAS_Neff": [
           229.34959349593493,
@@ -4852,18 +4825,6 @@
           1.6490727189121879,
           0.09700427758306987
         ],
-        "Neff_Gain_per_RGV": [
-          12680.961832882564,
-          1729599.474401944,
-          7689802.714201229,
-          480612.6696375768
-        ],
-        "Neff_Norm": [
-          0.0,
-          1.0,
-          12.617776143427864,
-          0.7422221260839921
-        ],
         "PC12_CaseCtrl_HotellingT2": [
           0.593958071731926,
           37.687474469715,
@@ -4894,29 +4855,17 @@
           0.0738654702412664,
           0.004345027661250965
         ],
-        "RGV_Norm": [
-          0.0,
-          1.0,
-          8.46053781339535,
-          0.4976786949056088
-        ],
         "Total_Count": [
           246.0,
           3101.0,
           33733.0,
           1984.2941176470588
-        ],
-        "Utility_Neff_minus_RGV": [
-          0.0,
-          0.4108723115823733,
-          4.157238330032513,
-          0.24454343117838312
         ]
       },
-      "sha256": "91a7b48eb5332d627efc295b151e8998ffb213306293d54017f6a5fa21bb75f5",
+      "sha256": "9ea32d06ceff0a7c010b6ab8a308b10721a9c5117f7c3184580b075f6929babf",
       "shape": [
         17,
-        27
+        18
       ]
     },
     "04_subcluster_variants/full/pc_space_global/all_pcs_kde.log": {
