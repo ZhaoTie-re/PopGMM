@@ -34,18 +34,24 @@ def plot_rank_tradeoff(
     mainland_axes: Sequence[str],
     config: "RankSelectionConfig",
     rank_cuts: "Mapping[str, int | None] | None" = None,
+    cut_selection: pd.DataFrame | None = None,
 ) -> Figure:
     """Return the trade-off figure; the caller styles, saves and closes it.
 
-    Marks every delivered cut, not just one. Marking a single cut and calling it
-    "recommended" read as a claim that it was the better list, when the point of
-    the stage is that each buys one thing with another -- and it left the other
-    two invisible on the one figure that shows what they cost.
+    Panel A is the exchange, panel B prices it. Both quantities rise strictly
+    with the cut, so the walk has an average rate and each cut can be scored by
+    how much power it has bought above that rate -- which is where ``narrow``
+    comes from. It is derived here, not merely marked here.
+
+    All three cuts are shown. Marking one and calling it "recommended" read as a
+    claim that it was the better list, and left the other two invisible on the
+    one figure showing what they cost.
     """
 
     # ── Figure & axes layout ──────────────────────────────────────────
-    fig, gs_left, ax_note = _split_figure()
-    ax = fig.add_subplot(gs_left)
+    fig, gs_left, ax_note = _split_figure(2, height_ratios=[1.30, 0.70], hspace=0.30)
+    ax = fig.add_subplot(gs_left[0, 0])
+    ax_ex = fig.add_subplot(gs_left[1, 0])
     fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
 
     rank_vals = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
@@ -325,7 +331,44 @@ def plot_rank_tradeoff(
         fontsize=9.5, fontstyle="italic", va="top", ha="left", color=_DIM,
     )
 
-    _figure_title(fig, "The Trade-off", "effective sample size against residual spread")
+    # ══ B · Pricing the exchange, which is where narrow comes from ══
+    _k = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
+    _n = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
+    _h = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
+    _rate = float(_n[-1] - _n[0]) / float(_h[-1] - _h[0])
+    _excess = (_n - _n[0]) - _rate * (_h - _h[0])
+    _peak = int(np.argmax(_excess))
+    _narrow_k = int((rank_cuts or {}).get("narrow") or _k[_peak])
+
+    ax_ex.axhline(0.0, color=_DIM, linewidth=1.1, linestyle="--", zorder=2)
+    ax_ex.text(float(_k[0]), 0.0,
+               f"  both axes rise strictly with $k$, so one average rate holds: "
+               f"{_rate:,.0f} $N_{{eff}}$ per unit spread",
+               color=_DIM, fontsize=10.5, va="bottom", ha="left", fontstyle="italic")
+    ax_ex.vlines(_k, 0.0, _excess, color="#D6D6D6", linewidth=5.0, zorder=2)
+    ax_ex.vlines(_k[_peak], 0.0, _excess[_peak], color=_EDGE["narrow"],
+                 linewidth=5.0, zorder=3)
+    ax_ex.plot(_k, _excess, "-o", color=_GR, markersize=4.6, linewidth=1.4,
+               markerfacecolor="white", markeredgewidth=1.1, zorder=4)
+    ax_ex.plot([_k[_peak]], [_excess[_peak]], _MARK["narrow"], color=_EDGE["narrow"],
+               markersize=12.0, markeredgecolor="white", markeredgewidth=1.4, zorder=6)
+    ax_ex.annotate(
+        f"narrow   $k$ = {_narrow_k}\n+{_excess[_peak]:,.0f} $N_{{eff}}$ above the average rate",
+        xy=(_k[_peak], _excess[_peak]), xytext=(16, -2), textcoords="offset points",
+        fontsize=11.0, fontweight="bold", color=_EDGE["narrow"], ha="left", va="center",
+        bbox=dict(boxstyle="round,pad=0.30", facecolor=_TINT["narrow"],
+                  edgecolor=_EDGE["narrow"], linewidth=1.1, alpha=0.97), zorder=7,
+    )
+    ax_ex.set_xticks(_k)
+    ax_ex.set_xlim(_k.min() - 0.4, _k.max() + 0.9)
+    ax_ex.set_xlabel(r"Cumulative rank $k$")
+    ax_ex.set_ylabel(r"excess $N_{eff}$")
+    _panel_title(ax_ex, "B",
+                 "What each cut bought above that rate — narrow is where it peaks")
+    ax_ex.grid(True, alpha=0.30, linewidth=0.7)
+    ax_ex.set_axisbelow(True)
+
+    _figure_title(fig, "The Trade-off", "and the cut that buys the most power for its cost")
     _series_footer(fig, "02_tradeoff")
     return fig
 
@@ -389,6 +432,11 @@ COLUMN_WSPACE: float = 0.055
 #: that lists all three lists them this way.
 CUT_ORDER: "tuple[str, str, str]" = ("narrow", "intermediate", "full")
 
+#: Order the *reasoning* runs in, which is not the order the results list in.
+#: ``full`` comes first because it is the population the other two are selected
+#: within; the cuts then follow in the order they were arrived at.
+NARRATIVE_ORDER: "tuple[str, str, str]" = ("full", "narrow", "intermediate")
+
 #: Per-cut identity. The only source of these colours.
 _TINT = {"narrow": "#E7F1F8", "intermediate": "#E6F4EC", "full": "#FBEAEC"}
 _EDGE = {"narrow": "#0571B0", "intermediate": "#008837", "full": "#B2182B"}
@@ -422,6 +470,21 @@ def _split_figure(n_left: int = 1, **kwargs: "Any") -> "tuple[Figure, Any, Any]"
     gs = fig.add_gridspec(1, 2, width_ratios=list(COLUMN_RATIOS), wspace=COLUMN_WSPACE)
     gs_left = gs[0, 0].subgridspec(n_left, 1, **kwargs) if n_left > 1 else gs[0, 0]
     return fig, gs_left, fig.add_subplot(gs[0, 1])
+
+
+def _reversals(values: np.ndarray) -> int:
+    """How many times a series changes direction; zero when monotone.
+
+    Mirrors ``rank_selection._direction_reversals``. Duplicated rather than
+    imported because that module imports this one.
+    """
+    v = np.asarray(values, dtype=np.float64)
+    v = v[np.isfinite(v)]
+    if v.size < 3:
+        return 0
+    signs = np.sign(np.diff(v))
+    signs = signs[signs != 0]
+    return int(np.sum(np.diff(signs) != 0)) if signs.size >= 2 else 0
 
 
 def _safe_norm(arr: np.ndarray) -> np.ndarray:
@@ -488,6 +551,11 @@ def plot_casectrl_separation(
     pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
     d2_raw = d_raw ** 2
     cuts = dict(variant_cuts or {})
+    # Quoted in the column: the contrast with the monotone axis is the reason
+    # this figure exists, so it is measured here rather than asserted.
+    _rev_spread = _reversals(decision_table["RGV_Mainland"].to_numpy(dtype=float, copy=False)
+                             if "RGV_Mainland" in decision_table.columns else np.array([]))
+    _rev_sep = _reversals(d2_unb)
 
     # Deliberately outside the cohort palette: on this figure the two lines are
     # two versions of one statistic, not two cohorts.
@@ -510,7 +578,7 @@ def plot_casectrl_separation(
               markeredgecolor="white", markeredgewidth=0.9, zorder=5,
               label=r"De-biased  $\hat{D}^2 - E[D^2]$")
     ax_d.set_ylabel(r"Mahalanobis  $D^2$")
-    _panel_title(ax_d, "A", "Separation of the case and control centroids")
+    _panel_title(ax_d, "A", "Case/control centroid distance does not fall as spread improves")
     ax_d.legend(loc="center right", frameon=True, framealpha=0.95,
                 edgecolor="#CFCFCF", fontsize=11.5)
     ax_d.tick_params(labelbottom=False)
@@ -585,17 +653,18 @@ def plot_casectrl_separation(
        color=_DIM, style="italic")
 
     _rule(0.286)
-    _h(0.270, "Diagnostic only — never optimised against")
-    _b(0.233, r"Minimising it would optimise the quantity the association test")
-    _b(0.209, r"measures, and it bottoms out near the uncut set where $N_{eff}$ is")
-    _b(0.185, r"largest — so it would collapse the trade-off rather than inform it.")
-    _b(0.155, r"The full argument: docs/method.md § 6.", color=_DIM, style="italic")
-    _b(0.115, r"One of two inputs to the intermediate cut is the de-biased",
-       size=11.0, color=_BK)
-    _b(0.091, r"column above; this $p$-value is an input to nothing.",
+    _h(0.270, "Which is why the intermediate cut exists")
+    _b(0.233, rf"Residual spread reverses direction {_rev_spread} times across the walk;")
+    _b(0.209, rf"this quantity reverses {_rev_sep}. A monotone axis has one average rate,")
+    _b(0.185, r"and 02 prices the walk against it. This axis has no rate to price")
+    _b(0.161, r"against, so a cut cannot be read off it the same way.")
+    _b(0.131, r"The answer is not to minimise it on its own — that would optimise")
+    _b(0.107, r"the quantity the association test measures. It is combined with")
+    _b(0.083, r"residual spread into one parameter instead, in 04_cut_selection.png.")
+    _b(0.045, r"Observing it and combining it are not minimising it.",
        size=11.0, color=_BK)
 
-    _figure_title(fig, "Case/Control Separation", "the second homogeneity axis")
+    _figure_title(fig, "The Second Axis", "and why it cannot be priced like the first")
     fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
     _series_footer(fig, "03_separation")
     return fig
@@ -771,29 +840,39 @@ def plot_rank_cut_selection(
 
     # ══ Right column: the procedure, drawn ═══════════════════════════
     _note_axis(ax_note)
-    ax_note.text(0.5, 0.985, "One question, asked three ways",
+    ax_note.text(0.5, 0.985, "Why there are three",
                  fontsize=14.5, fontweight="bold", ha="center", va="top", color=_BK)
-    ax_note.text(0.5, 0.949, "what counts as residual structure?",
+    ax_note.text(0.5, 0.949, "one population, and two ways of cutting inside it",
                  fontsize=12.0, ha="center", va="top", color=_GR, fontstyle="italic")
 
     # Branch geometry: one column per cut, four tiers down the column.
-    lanes = dict(zip(CUT_ORDER, (0.175, 0.500, 0.825)))
+    lanes = dict(zip(NARRATIVE_ORDER, (0.175, 0.500, 0.825)))
     tiers = (0.868, 0.758, 0.648, 0.534)
-    counted = {"full": "nothing", "narrow": "residual\nspread",
-               "intermediate": "spread  +\ncase/control\nseparation"}
-    geometry = {
-        "full": "no trade\nto make",
-        "narrow": f"monotone\nchord spans {spread.chord_span:.3f}",
-        "intermediate": f"folded\nchord spans {blended.chord_span:.3f}",
+    counted = {
+        "full": "the mainland\ncluster itself",
+        "narrow": "residual spread\nvs  $N_{eff}$",
+        "intermediate": "spread  +\ncase/control\nseparation",
     }
-    operator = {"full": r"$\arg\max N_{eff}$", "narrow": "knee",
-                "intermediate": "nearest ideal"}
+    geometry = {
+        "full": "nothing is\nselected",
+        "narrow": "both rise with $k$\n— one average rate",
+        "intermediate": "separation reverses\n— no rate to use",
+    }
+    operator = {"full": "take all of it",
+                "narrow": "peak excess\n$N_{eff}$",
+                "intermediate": "combine, then\nnearest ideal"}
     answer = {"full": k_full, "narrow": k_knee, "intermediate": k_blend}
 
-    ax_note.annotate("", xy=(lanes["full"], 0.925), xytext=(lanes["intermediate"], 0.925),
+    _xs = list(lanes.values())
+    ax_note.annotate("", xy=(min(_xs), 0.925), xytext=(max(_xs), 0.925),
                      arrowprops=dict(arrowstyle="-", color="#CFCFCF", linewidth=1.1), zorder=1)
-    for name, cx in lanes.items():
+    for step, (name, cx) in enumerate(lanes.items(), start=1):
         tint, edge = _TINT[name], _EDGE[name]
+        # Inside the first box, not above it: the band above is the subtitle's.
+        ax_note.text(cx - 0.118, tiers[0], f"{step}", fontsize=11.0, fontweight="bold",
+                     ha="center", va="center", color=edge, zorder=12,
+                     bbox=dict(boxstyle="circle,pad=0.20", facecolor="white",
+                               edgecolor=edge, linewidth=1.2))
         _flow_arrow(ax_note, cx, 0.925, tiers[0] + 0.038, edge)
         prev = None
         for tier, label, bold, size in (
@@ -814,21 +893,22 @@ def plot_rank_cut_selection(
     ax_note.plot([0.0, 1.0], [0.470, 0.470], color="#E0E0E0", linewidth=0.9)
     ax_note.text(_X_INDENT, 0.454, "Definitions", fontsize=12.5, fontweight="bold",
                  va="top", ha="left", color=_BK)
-    ax_note.text(0.5, 0.410,
-                 r"$x_k,\ y_k,\ s_k$ : spread, $N_{eff}$, de-biased $D^2$, each min-max to $[0,1]$",
-                 fontsize=11.0, ha="center", va="top", color=_GR)
-    ax_note.text(0.5, 0.358,
-                 r"$d_k = \dfrac{\left|\Delta y\,x_k - \Delta x\,y_k "
-                 r"+ x_K y_1 - y_K x_1\right|}{\sqrt{\Delta x^2 + \Delta y^2}}$"
-                 r"$\qquad$"
-                 r"$H_k = \dfrac{x_k + s_k}{2}$",
-                 fontsize=12.5, ha="center", va="top", color=_BK)
-    ax_note.text(0.5, 0.276,
-                 r"knee $= \arg\max_k d_k$"
-                 r"$\qquad$"
-                 r"nearest ideal $= \arg\min_k \sqrt{H_k^2 + (1-y_k)^2}$",
+    ax_note.text(0.5, 0.414,
+                 r"$N_k$, $H_k$ raw; $x_k,\ y_k,\ s_k$ the same and de-biased $D^2$, min-max to $[0,1]$",
+                 fontsize=10.5, ha="center", va="top", color=_GR)
+    ax_note.text(0.5, 0.364,
+                 r"narrow:   $\arg\max_k\ \left[(N_k - N_1) - r\,(H_k - H_1)\right]$,"
+                 r"$\quad r = \dfrac{N_K - N_1}{H_K - H_1}$",
                  fontsize=12.0, ha="center", va="top", color=_BK)
-    ax_note.text(_X_INDENT, 0.228,
+    ax_note.text(0.5, 0.302,
+                 r"intermediate:   $\arg\min_k \sqrt{H_k^2 + (1-y_k)^2}$,"
+                 r"$\quad H_k = \dfrac{x_k + s_k}{2}$",
+                 fontsize=12.0, ha="center", va="top", color=_BK)
+    ax_note.text(0.5, 0.252,
+                 r"$r$ is the average exchange rate; the first form only exists"
+                 r" because both axes are monotone.",
+                 fontsize=10.5, ha="center", va="top", color=_DIM, fontstyle="italic")
+    ax_note.text(_X_INDENT, 0.222,
                  "Derivations, margins and caveats: docs/method.md § 6b",
                  fontsize=10.0, va="top", ha="left", color=_DIM, fontstyle="italic")
 
@@ -860,7 +940,7 @@ def plot_rank_cut_selection(
                          color=_EDGE.get(name, _BK) if j == 0 else _GR,
                          fontweight="bold" if j == 0 else "normal")
 
-    _figure_title(fig, "Deriving the Cuts", "one procedure, three settings")
+    _figure_title(fig, "Deriving the Cuts", "one population, and two ways of cutting inside it")
     fig.subplots_adjust(left=0.062, right=0.990, top=0.905, bottom=0.098)
     _series_footer(fig, "04_cut_selection")
     return fig
@@ -905,59 +985,70 @@ def plot_cut_overview(
         r = d_row(name)
         return float(to_numeric_array(r[[col]])[0]) if col in r.index else float("nan")
 
+    _n_raw = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
+    _h_raw = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
+    _rate = float(_n_raw[-1] - _n_raw[0]) / float(_h_raw[-1] - _h_raw[0])
+    excess_peak = float(np.max((_n_raw - _n_raw[0]) - _rate * (_h_raw - _h_raw[0])))
+    n_reversals = _reversals(
+        decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float, copy=False)
+        if "Mainland_CaseCtrl_D2_Unbiased" in decision_table.columns else np.array([])
+    )
+    added_mid = len(set(comps["intermediate"]) - set(comps["narrow"]))
+    added_full = len(set(comps["full"]) - set(comps["intermediate"]))
+
     fig, gs_l, ax_tab = _split_figure(2, height_ratios=[1.0, 0.94], hspace=0.26)
     ax_set = fig.add_subplot(gs_l[0, 0])
     ax_loc = fig.add_subplot(gs_l[1, 0])
 
-    # ══ A · The three cohorts are nested ═════════════════════════════
+    # ══ A · The chain, in four steps ═════════════════════════════════
     _note_axis(ax_set)
-    _panel_title(ax_set, "A", "The three cohorts are nested sets")
-    # Outermost first, so each smaller set is drawn over the one containing it.
-    for depth, name in enumerate(reversed(order)):
-        inset = 0.075 * depth
-        x0, y0 = 0.030 + inset, 0.100 + inset
-        w, h = 0.940 - 2 * inset, 0.855 - 2 * inset
-        ax_set.add_patch(FancyBboxPatch(
-            (x0, y0), w, h, boxstyle="round,pad=0.004,rounding_size=0.018",
-            facecolor=_TINT[name], edgecolor=_EDGE[name], linewidth=2.0,
-            zorder=2 + depth,
-        ))
-        ax_set.text(
-            x0 + 0.018, y0 + h - 0.030,
-            f"{name}   $k$ = {k_of[name]}",
-            fontsize=13.5, fontweight="bold", ha="left", va="top",
-            color=_EDGE[name], zorder=10 + depth,
-        )
-        ax_set.text(
-            x0 + w - 0.018, y0 + h - 0.030,
-            f"{len(comps[name])} components   n = {val(name, 'Total_Count'):,.0f}",
-            fontsize=11.5, ha="right", va="top", color=_GR, zorder=10 + depth,
-        )
-
-    # What each widening step buys, written in the band it opens up.
-    for depth, name in enumerate(order[:-1]):
-        outer = order[depth + 1]
-        added = sorted(set(comps[outer]) - set(comps[name]))
-        d_n = val(outer, "Total_Count") - val(name, "Total_Count")
-        band_y = 0.100 + 0.075 * (len(order) - 2 - depth) + 0.024
-        ax_set.text(
-            0.5, band_y,
-            f"+{len(added)} components ({', '.join(str(c) for c in added)})"
-            f"   +{d_n:,.0f} samples",
-            fontsize=11.0, ha="center", va="bottom", color=_EDGE[outer],
-            zorder=20, fontstyle="italic",
-        )
-    inner = order[0]
-    ax_set.text(
-        0.5, 0.545,
-        "components, in rank order\n" + "   ".join(str(c) for c in comps[inner]),
-        fontsize=12.0, ha="center", va="center", color=_EDGE[inner],
-        zorder=15, linespacing=1.9, fontweight="bold",
+    _panel_title(ax_set, "A", "Why there are three")
+    steps = (
+        ("full", "1",
+         "The mainland cluster\nitself — the population\nthe other two are\nselected within.",
+         f"$k$ = {k_of['full']}   n = {val('full', 'Total_Count'):,.0f}"),
+        ("narrow", "2",
+         f"Inside it, $N_{{eff}}$ and\nspread both rise with $k$,\nso one average rate holds.\n"
+         f"Peak excess: +{excess_peak:,.0f} $N_{{eff}}$.",
+         f"$k$ = {k_of['narrow']}   n = {val('narrow', 'Total_Count'):,.0f}"),
+        (None, "3",
+         f"But case/control distance\ndoes not fall with spread —\nit reverses {n_reversals} times.\n"
+         f"No rate to read a cut from.",
+         "the observation"),
+        ("intermediate", "4",
+         "So combine both axes into\none parameter and take the\ncut nearest the ideal —\n"
+         "between narrow and full.",
+         f"$k$ = {k_of['intermediate']}   n = {val('intermediate', 'Total_Count'):,.0f}"),
     )
-    ax_set.text(0.5, 0.016,
-                "Every sample in a smaller cohort is in every larger one — "
-                "the cuts are nested by construction.",
-                fontsize=10.5, ha="center", va="bottom", color=_DIM, fontstyle="italic")
+    for i, (name, num, body, foot) in enumerate(steps):
+        x0 = 0.012 + i * 0.248
+        w = 0.222
+        tint = _TINT[name] if name else "#F2F2F2"
+        edge = _EDGE[name] if name else _DIM
+        ax_set.add_patch(FancyBboxPatch(
+            (x0, 0.150), w, 0.760,
+            boxstyle="round,pad=0.004,rounding_size=0.020",
+            facecolor=tint, edgecolor=edge, linewidth=1.6, zorder=2,
+        ))
+        ax_set.text(x0 + 0.024, 0.855, num, fontsize=11.0, fontweight="bold",
+                    ha="center", va="center", color=edge, zorder=5,
+                    bbox=dict(boxstyle="circle,pad=0.20", facecolor="white",
+                              edgecolor=edge, linewidth=1.2))
+        ax_set.text(x0 + w / 2.0, 0.660, body, fontsize=10.5, ha="center", va="center",
+                    color=_BK, zorder=4, linespacing=1.75)
+        ax_set.text(x0 + w / 2.0, 0.300, name or "\u2014", fontsize=15.0,
+                    fontweight="bold", ha="center", va="center", color=edge, zorder=4)
+        ax_set.text(x0 + w / 2.0, 0.220, foot, fontsize=11.0, ha="center", va="center",
+                    color=_GR, zorder=4)
+        if i < len(steps) - 1:
+            ax_set.annotate("", xy=(x0 + w + 0.024, 0.530), xytext=(x0 + w + 0.002, 0.530),
+                            arrowprops=dict(arrowstyle="-|>", color=_DIM, linewidth=1.6),
+                            zorder=3)
+    ax_set.text(
+        0.5, 0.055,
+        r"narrow $\subset$ intermediate $\subset$ full — nested by construction.   "
+        + f"+{added_mid} components to reach intermediate, +{added_full} more to reach full.",
+        fontsize=10.5, ha="center", va="center", color=_DIM, fontstyle="italic")
 
     # ══ B · Where each sits on the trade-off ═════════════════════════
     ax_loc.plot(het, neff, "-o", color=_GR, markersize=4.6, linewidth=1.5,
@@ -973,7 +1064,7 @@ def plot_cut_overview(
             xy=(float(r[rgv_column]), float(r["GWAS_Neff"])),
             # Placed off the curve on the side each point has room on; the
             # cuts sit close together on the flat arm.
-            xytext={"narrow": (-34, -46), "intermediate": (10, 26),
+            xytext={"narrow": (-58, -30), "intermediate": (10, 26),
                     "full": (-10, -30)}.get(name, (14, -4)),
             textcoords="offset points", fontsize=11.5, fontweight="bold",
             color=_EDGE[name], ha={"intermediate": "left"}.get(name, "right"),
@@ -992,9 +1083,9 @@ def plot_cut_overview(
     _note_axis(ax_tab)
     _panel_title(ax_tab, "C", "What fixed each cut, and what it delivers")
     basis = {
-        "narrow": "counts residual spread — knee of the trade-off curve",
-        "intermediate": "counts spread and case/control separation — nearest the ideal corner",
-        "full": "counts nothing — every major-cluster component",
+        "narrow": r"peak excess $N_{eff}$ over the walk's average exchange rate",
+        "intermediate": "spread and separation combined — the cut nearest the ideal corner",
+        "full": "the mainland cluster itself — nothing is selected",
     }
     # One card per cohort rather than a wide table row: the column is narrow,
     # and stacking keeps each cohort's basis next to its own numbers.

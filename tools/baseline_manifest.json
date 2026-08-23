@@ -4576,11 +4576,11 @@
       ]
     },
     "03_rank_selection/00_overview.png": {
-      "bytes": 1862138,
+      "bytes": 1983179,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.25669565928712,
-      "sha256": "153d5c1420199b5b225bce32eeca1dfa7e87011efa4283738f06fdccdab52ff8",
+      "pixel_mean": 245.69293415135058,
+      "sha256": "1beb3c14667a10c2bc4262c7e6336dab54ef6af41ec065afec943cb01dd705e6",
       "size": [
         11400,
         6300
@@ -4642,40 +4642,40 @@
       ]
     },
     "03_rank_selection/02_tradeoff.png": {
-      "bytes": 1890981,
+      "bytes": 2250955,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 251.37726131996658,
-      "sha256": "8eada0f0e5e20d86c3e4382c59087c89c872a9f583a56612a002dc8e50effd4e",
+      "pixel_mean": 250.03400672514618,
+      "sha256": "48299d50e69fa3af7170e2d224f38a1aa3ced746b72ca7e93339aec5cf282398",
       "size": [
         11400,
         6300
       ]
     },
     "03_rank_selection/03_separation.png": {
-      "bytes": 2507142,
+      "bytes": 2666127,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.22924704469506,
-      "sha256": "722b9376be59ff9d85343f9a09c13369d0190d56809a9596156bec76d4f0ba3a",
+      "pixel_mean": 248.87488799081035,
+      "sha256": "270cfe835f1b8067dee2e9f32650d6f64c93cb9bebedba2175ff79cf041c3cfe",
       "size": [
         11400,
         6300
       ]
     },
     "03_rank_selection/04_cut_selection.png": {
-      "bytes": 2379942,
+      "bytes": 2514354,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 246.73535772417154,
-      "sha256": "f09018a4ae46d4c54bf900cf0affdc78ac2e681573d574978c4d4a826ad72e51",
+      "pixel_mean": 246.44936213798385,
+      "sha256": "2564b6a441736e88932cfbc13e39347583117bd327c38a54b18637f03ad96d38",
       "size": [
         11400,
         6300
       ]
     },
     "03_rank_selection/04_cut_selection.tsv": {
-      "bytes": 577,
+      "bytes": 624,
       "columns": [
         "Variant",
         "Structure_Counted",
@@ -4689,6 +4689,8 @@
         "Auto_Manual_Agree",
         "Statistic",
         "Value",
+        "Axis_Reversals",
+        "Exchange_Rate",
         "Margin",
         "Margin_Kind"
       ],
@@ -4700,11 +4702,23 @@
           38.0,
           12.666666666666666
         ],
+        "Axis_Reversals": [
+          0.0,
+          7.0,
+          7.0,
+          3.5
+        ],
         "Chord_Span": [
           0.2377838364209773,
           1.0,
           1.2377838364209772,
           0.6188919182104886
+        ],
+        "Exchange_Rate": [
+          381518.9003833502,
+          381518.9003833502,
+          381518.9003833502,
+          381518.9003833502
         ],
         "Manual_Rank": [
           9.0,
@@ -4713,10 +4727,10 @@
           10.5
         ],
         "Margin": [
-          0.0016886475267409,
           0.128,
-          0.1296886475267409,
-          0.06484432376337045
+          3.0521416444142915,
+          3.1801416444142916,
+          1.5900708222071458
         ],
         "Resolved_Rank": [
           9.0,
@@ -4725,16 +4739,16 @@
           12.666666666666666
         ],
         "Value": [
-          0.2905305977216882,
-          1507.407932924863,
-          1508.0580691911225,
-          502.6860230637075
+          0.3596056685377501,
+          525.1187842582931,
+          542.4783899268308,
+          180.82612997561026
         ]
       },
-      "sha256": "505fbda00424e6422288dd672dbb6bd0e111e1b8fedc1b016e7cfe08ae76380b",
+      "sha256": "1753221c3420ec8d7e1352b7dc3b9074726c47bcd9abe8b301fc4208744c4ffb",
       "shape": [
         3,
-        14
+        16
       ]
     },
     "03_rank_selection/rank_decision_table.tsv": {

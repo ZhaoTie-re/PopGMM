@@ -289,32 +289,28 @@ make, so the optimum is simply the largest set, $\arg\max_k y_k = 17$: every
 major-cluster component. Derived rather than asserted, which is what places it
 in the same family as the other two.
 
-**`narrow` — residual spread counted.** Spread is strictly monotone in $k$, so
-the frontier is a curve and the chord joining its ends spans the whole axis. The
-knee is the point furthest from that chord (Satopää et al. 2011):
+**`narrow` — priced against the walk's average exchange rate.** Both quantities
+rise strictly with $k$, so the walk end to end has one average rate — how much
+$N_{\mathrm{eff}}$ a unit of residual spread buys:
 
 ```math
-k_{\mathrm{narrow}} = \arg\max_k d_k,
+r = \frac{N_K - N_1}{H_K - H_1} = 381{,}519,
 \qquad
-d_k = \frac{\left|\Delta y\,x_k - \Delta x\,y_k + x_K y_1 - y_K x_1\right|}
-            {\sqrt{\Delta x^2 + \Delta y^2}}
+k_{\mathrm{narrow}} = \arg\max_k\ \left[(N_k - N_1) - r\,(H_k - H_1)\right]
 ```
 
-It measures the **turn in the exchange rate** — the last cut before
-$N_{\mathrm{eff}}$ stops repaying the spread it costs — which is the quantity
-the decision is actually about. That is why it is preferred to proximity-to-a-
-corner wherever it applies: closeness to an unattainable corner has no reading
-in those terms and depends on the aspect ratio of the normalised box.
+The bracket is the **excess** $N_{\mathrm{eff}}$ cut $k$ has bought over that
+rate. It peaks at $k = 9$ at $+525$; beyond it the curve flattens and later
+components never make the accumulated shortfall back.
 
-Both quantities are monotone on this run, which puts the chord endpoints at
-$(0,0)$ and $(1,1)$ and makes $d_k = |y_k - x_k|/\sqrt{2}$ — a rescaling of the
-`Utility_Neff_minus_RGV` column the decision table already carries. The
-perpendicular form is implemented anyway, so the rule survives a spread that
-dips.
+Cumulative, not per-step, because the per-step rate is *not* monotone: ranks
+10–12 fall below the average and rank 13 springs back to 469,219. "The last step
+above the average rate" would answer **13**. The cumulative form answers 9, and
+is exactly the knee of the curve — the point furthest from the chord joining its
+ends — rescaled into $N_{\mathrm{eff}}$, which is a unit the reader can price.
 
-This gives $k = 9$, and **it should be read with its margin**: the lead over
-$k = 8$ is $+0.0017$, or 0.58%. The turn is real but not sharply placed, and
-truncating the walk's upper end moves it to 8.
+The margin belongs beside the answer: the peak leads its runner-up by 3.1
+$N_{\mathrm{eff}}$, so the turn is real but not sharply placed.
 
 **`intermediate` — spread and separation counted.** Adding the de-biased
 separation folds the structure axis, because the two disagree about direction
