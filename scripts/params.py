@@ -174,7 +174,7 @@ RankCut = int | Literal["full", "auto"]
 #: "manual" -- the numbers below are used, and the rules are still evaluated and
 #:             reported so the two can be compared.
 #:
-#: Either way both rules run and `rank_cut_selection.tsv` records the resolved
+#: Either way both rules run and `04_cut_selection.tsv` records the resolved
 #: cut, the rule's own answer, the manual value, and whether they agree. The
 #: mode changes which column is *used*, never which are computed -- switching it
 #: can therefore never silently change a cut without the table saying so.

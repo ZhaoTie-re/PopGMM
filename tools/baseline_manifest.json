@@ -4575,18 +4575,18 @@
         10
       ]
     },
-    "03_rank_selection/casectrl_separation.png": {
-      "bytes": 2482173,
+    "03_rank_selection/00_overview.png": {
+      "bytes": 1772695,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.25208230416138,
-      "sha256": "b8cf8e21bc73f6d08214b3345a6a11994dc1392ec1dbe5687c36952b043bb3f5",
+      "pixel_mean": 247.6976642970801,
+      "sha256": "c29b5c0be39b96df17277c9b8e1e36ee8f350c5e8940e8e9097b7d0f5c595cda",
       "size": [
-        11239,
-        5586
+        10915,
+        6161
       ]
     },
-    "03_rank_selection/component_rank_table.tsv": {
+    "03_rank_selection/01_component_ranking.tsv": {
       "bytes": 611,
       "columns": [
         "Rank",
@@ -4641,157 +4641,40 @@
         6
       ]
     },
-    "03_rank_selection/rank_cumulative_metrics.tsv": {
-      "bytes": 5150,
-      "columns": [
-        "Included_Max_Rank",
-        "Included_Cluster_Count",
-        "Included_Clusters",
-        "CTEPH_Count",
-        "AGP3K_Count",
-        "Case_Control_Ratio",
-        "Total_Count",
-        "GWAS_Neff",
-        "RGV_Global",
-        "RGV_Mainland",
-        "PC12_CaseCtrl_Mahalanobis",
-        "PC12_CaseCtrl_HotellingT2",
-        "PC12_CaseCtrl_P",
-        "Mainland_CaseCtrl_Mahalanobis",
-        "Mainland_CaseCtrl_D2_Unbiased",
-        "Mainland_CaseCtrl_HotellingT2",
-        "Mainland_CaseCtrl_P",
-        "Mainland_CaseCtrl_Noise_Floor"
-      ],
-      "kind": "tsv",
-      "numeric": {
-        "AGP3K_Count": [
-          155.0,
-          2662.0,
-          27514.0,
-          1618.4705882352941
-        ],
-        "CTEPH_Count": [
-          91.0,
-          439.0,
-          6219.0,
-          365.8235294117647
-        ],
-        "Case_Control_Ratio": [
-          0.1649135987978963,
-          0.5870967741935483,
-          4.706649787050407,
-          0.2768617521794357
-        ],
-        "GWAS_Neff": [
-          229.34959349593493,
-          1507.407932924863,
-          20025.19711458625,
-          1177.9527714462502
-        ],
-        "Included_Cluster_Count": [
-          1.0,
-          17.0,
-          153.0,
-          9.0
-        ],
-        "Included_Clusters": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "Included_Max_Rank": [
-          1.0,
-          17.0,
-          153.0,
-          9.0
-        ],
-        "Mainland_CaseCtrl_D2_Unbiased": [
-          -0.0036818238512297,
-          0.1806247023050443,
-          0.9887735995878615,
-          0.058163152916933025
-        ],
-        "Mainland_CaseCtrl_HotellingT2": [
-          2.6200433447774265,
-          40.60262452482874,
-          309.26227928721966,
-          18.191898781601157
-        ],
-        "Mainland_CaseCtrl_Mahalanobis": [
-          0.0836089980170267,
-          0.5003870480677848,
-          4.3090523291796945,
-          0.253473666422335
-        ],
-        "Mainland_CaseCtrl_Noise_Floor": [
-          0.010614246913876,
-          0.0697624955689471,
-          0.29457179527651167,
-          0.017327752663324217
-        ],
-        "Mainland_CaseCtrl_P": [
-          3.9452921592214746e-08,
-          0.623787436303638,
-          1.6490727189121879,
-          0.09700427758306987
-        ],
-        "PC12_CaseCtrl_HotellingT2": [
-          0.593958071731926,
-          37.687474469715,
-          227.98840384703314,
-          13.411082579237243
-        ],
-        "PC12_CaseCtrl_Mahalanobis": [
-          0.0702832852355271,
-          0.335770638565723,
-          3.2224296186093073,
-          0.18955468344760631
-        ],
-        "PC12_CaseCtrl_P": [
-          7.780549374290488e-09,
-          0.7442319649237746,
-          2.3188119651259425,
-          0.1364007038309378
-        ],
-        "RGV_Global": [
-          0.001627351800424,
-          0.0069707324074082,
-          0.0790888540664096,
-          0.004652285533318212
-        ],
-        "RGV_Mainland": [
-          0.0026778431371262,
-          0.0060277645647271,
-          0.0738654702412664,
-          0.004345027661250965
-        ],
-        "Total_Count": [
-          246.0,
-          3101.0,
-          33733.0,
-          1984.2941176470588
-        ]
-      },
-      "sha256": "9ea32d06ceff0a7c010b6ab8a308b10721a9c5117f7c3184580b075f6929babf",
-      "shape": [
-        17,
-        18
-      ]
-    },
-    "03_rank_selection/rank_cut_selection.png": {
-      "bytes": 2404627,
+    "03_rank_selection/02_tradeoff.png": {
+      "bytes": 1822161,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 246.59150814568252,
-      "sha256": "9229c9a6002a0dea764e28a37a727d19fdc1ccab5308f28622227a22d3c5253a",
+      "pixel_mean": 250.94073061423475,
+      "sha256": "fc73a3b3fca1d2b2b8918232799a60cc53664207a1b771abf8b017f5357f529d",
+      "size": [
+        10544,
+        5586
+      ]
+    },
+    "03_rank_selection/03_separation.png": {
+      "bytes": 2471751,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 248.267348705232,
+      "sha256": "a5fb9bfabe7ac2ccd856b568b0dc086528ba25a00722dc5d6a5e3ed6c617f81a",
+      "size": [
+        11239,
+        5586
+      ]
+    },
+    "03_rank_selection/04_cut_selection.png": {
+      "bytes": 2403458,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 246.59238960461016,
+      "sha256": "0a4be746a6425c2124154670f2595ad1aeffccf1077bded1e312690cded58755",
       "size": [
         11470,
         6469
       ]
     },
-    "03_rank_selection/rank_cut_selection.tsv": {
+    "03_rank_selection/04_cut_selection.tsv": {
       "bytes": 577,
       "columns": [
         "Variant",
@@ -5042,17 +4925,6 @@
       "shape": [
         17,
         27
-      ]
-    },
-    "03_rank_selection/rank_selection_tradeoff.png": {
-      "bytes": 1812855,
-      "kind": "png",
-      "mode": "RGBA",
-      "pixel_mean": 250.96306350314464,
-      "sha256": "0ddd1076f0a93df539dc9754faa25ec71823e01128db8edf5080fd03a587b7da",
-      "size": [
-        10544,
-        5586
       ]
     },
     "04_subcluster_variants/full/pc_space_global/all_pcs_kde.log": {

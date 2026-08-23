@@ -48,6 +48,7 @@ import pandas as pd
 
 from scripts.plotting.rank import (
     plot_casectrl_separation,
+    plot_cut_overview,
     plot_rank_cut_selection,
     plot_rank_tradeoff,
 )
@@ -76,7 +77,7 @@ _SEPARATION_NAN = _CaseControlSeparation(
 #: argument for preferring either measure.
 INTERMEDIATE_BLEND_WEIGHT: float = 0.5
 
-#: Operator names written to ``rank_cut_selection.tsv``. Which one applies to a
+#: Operator names written to ``04_cut_selection.tsv``. Which one applies to a
 #: cut follows from the geometry of its objective space, not from a choice; see
 #: ``_choose_operator``.
 OPERATOR_KNEE = "knee"
@@ -88,13 +89,12 @@ class RankSelectionOutput(NamedTuple):
     """Rank-progression tables, the recommended cut, and the figure paths."""
 
     rank_table: pd.DataFrame
-    cumulative_metrics: pd.DataFrame
     decision_table: pd.DataFrame
     recommended_rank: int | None
     output_dir: Path
     rank_table_path: Path
-    cumulative_table_path: Path
     decision_table_path: Path
+    overview_figure_path: Path | None
     figure_path: Path | None
     separation_figure_path: Path | None
     cut_selection_figure_path: Path | None
@@ -110,15 +110,17 @@ class RankSelectionConfig:
     """Configuration for the rank-selection trade-off analysis."""
 
     output_dir: str | Path = "results/03_rank_selection"
-    rank_table_file: str = "component_rank_table.tsv"
-    cumulative_table_file: str = "rank_cumulative_metrics.tsv"
+    # Numbered files are the walkthrough, in reading order; the decision table
+    # stays unnumbered because it backs all of them rather than being a step.
+    overview_figure_file: str = "00_overview.png"
+    rank_table_file: str = "01_component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
-    figure_file: str = "rank_selection_tradeoff.png"
+    figure_file: str = "02_tradeoff.png"
 
     # Supplementary case/control separation figure, in the mainland basis over
     # the same axes as RGV_Mainland. Only written when a mainland projection was
     # supplied, since without one its four columns are all NaN.
-    separation_figure_file: str = "casectrl_separation.png"
+    separation_figure_file: str = "03_separation.png"
 
     # Variant name -> declared cut: an int pins it, "auto" defers to that
     # variant's rule, "full" is the uncut set. The stage resolves these and
@@ -138,8 +140,8 @@ class RankSelectionConfig:
     # remainder goes to case/control separation. Equal weight by default.
     blend_weight: float = INTERMEDIATE_BLEND_WEIGHT
 
-    cut_selection_file: str = "rank_cut_selection.tsv"
-    cut_selection_figure_file: str = "rank_cut_selection.png"
+    cut_selection_file: str = "04_cut_selection.tsv"
+    cut_selection_figure_file: str = "04_cut_selection.png"
 
     # How many of the ranked mainland components to walk. None means "all of
     # them", discovered from the mainland component list rather than stated as a
@@ -809,10 +811,10 @@ def run_rank_selection(
             }
         )
 
-    cumulative_metrics = pd.DataFrame.from_records(cum_records)
-
-    # ===== Decision table =====
-    decision_table = cumulative_metrics.copy()
+    # The cumulative metrics are not written separately: the decision table is
+    # this frame plus nine derived columns, so a second file would be a strict
+    # subset with identical values.
+    decision_table = pd.DataFrame.from_records(cum_records)
     decision_table = decision_table.sort_values("Included_Max_Rank").reset_index(drop=True)
 
     # The Pareto front, the normalisation and the recommendation all read one
@@ -906,14 +908,32 @@ def run_rank_selection(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     rank_table_path = out_dir / str(config.rank_table_file)
-    cumulative_table_path = out_dir / str(config.cumulative_table_file)
     decision_table_path = out_dir / str(config.decision_table_file)
     rank_table.to_csv(rank_table_path, sep="\t", index=False)
-    cumulative_metrics.to_csv(cumulative_table_path, sep="\t", index=False)
     decision_table.to_csv(decision_table_path, sep="\t", index=False)
 
     cut_selection_path = out_dir / str(config.cut_selection_file)
     cut_selection_table.to_csv(cut_selection_path, sep="\t", index=False)
+
+    overview_figure_path: Path | None = None
+    if bool(config.save_plot) or bool(config.show_plot):
+        with figure_context(THEME_RANK):
+            fig_ov = plot_cut_overview(
+                decision_table=decision_table,
+                cut_selection=cut_selection_table,
+                rank_table=rank_table,
+                rgv_column=rgv_column,
+                mainland_axes=mainland_axes,
+                case_label=str(config.case_label),
+                control_label=str(config.control_label),
+            )
+            if bool(config.save_plot):
+                overview_figure_path = out_dir / str(config.overview_figure_file)
+                save_figure(fig_ov, overview_figure_path, dpi=int(config.figure_dpi))
+            if bool(config.show_plot):
+                plt.show()
+            else:
+                plt.close(fig_ov)
 
     figure_path: Path | None = None
     if bool(config.save_plot) or bool(config.show_plot):
@@ -1004,7 +1024,6 @@ def run_rank_selection(
         _rec_source = "(forced)" if config.forced_recommended_rank is not None else "(Pareto-auto)"
         print(f"Recommended rank k   : {recommended_rank}  {_rec_source}")
         print(f"Rank table saved      : {rank_table_path}")
-        print(f"Cumulative table saved: {cumulative_table_path}")
         print(f"Decision table saved  : {decision_table_path}")
         if figure_path is not None:
             print(f"Figure saved          : {figure_path}")
@@ -1014,13 +1033,12 @@ def run_rank_selection(
 
     return RankSelectionOutput(
         rank_table=rank_table,
-        cumulative_metrics=cumulative_metrics,
         decision_table=decision_table,
         recommended_rank=recommended_rank,
         output_dir=out_dir,
         rank_table_path=rank_table_path,
-        cumulative_table_path=cumulative_table_path,
         decision_table_path=decision_table_path,
+        overview_figure_path=overview_figure_path,
         figure_path=figure_path,
         separation_figure_path=separation_figure_path,
         cut_selection_figure_path=cut_selection_figure_path,

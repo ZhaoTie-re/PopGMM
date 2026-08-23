@@ -118,15 +118,21 @@ region rather than jumping elsewhere.
 
 ### `03_rank_selection/` [6]
 
+Files are numbered in reading order: `00` summarises, `01` is the ordering
+everything else walks, and `02`–`04` are the argument. `rank_decision_table.tsv`
+is unnumbered because it backs all of them rather than being a step of its own.
+Nothing downstream reads these files — the subcluster stage consumes the
+resolved cuts in memory — so they exist to be read by a person.
+
 | File | Contents |
 |---|---|
-| `component_rank_table.tsv` | Major-cluster components ordered by case/control ratio |
-| `rank_cumulative_metrics.tsv` | Each cumulative top-$k$ set with its counts |
+| `00_overview.png` | Read first: the three cohorts as nested sets, where each sits on the trade-off, and what fixed each |
+| `01_component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `rank_decision_table.tsv` | The trade-off evidence: $N_{\mathrm{eff}}$, both RGV columns, both case/control separation blocks, Pareto flag, recommendation |
-| `rank_selection_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
-| `rank_cut_selection.tsv` | How each cut was arrived at: what it counts as residual structure, the frontier that produces, the operator that admits, and the resolved rank |
-| `rank_cut_selection.png` | The two derivations, what they depend on, and the procedure drawn as a branching diagram |
-| `casectrl_separation.png` | Supplementary: case/control separation across the walk |
+| `02_tradeoff.png` | The curve, with the Pareto front and the chosen $k$ marked |
+| `04_cut_selection.tsv` | How each cut was arrived at: what it counts as residual structure, the frontier that produces, the operator that admits, and the resolved rank |
+| `04_cut_selection.png` | The two derivations, what they depend on, and the procedure drawn as a branching diagram |
+| `03_separation.png` | Supplementary: case/control separation across the walk |
 
 `rank_decision_table.tsv` is the file to read when questioning a cut — it holds
 the numbers both figures draw.
@@ -141,7 +147,7 @@ set grows, so it drifts downwards across the walk on its own. Negative means the
 separation is below that floor. Neither `_HotellingT2` nor `_P` needs the
 correction.
 
-`rank_cut_selection.tsv` is the reproducibility record for the three cuts. One
+`04_cut_selection.tsv` is the reproducibility record for the three cuts. One
 row per variant:
 
 | Column | Contents |
@@ -174,15 +180,15 @@ its answer is constant.
 The three figures are one argument and are numbered on the page, each naming its
 neighbours in a footer:
 
-1. `rank_selection_tradeoff.png` — what is being traded
-2. `casectrl_separation.png` — the second homogeneity axis
-3. `rank_cut_selection.png` — the cuts the two of them fix
+1. `02_tradeoff.png` — what is being traded
+2. `03_separation.png` — the second homogeneity axis
+3. `04_cut_selection.png` — the cuts the two of them fix
 
 The blue diamond on the first is labelled `narrow`, not "recommended": all three
 figures use the variant names, and none of them implies one cut is better than
 another.
 
-`rank_cut_selection.png` states what the procedure produced — the three cuts
+`04_cut_selection.png` states what the procedure produced — the three cuts
 with their counts, $N_{\mathrm{eff}}$ and RGV — so the figures no longer derive
 an answer they never show. Its right-hand column is a branching diagram of the
 procedure rather than prose: one lane per cut, from what it counts as residual
@@ -191,11 +197,11 @@ the rank that follows. The derivations, margins and caveats live in
 [`method.md`](method.md#6b-deriving-the-three-cuts) and are not repeated on the
 figure.
 
-`casectrl_separation.png` is the separation diagnostic alone — the statistic and
+`03_separation.png` is the separation diagnostic alone — the statistic and
 its sampling floor (A), and the evidence for it (B). It drives no cut; see
 [`method.md`](method.md#supplementary-casecontrol-separation) for why selecting
 on it would be the wrong objective. Its de-biased column is one of the two
-inputs to the intermediate rule, which is derived in `rank_cut_selection.png`.
+inputs to the intermediate rule, which is derived in `04_cut_selection.png`.
 
 ### `04_subcluster_variants/<variant>/` [7]
 
