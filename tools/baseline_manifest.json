@@ -4576,46 +4576,46 @@
       ]
     },
     "03_rank_selection/00_problem.png": {
-      "bytes": 3792422,
+      "bytes": 3975213,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.73105458977287,
-      "sha256": "5ec45cbef81ef97db739c84204f861689c8dab53a384e83c32f8825ca2bafc20",
+      "pixel_mean": 248.15085394479271,
+      "sha256": "49441304859faab95eb0418e6cff525302831940ac8bd8d2de12b41758755e36",
       "size": [
         11136,
-        9786
+        10578
       ]
     },
     "03_rank_selection/01_narrow.png": {
-      "bytes": 3311097,
+      "bytes": 3575873,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.22600262663863,
-      "sha256": "6422f08cdd27340135203bf2b702771b98c8a6bed159ca10715d8eb87205187d",
+      "pixel_mean": 248.90150926234443,
+      "sha256": "3428b26e4e16eaee6ea7d2c45671d735b83cf1ec0fbd7339288fdf54ac386e67",
       "size": [
-        11155,
-        9102
+        11237,
+        9498
       ]
     },
     "03_rank_selection/02_intermediate.png": {
-      "bytes": 6426279,
+      "bytes": 6544210,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 246.95225821354853,
-      "sha256": "e76ad281e64a69079ccf3b1f7d3e70ad30b7ca6c52f774755e87db54d69972dd",
+      "pixel_mean": 247.0191666878002,
+      "sha256": "08d1d91f1c15ee65de41aa8e3e802d9a074db533c2a7573ceef550ac5bb52746",
       "size": [
         11211,
-        12090
+        12240
       ]
     },
     "03_rank_selection/03_cohorts.png": {
-      "bytes": 3675734,
+      "bytes": 3734429,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 247.28897062959166,
-      "sha256": "e3865ea0e5397d7914dca1306604c0b08d4eae795a78a19a6eee40b565cd8995",
+      "pixel_mean": 247.3237116937304,
+      "sha256": "36201ca23023c16512a87d9ad8bdfea5d9d1db9bd845c97f2ef0aa0d51bf50a1",
       "size": [
-        10902,
+        10907,
         9348
       ]
     },

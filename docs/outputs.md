@@ -137,6 +137,17 @@ content, so the columns end at about the same depth rather than the band being
 sized to the longest and the rest left blank. Topics stay whole and stay in
 order: a column may hold two of them, but none is broken across a gutter.
 
+Notation follows the slide deck these figures sit in: `p` for allele frequency,
+`N_case` / `N_ctrl` / `N_tot` / `N_eff` for the counts, `H` for residual spread.
+Two symbols the deck already spends are kept free — the walk's exchange rate is
+`γ`, not `r`, and the separation p-value is `P`, not `p`. The cut index is a
+subscript throughout (`N_eff,k`, `H_k`, `E_k`, `s_k`, `P_k`), because every one
+of these figures is a walk over `k`.
+
+Each figure carries one line of symbol definitions **above** the crop line,
+scoped to exactly the symbols its own formulas use, so a cropped figure is
+self-contained; the standalone explanations stay in the band below.
+
 Every formula is presented the same way — the question it answers, the formula,
 then how to read its result. No figure declares a canvas size: each is measured
 from its own content and made exactly that tall, and the presented band is set
@@ -145,7 +156,7 @@ at a size meant to be read across a room rather than at a desk.
 | File | Contents |
 |---|---|
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$ |
-| `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
+| `01_narrow.png` | The first cut: the walk with its average rate drawn as a chord (A), and $E_k$ — the gap between them — peaking at $k$ = 9 (B) |
 | `02_intermediate.png` | The obstacle (A), the rule and every cut's distance (B), and the weight sweep (C); the three derivations sit below the crop rule |
 | `03_cohorts.png` | Where the three sit on the trade-off (A), why you would pick each one (B), and what each delivers (C) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
@@ -156,16 +167,17 @@ The argument runs across the four in order:
 
 1. The major cluster has $K = 17$ components. Order them by case/control ratio;
    cut $k$ keeps the top $k$. Along that walk
-   $N_k = 4n_1n_2/(n_1+n_2)$ rises — the allele frequency cancels, so an
+   $N_{eff} = 4N_{case}N_{ctrl}/(N_{case}+N_{ctrl}) = N_{tot}\cdot 4r/(1+r)^2$ rises — the allele frequency cancels, so an
    unbalanced set is worth less than its raw total — and so does
    $H_k = |\Sigma_k|^{1/2d} = (\prod\sqrt{\lambda_i})^{1/d}$ with $d = 4$.
 2. Because both rise, the walk has one average exchange rate
-   $r = (N_K-N_1)/(H_K-H_1) = 381{,}519$, and each cut can be scored by
-   $E_k = (N_k-N_1) - r(H_k-H_1)$ — its surplus in effective samples over paying
-   that price. **`narrow` $= \arg\max_k E_k = 9$.** Cumulative rather than
-   per-step: the per-step rate rebounds and would answer 13.
+   $\gamma = (N_{eff,K}-N_{eff,1})/(H_K-H_1) = 381{,}519$, and each cut can be
+   scored by $E_k = (N_{eff,k}-N_{eff,1}) - \gamma(H_k-H_1)$ — its surplus in
+   effective samples over paying that price. **`narrow` $= \arg\max_k E_k = 9$.**
+   Panel A draws the walk and that rate as a straight chord across it, so $E_k$
+   is visible as the vertical gap between the two rather than asserted.
 3. Case/control centroid distance
-   $s_k = \hat{D}^2_k - d(1/n_1+1/n_2)$ reverses direction **7 times**, so it has
+   $s_k = \hat{D}^2_k - d(1/N_{case}+1/N_{ctrl})$ reverses direction **7 times**, so it has
    no rate and step 2 cannot be repeated on it. The two axes are blended
    instead — $u_k(w) = wx_k + (1-w)\tilde{s}_k$, rescaled to $\tilde{H}_k$, then
    $k^{*}(w) = \arg\min_k\sqrt{\tilde{H}_k^2+(1-y_k)^2}$ — at
@@ -203,10 +215,16 @@ removes what sampling contributes on average; it does not say whether what is
 left is real, and Hotelling's exact $F$ test does — 12 of the 17 cuts separate
 significantly, which is what makes the second axis a phenomenon rather than
 noise. Of the three delivered cohorts, **`intermediate` is the only one where
-the gap is not detectable** ($p = 0.15$, against $3.9\times10^{-8}$ for `narrow`
+the gap is not detectable** ($P = 0.15$, against $3.9\times10^{-8}$ for `narrow`
 and $0.0035$ for `full`); `narrow` sits at the strongest separation in the whole
 walk. Neither fact selected a cut — both are properties of the deliverable,
 reported in `03_cohorts.png`.
+
+One thing to reconcile in the deck rather than here: its trade-off slide computes
+`H` as `RGV_Global` on PC1–PC2 (`d = 2`), while the cut is selected on
+`RGV_Mainland` with `mainland_rgv_n_pcs = 4`. Its k = 9 counts are 411 / 1,782 /
+2,193 against the 419 / 1,776 / 2,195 here, so that slide predates this run. The
+formula is the same either way — `det(Σ)^(1/2d)` — only `d` differs.
 
 The second rescaling in step 3 is not cosmetic: without it the recorded distance
 0.3596 is not reproducible (you get 0.3446). Derived values on the figures are
