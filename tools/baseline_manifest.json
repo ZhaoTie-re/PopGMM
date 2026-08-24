@@ -4598,22 +4598,22 @@
       ]
     },
     "03_rank_selection/02_intermediate.png": {
-      "bytes": 2809390,
+      "bytes": 2973590,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 249.42859790260908,
-      "sha256": "5229eaaf68207a04bc2cc86d95e3244453d438e3975a6e463e1823d4bdc3fb47",
+      "pixel_mean": 249.2248043128655,
+      "sha256": "52d51ab5be9511c299f06b026c6c0556b21f9b04eaa7645e40c203f1eb9dc4c4",
       "size": [
         11400,
         7800
       ]
     },
     "03_rank_selection/03_cohorts.png": {
-      "bytes": 1449487,
+      "bytes": 1575009,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 251.0804400191183,
-      "sha256": "53e734c92b0495ff88d43a1dfc6a7ca35bca9f27dda9d99125de296065f2dff1",
+      "pixel_mean": 250.88111643331084,
+      "sha256": "e0e61ad8d89125351ee08225c7f02fbff6ff202b4e976c62420f82dc4c23abcf",
       "size": [
         11400,
         7800

@@ -229,6 +229,9 @@ def plot_problem(
     het = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
     n1 = decision_table[f"{case_label}_Count"].to_numpy(dtype=int, copy=False)
     n2 = decision_table[f"{control_label}_Count"].to_numpy(dtype=int, copy=False)
+    t2 = decision_table["Mainland_CaseCtrl_HotellingT2"].to_numpy(dtype=float, copy=False)
+    pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
+    sig = np.isfinite(pval) & (pval < 0.05)
     ratios = rank_table.sort_values("Rank")["Case_Ctrl_Ratio"].to_numpy(dtype=float)
 
     fig, ax, right, ax_tab = _stage(2, 9)
@@ -426,6 +429,9 @@ def plot_intermediate(
     sep = decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float, copy=False)
     n1 = decision_table[f"{case_label}_Count"].to_numpy(dtype=int, copy=False)
     n2 = decision_table[f"{control_label}_Count"].to_numpy(dtype=int, copy=False)
+    t2 = decision_table["Mainland_CaseCtrl_HotellingT2"].to_numpy(dtype=float, copy=False)
+    pval = decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False)
+    sig = np.isfinite(pval) & (pval < 0.05)
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_int = int(rows["intermediate"]["Resolved_Rank"])
     reversals = int(rows["intermediate"]["Axis_Reversals"])
@@ -438,49 +444,56 @@ def plot_intermediate(
     on = weight_grid[weight_winner == k_int]
     lo, hi = (float(on.min()), float(on.max())) if on.size else (float("nan"),) * 2
 
-    fig, ax, right, ax_tab = _stage(3, 11)
+    fig, ax, right, ax_tab = _stage(3, 13)
     ax_o = fig.add_subplot(right[0, 0])
     ax_g = fig.add_subplot(right[1, 0])
     ax_w = fig.add_subplot(right[2, 0])
 
     ax.text(0.0, 0.985, "The obstacle — a second kind of residual structure",
             fontsize=14.5, fontweight="bold", ha="left", va="center", color="#B35806")
-    _says(ax, 0.955, f"Spread says how wide the retained set is. It does not say whether the two arms "
-                     f"sit at different places inside it — and only that biases an association test.")
-    _formula(ax, 0.878, r"$S = \dfrac{(n_1-1)C_1 + (n_2-1)C_2}{n_1 + n_2 - 2}, \qquad "
+    _says(ax, 0.958, "Spread says how wide the retained set is. It does not say whether the two arms "
+                     "sit at different places inside it — and only that biases an association test.")
+    _formula(ax, 0.868, r"$S = \dfrac{(n_1-1)C_1 + (n_2-1)C_2}{n_1 + n_2 - 2}, \qquad "
                         r"\hat{D}^2_k = \Delta\bar{x}^{\top} S^{-1} \Delta\bar{x}$", 15.0)
-    _formula(ax, 0.800, r"$s_k = \hat{D}^2_k \;-\; d\left(\dfrac{1}{n_1}+\dfrac{1}{n_2}\right)$", 15.0)
-    _says(ax, 0.742, r"Two sample means never coincide and $\hat{D}^2$ squares the gap between them, so "
-                     r"sampling alone contributes $d(1/n_1 + 1/n_2)$ whatever the truth. Subtracting it "
-                     r"is what makes cuts of different sizes comparable; $s_k$ may go negative, which "
-                     r"means the gap is below what sampling would give.")
-    _says(ax, 0.640, f"But $s_k$ reverses direction {reversals} times along the walk. There is no single "
-                     f"rate to read off it, so step 2 cannot be repeated here.", colour="#B35806")
+    _formula(ax, 0.792, r"$s_k = \hat{D}^2_k \;-\; d\left(\dfrac{1}{n_1}+\dfrac{1}{n_2}\right)$", 15.0)
+    _says(ax, 0.748, r"Two sample means never coincide and $\hat{D}^2$ squares the gap, so sampling "
+                     r"alone contributes $d(1/n_1 + 1/n_2)$ whatever the truth. Subtracting it is what "
+                     r"makes cuts of different sizes comparable.")
+    _formula(ax, 0.646, r"$T^2_k = \hat{D}^2_k\,\dfrac{n_1 n_2}{n_1+n_2}, \qquad "
+                        r"F = \dfrac{T^2_k\,(\nu - d + 1)}{d\,\nu} \sim F_{d,\ \nu-d+1}$", 14.5)
+    _says(ax, 0.586, f"De-biasing removes what sampling gives on average; it does not say whether what "
+                     f"is left is real. The exact $F$ test does — {int(sig.sum())} of {len(pval)} cuts "
+                     f"separate significantly, so this is a phenomenon, not noise.")
+    _says(ax, 0.494, f"But $s_k$ reverses direction {reversals} times. There is no single rate to read "
+                     f"off it, so step 2 cannot be repeated here.", colour="#B35806")
 
-    ax.text(0.0, 0.565, "So combine the two axes", fontsize=14.5, fontweight="bold",
+    ax.text(0.0, 0.418, "So combine the two axes", fontsize=14.5, fontweight="bold",
             ha="left", va="center", color=colour)
-    _formula(ax, 0.505, r"$u_k(w) = w\,x_k + (1-w)\,\tilde{s}_k, \qquad "
+    _formula(ax, 0.358, r"$u_k(w) = w\,x_k + (1-w)\,\tilde{s}_k, \qquad "
                         r"\tilde{H}_k = \mathrm{minmax}(u_k(w))$", 15.0)
-    _formula(ax, 0.432, r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{H}_k^{\,2} + (1 - y_k)^2}$", 15.0)
-    _says(ax, 0.376, r"$x_k, y_k, \tilde{s}_k$ are $H_k$, $N_k$ and $s_k$ each min-max scaled to "
-                     r"$[0,1]$. The blend is scaled a second time so the distance is measured on a "
-                     r"full unit axis, then the cut nearest the unattainable corner $(0,1)$ is taken.")
+    _formula(ax, 0.288, r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{H}_k^{\,2} + (1 - y_k)^2}$", 15.0)
+    _says(ax, 0.242, r"$x_k, y_k, \tilde{s}_k$ are $H_k$, $N_k$, $s_k$ min-max scaled to $[0,1]$. The "
+                     r"blend is scaled a second time so the distance runs on a full unit axis, then "
+                     r"the cut nearest the unattainable corner $(0,1)$ is taken.")
 
-    ax.text(0.0, 0.286, r"Why $w = \frac{1}{2}$", fontsize=14.5, fontweight="bold",
+    ax.text(0.0, 0.148, r"Why $w = \frac{1}{2}$", fontsize=14.5, fontweight="bold",
             ha="left", va="center", color=colour)
-    _formula(ax, 0.236, r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$", 15.0)
-    _says(ax, 0.190, f"Below ½ the term built from {case_label}/{control_label} labels would outweigh "
-                     f"the one built from genotypes, and minimising that optimises exactly what the "
-                     f"association test measures. ½ is the boundary, so the distance carries the most "
-                     f"weight it legitimately can — which is what this cut is for.")
+    _formula(ax, 0.100, r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$", 15.0)
+    _says(ax, 0.062, f"Below ½ the term built from {case_label}/{control_label} labels would outweigh "
+                     f"the one built from genotypes, and minimising that optimises what the association "
+                     f"test measures. ½ is the boundary.")
 
     _symbol_table(ax_tab, (
         (r"$C_1,\ C_2$", f"within-group covariance of {case_label}, {control_label}", f"{d}×{d} each"),
-        (r"$S$", "the two pooled", rf"$\nu = n_1+n_2-2$"),
+        (r"$S$", r"the two pooled", r"$\nu = n_1+n_2-2$"),
         (r"$\Delta\bar{x}$", "difference of the two centroids", f"{d}-vector"),
         (r"$\hat{D}^2_k$", "squared Mahalanobis distance", f"{d2.min():.5f} → {d2.max():.5f}"),
-        (r"$d(1/n_1{+}1/n_2)$", "what sampling alone contributes", f"{floor.min():.5f} → {floor.max():.5f}"),
+        (r"$d(1/n_1{+}1/n_2)$", "what sampling alone contributes",
+         f"{floor.min():.5f} → {floor.max():.5f}"),
         (r"$s_k$", "de-biased distance", f"{sep.min():+.5f} → {sep.max():+.5f}"),
+        (r"$T^2_k,\ \nu$", r"Hotelling's statistic; $\nu = n_1+n_2-2$",
+         f"{t2.min():.1f} → {t2.max():.1f}"),
+        (r"$p_k$", r"exact $F$ test on $T^2_k$", f"{pval.min():.1e} → {pval.max():.3f}"),
         (r"$x_k,\ y_k,\ \tilde{s}_k$", r"$H_k$, $N_k$, $s_k$ each min-max scaled", r"$[0,1]$"),
         (r"$u_k(w)$", "the blend before rescaling", f"{u.min():.4f} → {u.max():.4f}"),
         (r"$\tilde{H}_k$", "and after", f"{blended.min():.2f} → {blended.max():.2f}"),
@@ -492,16 +505,24 @@ def plot_intermediate(
     ax_o.axhline(0.0, color=_DIM, linewidth=1.0, linestyle=":")
     ax_o.plot(rank, _safe_norm(het), "-s", color="#8C8C8C", markersize=4.0, linewidth=1.5,
               markerfacecolor="white", markeredgewidth=1.0, label=r"$H_k$ — never reverses")
-    ax_o.plot(rank, _safe_norm(sep), "-^", color="#B35806", markersize=4.8, linewidth=1.8,
-              markerfacecolor="white", markeredgewidth=1.0,
+    _sn = _safe_norm(sep)
+    ax_o.plot(rank, _sn, "-", color="#B35806", linewidth=1.8, zorder=3,
               label=rf"$s_k$ — reverses {reversals}×")
+    # Filled where the separation is significant: the de-biased value alone does
+    # not say whether what is left is real, and that is what makes this axis a
+    # phenomenon rather than noise.
+    ax_o.plot(rank[sig], _sn[sig], "^", color="#B35806", markersize=5.4, zorder=4,
+              markeredgecolor="white", markeredgewidth=1.0,
+              label=rf"$p < 0.05$  ({int(sig.sum())} of {len(pval)})")
+    ax_o.plot(rank[~sig], _sn[~sig], "^", color="white", markersize=5.4, zorder=4,
+              markeredgecolor="#B35806", markeredgewidth=1.4, label=r"$p \geq 0.05$")
     ax_o.set_xticks(rank[::2]); ax_o.set_ylim(-0.10, 1.34)
     ax_o.set_xlabel(r"cumulative rank $k$", fontsize=10.5, labelpad=1)
     ax_o.set_ylabel("min-max normalised", fontsize=10.5)
     ax_o.tick_params(labelsize=9.5)
-    ax_o.legend(loc="upper center", fontsize=9.5, ncol=2, frameon=True,
+    ax_o.legend(loc="upper center", fontsize=9.0, ncol=2, frameon=True,
                 framealpha=0.95, edgecolor="#CFCFCF")
-    _panel_title(ax_o, "A", "one axis has a rate to read; the other has none")
+    _panel_title(ax_o, "A", "one axis has a rate to read; the other has none — but is real")
 
     # The operator that decides this cut, drawn. It had no panel before: the
     # obstacle and the weight both did, so the figure read as though w were the
@@ -517,7 +538,7 @@ def plot_intermediate(
               linewidth=2.0, zorder=5)
     ax_g.annotate(rf"$\sqrt{{\tilde{{H}}^2 + (1-y)^2}} = {dist_min:.4f}$",
                   xy=(blended[i_int] / 2.0, (1.0 + y[i_int]) / 2.0),
-                  xytext=(14, -20), textcoords="offset points", fontsize=10.5,
+                  xytext=(-6, -30), textcoords="offset points", fontsize=10.5,
                   color=colour, fontstyle="italic", zorder=7)
     ax_g.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
               markersize=12.0, markeredgecolor="white", markeredgewidth=1.4, zorder=7)
@@ -620,8 +641,8 @@ def plot_cohorts(
     }
     _panel_title(ax_t, "B", "what each one is, and what it delivers")
     cols = ("", "definition", "$k$", "components added", case_label, control_label,
-            "n", r"$N_k$", r"$H_k$")
-    xs = (0.004, 0.105, 0.400, 0.455, 0.605, 0.688, 0.772, 0.850, 0.925)
+            "n", r"$N_k$", r"$H_k$", r"$p_k$")
+    xs = (0.004, 0.100, 0.372, 0.424, 0.564, 0.641, 0.719, 0.790, 0.856, 0.930)
     for xx, c in zip(xs, cols):
         ax_t.text(xx, 0.845, c, fontsize=11.0, ha="left", va="center", color=_DIM, fontstyle="italic")
     ax_t.plot([0.0, 1.0], [0.785, 0.785], color="#CFCFCF", linewidth=1.0)
@@ -637,17 +658,28 @@ def plot_cohorts(
                 f"{val(name, f'{control_label}_Count'):,.0f}",
                 f"{val(name, 'Total_Count'):,.0f}",
                 f"{val(name, 'GWAS_Neff'):,.0f}",
-                f"{val(name, rgv_column):.5f}")
+                f"{val(name, rgv_column):.5f}",
+                f"{val(name, 'Mainland_CaseCtrl_P'):.1e}")
+        _sig = val(name, "Mainland_CaseCtrl_P") < 0.05
         for j, (xx, t) in enumerate(zip(xs, vals)):
             ax_t.text(xx, yy + 0.042, t, fontsize=13.5 if j == 0 else 11.5, ha="left",
                       va="center", zorder=3, color=_EDGE[name] if j == 0 else _BK,
                       fontweight="bold" if j in (0, 2) else "normal")
+        # The one property of the deliverable that the selection never optimised
+        # for, and the only place the three visibly differ in kind.
+        ax_t.text(xs[-1], yy - 0.062,
+                  "separated" if _sig else "not detectable",
+                  fontsize=9.5, ha="left", va="center", zorder=3,
+                  color="#B35806" if _sig else _EDGE["intermediate"], fontstyle="italic")
         ax_t.text(xs[1], yy - 0.062, defs[name][1], fontsize=10.0, ha="left", va="center",
                   zorder=3, color=_DIM, fontstyle="italic")
     ax_t.text(0.0, -0.015,
               r"narrow $\subset$ intermediate $\subset$ full — nested by construction.   "
               "Neither is the better list: a narrower set buys homogeneity with effective sample "
-              f"size, and a broader one the reverse.   Cuts resolved in mode: {mode}.",
+              f"size, and a broader one the reverse.   Cuts resolved in mode: {mode}.\n"
+              r"$p_k$ is Hotelling's exact $F$ test on the case/control centroid gap — reported, "
+              r"never optimised against; intermediate is the only one of the three where the gap "
+              r"is not detectable.",
               fontsize=10.5, ha="left", va="top", color=_DIM, fontstyle="italic")
 
     _figure_title(fig, "The Three Cohorts", "what steps 1–3 deliver")
