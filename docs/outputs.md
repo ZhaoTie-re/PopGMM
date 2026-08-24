@@ -126,7 +126,7 @@ has a row in that figure's symbol table giving what it is and its value here.
 |---|---|
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$, each derived |
 | `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
-| `02_intermediate.png` | The obstacle that blocks repeating that, the rule that replaces it, and the weight that rule needs |
+| `02_intermediate.png` | Three numbered sub-steps, each with the panel that backs it: the obstacle (A), the rule and every cut's distance (B), the weight (C) |
 | `03_cohorts.png` | The three delivered sets, where they sit, and what each costs |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
@@ -151,8 +151,14 @@ The argument runs across the four in order:
    $k^{*}(w) = \arg\min_k\sqrt{\tilde{H}_k^2+(1-y_k)^2}$ — at
    $w = \tfrac{1}{2}$, which is the boundary of $w \geq 1-w$: below it the term
    built from phenotype labels would outweigh the one built from genotypes.
-   **`intermediate` $= 12$**, at distance 0.3596 from the corner and stable
+   **`intermediate` $= 12$**, at distance 0.3596 from the corner — 21% clear of
+   the runner-up ($k = 15$, 0.4346), with nothing else within 10% — and stable
    across $w \in [0.37, 0.71]$.
+
+   Panel B plots that distance for *every* cut rather than only the winner, so
+   "nearest" can be checked rather than taken on faith; the scatter that shows
+   what the distance is geometrically sits as an inset. It mirrors how
+   `01_narrow.png` shows $E_k$ peaking.
 
    The selection rule is the proximity to the corner, not the weight. `02`
    draws all three in that order — the obstacle, then the rule, then the

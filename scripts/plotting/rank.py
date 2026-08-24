@@ -449,8 +449,26 @@ def plot_intermediate(
     ax_g = fig.add_subplot(right[1, 0])
     ax_w = fig.add_subplot(right[2, 0])
 
-    ax.text(0.0, 0.985, "The obstacle — a second kind of residual structure",
-            fontsize=14.5, fontweight="bold", ha="left", va="center", color="#B35806")
+    def _step_head(y: float, num: str, text: str, panel: str, colour: str) -> None:
+        """A numbered sub-step, naming the panel that backs it.
+
+        The three arguments on this figure -- the obstacle, the rule, the weight
+        -- used to run together as one column of prose. Numbering them and
+        pointing each at its evidence is what lets a reader follow which part
+        of the page answers which question.
+        """
+        ax.plot([0.0, 1.0], [y + 0.030, y + 0.030], color="#E0E0E0", linewidth=0.9)
+        ax.text(0.004, y, num, fontsize=12.0, fontweight="bold", ha="center",
+                va="center", color=colour, zorder=5,
+                bbox=dict(boxstyle="circle,pad=0.24", facecolor="white",
+                          edgecolor=colour, linewidth=1.3))
+        ax.text(0.030, y, text, fontsize=14.0, fontweight="bold", ha="left",
+                va="center", color=colour)
+        ax.text(0.998, y, f"panel {panel}", fontsize=11.0, ha="right", va="center",
+                color=colour, fontstyle="italic")
+
+    _step_head(0.978, "1", "The obstacle — a second kind of residual structure",
+               "A", "#B35806")
     _says(ax, 0.958, "Spread says how wide the retained set is. It does not say whether the two arms "
                      "sit at different places inside it — and only that biases an association test.")
     _formula(ax, 0.868, r"$S = \dfrac{(n_1-1)C_1 + (n_2-1)C_2}{n_1 + n_2 - 2}, \qquad "
@@ -467,8 +485,7 @@ def plot_intermediate(
     _says(ax, 0.494, f"But $s_k$ reverses direction {reversals} times. There is no single rate to read "
                      f"off it, so step 2 cannot be repeated here.", colour="#B35806")
 
-    ax.text(0.0, 0.418, "So combine the two axes", fontsize=14.5, fontweight="bold",
-            ha="left", va="center", color=colour)
+    _step_head(0.424, "2", "The rule — combine the two axes", "B", colour)
     _formula(ax, 0.358, r"$u_k(w) = w\,x_k + (1-w)\,\tilde{s}_k, \qquad "
                         r"\tilde{H}_k = \mathrm{minmax}(u_k(w))$", 15.0)
     _formula(ax, 0.288, r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{H}_k^{\,2} + (1 - y_k)^2}$", 15.0)
@@ -476,8 +493,7 @@ def plot_intermediate(
                      r"blend is scaled a second time so the distance runs on a full unit axis, then "
                      r"the cut nearest the unattainable corner $(0,1)$ is taken.")
 
-    ax.text(0.0, 0.148, r"Why $w = \frac{1}{2}$", fontsize=14.5, fontweight="bold",
-            ha="left", va="center", color=colour)
+    _step_head(0.152, "3", r"The weight — why $w = \frac{1}{2}$", "C", colour)
     _formula(ax, 0.100, r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$", 15.0)
     _says(ax, 0.062, f"Below ½ the term built from {case_label}/{control_label} labels would outweigh "
                      f"the one built from genotypes, and minimising that optimises what the association "
@@ -524,33 +540,58 @@ def plot_intermediate(
                 framealpha=0.95, edgecolor="#CFCFCF")
     _panel_title(ax_o, "A", "one axis has a rate to read; the other has none — but is real")
 
-    # The operator that decides this cut, drawn. It had no panel before: the
-    # obstacle and the weight both did, so the figure read as though w were the
-    # criterion rather than a parameter of it.
+    # The rule is "nearest the corner", so the readable evidence is the ranked
+    # distances -- the scatter shows what a distance is, but you cannot see
+    # which of 17 is smallest by eye. The curve makes the minimum checkable and
+    # mirrors how 01_narrow shows E_k peaking.
     i_int = int(np.argmin(np.abs(rank - k_int)))
-    ax_g.plot(blended, y, "-o", color=_GR, markersize=4.2, linewidth=1.1, alpha=0.75,
-              markerfacecolor="white", markeredgewidth=1.0, zorder=3,
-              label=f"the {rank.max()} cuts")
-    ax_g.plot([0.0], [1.0], "*", color=colour, markersize=19.0, zorder=6,
-              markeredgecolor="white", markeredgewidth=1.0,
-              label=r"ideal corner $(0,1)$")
-    ax_g.plot([0.0, blended[i_int]], [1.0, y[i_int]], "--", color=colour,
-              linewidth=2.0, zorder=5)
-    ax_g.annotate(rf"$\sqrt{{\tilde{{H}}^2 + (1-y)^2}} = {dist_min:.4f}$",
-                  xy=(blended[i_int] / 2.0, (1.0 + y[i_int]) / 2.0),
-                  xytext=(-6, -30), textcoords="offset points", fontsize=10.5,
-                  color=colour, fontstyle="italic", zorder=7)
-    ax_g.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
+    dist = np.sqrt(blended ** 2 + (1.0 - y) ** 2)
+    order = np.argsort(dist)
+    runner = int(order[1])
+    ax_g.vlines(rank, 0.0, dist, color="#D6D6D6", linewidth=4.0, zorder=2)
+    ax_g.vlines(rank[i_int], 0.0, dist[i_int], color=colour, linewidth=4.0, zorder=3)
+    ax_g.plot(rank, dist, "-", color=_GR, linewidth=1.3, zorder=4)
+    ax_g.plot([rank[runner]], [dist[runner]], "o", color="white", markersize=8.0,
+              markeredgecolor=_GR, markeredgewidth=1.4, zorder=5)
+    ax_g.annotate(f"runner-up $k$ = {rank[runner]}\n{dist[runner]:.4f}",
+                  xy=(rank[runner], dist[runner]), xytext=(0, 15),
+                  textcoords="offset points", fontsize=9.5, color=_GR,
+                  ha="center", va="bottom", zorder=6)
+    ax_g.plot([rank[i_int]], [dist[i_int]], _MARK["intermediate"], color=colour,
               markersize=12.0, markeredgecolor="white", markeredgewidth=1.4, zorder=7)
-    ax_g.annotate(f"$k$ = {k_int}", xy=(blended[i_int], y[i_int]), xytext=(12, -12),
-                  textcoords="offset points", fontsize=11.5, fontweight="bold",
-                  color=colour, zorder=8)
-    ax_g.set_xlabel(rf"$\tilde{{H}}_k$  at  $w = {blend_weight:g}$", fontsize=10.5, labelpad=1)
-    ax_g.set_ylabel(r"$y_k$   ($N_k$ normalised)", fontsize=10.5)
+    ax_g.annotate(f"$k$ = {k_int}   {dist[i_int]:.4f}\n"
+                  f"{(dist[runner] / dist[i_int] - 1) * 100:.0f}% clear of the next",
+                  xy=(rank[i_int], dist[i_int]), xytext=(-12, -8),
+                  textcoords="offset points", fontsize=11.0, fontweight="bold",
+                  color=colour, ha="right", va="top", zorder=8)
+    ax_g.set_xticks(rank[::2])
+    # Headroom for the inset, which sits over the top-right corner.
+    ax_g.set_ylim(0.0, float(dist.max()) * 1.34)
+    ax_g.set_xlabel(r"cumulative rank $k$", fontsize=10.5, labelpad=1)
+    ax_g.set_ylabel(r"distance to $(0,1)$", fontsize=10.5)
     ax_g.tick_params(labelsize=9.5)
-    ax_g.legend(loc="lower right", fontsize=9.5, frameon=True, framealpha=0.95,
-                edgecolor="#CFCFCF")
-    _panel_title(ax_g, "B", "the rule — nearest the unattainable corner")
+
+    # What that distance is, as an inset: the blended plane, the unattainable
+    # corner, and the segment being minimised.
+    ax_in = ax_g.inset_axes((0.585, 0.545, 0.345, 0.425))
+    ax_in.plot(blended, y, "o", color=_GR, markersize=3.0, alpha=0.65,
+               markerfacecolor="white", markeredgewidth=0.8, zorder=3)
+    ax_in.plot([0.0], [1.0], "*", color=colour, markersize=13.0, zorder=5,
+               markeredgecolor="white", markeredgewidth=0.8)
+    ax_in.plot([0.0, blended[i_int]], [1.0, y[i_int]], "--", color=colour,
+               linewidth=1.6, zorder=4)
+    ax_in.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
+               markersize=7.0, markeredgecolor="white", markeredgewidth=1.0, zorder=6)
+    ax_in.set_xlim(-0.06, 1.06); ax_in.set_ylim(-0.06, 1.10)
+    ax_in.set_xticks([0, 1]); ax_in.set_yticks([0, 1])
+    ax_in.tick_params(labelsize=8.0, length=2.0, pad=1)
+    ax_in.set_xlabel(r"$\tilde{H}_k$", fontsize=8.5, labelpad=0)
+    ax_in.set_ylabel(r"$y_k$", fontsize=8.5, labelpad=0)
+    ax_in.set_title(r"the corner $(0,1)$", fontsize=8.5, pad=2, color=_GR)
+    ax_in.grid(True, alpha=0.25, linewidth=0.5)
+    ax_in.set_axisbelow(True)
+
+    _panel_title(ax_g, "B", rf"the rule — every cut's distance, smallest at $k$ = {k_int}")
 
     won = weight_winner[weight_winner > 0]
     ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color="#F4C7C3", alpha=0.55, linewidth=0)
