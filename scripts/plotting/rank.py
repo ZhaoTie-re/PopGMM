@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 # a figure: a second copy is how the same cut ended up drawn in two blues.
 
 #: Canvas every figure in this directory uses.
-FIGURE_SIZE: "tuple[float, float]" = (19.0, 11.0)
+FIGURE_SIZE: "tuple[float, float]" = (19.0, 13.0)
 
 #: Data on the left, typeset methods on the right, in this ratio.
 COLUMN_RATIOS: "tuple[float, float]" = (3.15, 2.85)
@@ -438,9 +438,10 @@ def plot_intermediate(
     on = weight_grid[weight_winner == k_int]
     lo, hi = (float(on.min()), float(on.max())) if on.size else (float("nan"),) * 2
 
-    fig, ax, right, ax_tab = _stage(2, 11)
+    fig, ax, right, ax_tab = _stage(3, 11)
     ax_o = fig.add_subplot(right[0, 0])
-    ax_w = fig.add_subplot(right[1, 0])
+    ax_g = fig.add_subplot(right[1, 0])
+    ax_w = fig.add_subplot(right[2, 0])
 
     ax.text(0.0, 0.985, "The obstacle — a second kind of residual structure",
             fontsize=14.5, fontweight="bold", ha="left", va="center", color="#B35806")
@@ -502,6 +503,34 @@ def plot_intermediate(
                 framealpha=0.95, edgecolor="#CFCFCF")
     _panel_title(ax_o, "A", "one axis has a rate to read; the other has none")
 
+    # The operator that decides this cut, drawn. It had no panel before: the
+    # obstacle and the weight both did, so the figure read as though w were the
+    # criterion rather than a parameter of it.
+    i_int = int(np.argmin(np.abs(rank - k_int)))
+    ax_g.plot(blended, y, "-o", color=_GR, markersize=4.2, linewidth=1.1, alpha=0.75,
+              markerfacecolor="white", markeredgewidth=1.0, zorder=3,
+              label=f"the {rank.max()} cuts")
+    ax_g.plot([0.0], [1.0], "*", color=colour, markersize=19.0, zorder=6,
+              markeredgecolor="white", markeredgewidth=1.0,
+              label=r"ideal corner $(0,1)$")
+    ax_g.plot([0.0, blended[i_int]], [1.0, y[i_int]], "--", color=colour,
+              linewidth=2.0, zorder=5)
+    ax_g.annotate(rf"$\sqrt{{\tilde{{H}}^2 + (1-y)^2}} = {dist_min:.4f}$",
+                  xy=(blended[i_int] / 2.0, (1.0 + y[i_int]) / 2.0),
+                  xytext=(14, -20), textcoords="offset points", fontsize=10.5,
+                  color=colour, fontstyle="italic", zorder=7)
+    ax_g.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
+              markersize=12.0, markeredgecolor="white", markeredgewidth=1.4, zorder=7)
+    ax_g.annotate(f"$k$ = {k_int}", xy=(blended[i_int], y[i_int]), xytext=(12, -12),
+                  textcoords="offset points", fontsize=11.5, fontweight="bold",
+                  color=colour, zorder=8)
+    ax_g.set_xlabel(rf"$\tilde{{H}}_k$  at  $w = {blend_weight:g}$", fontsize=10.5, labelpad=1)
+    ax_g.set_ylabel(r"$y_k$   ($N_k$ normalised)", fontsize=10.5)
+    ax_g.tick_params(labelsize=9.5)
+    ax_g.legend(loc="lower right", fontsize=9.5, frameon=True, framealpha=0.95,
+                edgecolor="#CFCFCF")
+    _panel_title(ax_g, "B", "the rule — nearest the unattainable corner")
+
     won = weight_winner[weight_winner > 0]
     ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color="#F4C7C3", alpha=0.55, linewidth=0)
     ax_w.text(safe_weight_floor / 2.0, 0.55, "not usable —\nlabels outweigh spread",
@@ -520,10 +549,10 @@ def plot_intermediate(
     ax_w.set_xlabel(r"$w$ — weight on spread;  $1-w$ on distance", fontsize=10.5, labelpad=1)
     ax_w.set_ylabel(r"winning cut  $k^{*}(w)$", fontsize=10.5)
     ax_w.tick_params(labelsize=9.5)
-    _panel_title(ax_w, "B", rf"$k^{{*}}$ = {k_int} across $w \in [{lo:.2f},\ {hi:.2f}]$")
+    _panel_title(ax_w, "C", rf"and it holds — $k^{{*}}$ = {k_int} across $w \in [{lo:.2f},\ {hi:.2f}]$")
     _verdict(ax_w, f"intermediate  =  {k_int}", colour)
 
-    for a in (ax_o, ax_w):
+    for a in (ax_o, ax_g, ax_w):
         a.grid(True, alpha=0.30, linewidth=0.7); a.set_axisbelow(True)
 
     _figure_title(fig, "The Second Cut", "what blocks repeating step 2, and what replaces it")

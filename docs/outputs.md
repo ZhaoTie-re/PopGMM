@@ -126,7 +126,7 @@ has a row in that figure's symbol table giving what it is and its value here.
 |---|---|
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$, each derived |
 | `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
-| `02_intermediate.png` | The obstacle that blocks repeating that, and the cut it forces |
+| `02_intermediate.png` | The obstacle that blocks repeating that, the rule that replaces it, and the weight that rule needs |
 | `03_cohorts.png` | The three delivered sets, where they sit, and what each costs |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
@@ -151,7 +151,13 @@ The argument runs across the four in order:
    $k^{*}(w) = \arg\min_k\sqrt{\tilde{H}_k^2+(1-y_k)^2}$ — at
    $w = \tfrac{1}{2}$, which is the boundary of $w \geq 1-w$: below it the term
    built from phenotype labels would outweigh the one built from genotypes.
-   **`intermediate` $= 12$**, stable across $w \in [0.37, 0.71]$.
+   **`intermediate` $= 12$**, at distance 0.3596 from the corner and stable
+   across $w \in [0.37, 0.71]$.
+
+   The selection rule is the proximity to the corner, not the weight. `02`
+   draws all three in that order — the obstacle, then the rule, then the
+   weight's robustness — because with only the first and last drawn it read as
+   though $w$ were the criterion.
 4. **`full`** is every major-cluster component — no rule; the population the
    other two are chosen inside.
 
