@@ -161,6 +161,16 @@ The argument runs across the four in order:
 4. **`full`** is every major-cluster component — no rule; the population the
    other two are chosen inside.
 
+Significance is reported throughout and optimised against nowhere. The de-biasing
+removes what sampling contributes on average; it does not say whether what is
+left is real, and Hotelling's exact $F$ test does — 12 of the 17 cuts separate
+significantly, which is what makes the second axis a phenomenon rather than
+noise. Of the three delivered cohorts, **`intermediate` is the only one where
+the gap is not detectable** ($p = 0.15$, against $3.9\times10^{-8}$ for `narrow`
+and $0.0035$ for `full`); `narrow` sits at the strongest separation in the whole
+walk. Neither fact selected a cut — both are properties of the deliverable,
+reported in `03_cohorts.png`.
+
 The second rescaling in step 3 is not cosmetic: without it the recorded distance
 0.3596 is not reproducible (you get 0.3446). Derived values on the figures are
 read from `cut_record.tsv` rather than recomputed, so figures and tables cannot
