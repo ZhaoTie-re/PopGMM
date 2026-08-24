@@ -119,15 +119,18 @@ region rather than jumping elsewhere.
 ### `03_rank_selection/` [6]
 
 Four figures and three tables. The figures are numbered in reading order and
-answer one question each; every formula is given in full, and every symbol in it
-has a row in that figure's symbol table giving what it is and its value here.
+answer one question each. Every formula is presented the same way — the question
+it answers, the formula, then how to read its result — and every symbol in it
+has a row in a band across the foot of that figure saying what it is. No figure
+declares a canvas size: each is measured from its own content and made exactly
+that tall.
 
 | File | Contents |
 |---|---|
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$, each derived |
 | `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
 | `02_intermediate.png` | Three numbered sub-steps, each with the panel that backs it: the obstacle (A), the rule and every cut's distance (B), the weight (C) |
-| `03_cohorts.png` | The three delivered sets, where they sit, and what each costs |
+| `03_cohorts.png` | The three delivered sets, where they sit, why each one exists, and what each costs |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number the figures draw |
@@ -166,6 +169,17 @@ The argument runs across the four in order:
    though $w$ were the criterion.
 4. **`full`** is every major-cluster component — no rule; the population the
    other two are chosen inside.
+
+Three are delivered rather than one because three different things can be the
+dominant worry, and `03_cohorts.png` states that per row rather than restating
+the rule that located each cut. Pick `narrow` when residual stratification is
+the main worry: it buys the most homogeneity the walk offers before extra
+components stop repaying their spread. Pick `intermediate` when both worries
+apply at once: it is the only one of the three whose case/control gap is not
+detectable, at 94% of `full`'s power. Pick `full` when power is the main worry
+or a reference is wanted: nothing is selected, so nothing can have been selected
+wrongly. The three are nested — `narrow` $\subset$ `intermediate` $\subset$
+`full` — so this is a choice of where to stop, not of which list.
 
 Significance is reported throughout and optimised against nowhere. The de-biasing
 removes what sampling contributes on average; it does not say whether what is
