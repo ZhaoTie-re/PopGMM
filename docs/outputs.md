@@ -125,8 +125,8 @@ answer one question each.
 Above a labelled rule: the governing equations — **numbered `(1)`, `(2)`, …
 per figure** so captions and prose can cite them — the answer they reach, the
 evidence panels in a row, and one caption per panel. Everything needed for the
-figure to stand on its own in a talk. Below it: why each of those choices, and
-not another.
+figure to stand on its own in a talk. Below it, under the heading *Methodological
+notes*, the basis for each of those choices.
 
 Each thing is said in exactly one place. Symbols are defined once, in the line
 under the equations; what an equation computes is said once, by the equation;
@@ -162,8 +162,10 @@ Each figure carries one line of symbol definitions **above** the crop line,
 scoped to exactly the symbols its own formulas use, so a cropped figure is
 self-contained; the standalone explanations stay in the band below.
 
-Every formula is presented the same way — the question it answers, the formula,
-then how to read its result. No figure declares a canvas size: each is measured
+Every equation is presented the same way — a clause setting it up, the equation,
+then a gloss reading the result off it. Headings are noun phrases, not questions:
+*Basis and dimension of H*, *The second rescaling in (2)*, *Admissible range of
+w*, *Role of P_k*. No figure declares a canvas size: each is measured
 from its own content and made exactly that tall, and the presented band is set
 at a size meant to be read across a room rather than at a desk.
 
