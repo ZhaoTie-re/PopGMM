@@ -926,7 +926,7 @@ def run_rank_selection(
                 _fig = _build()
                 if bool(config.save_plot):
                     _path = out_dir / str(_name)
-                    save_figure(_fig, _path, dpi=int(config.figure_dpi), bbox_inches=None)
+                    save_figure(_fig, _path, dpi=int(config.figure_dpi))
                     figure_paths[str(_name)] = _path
                 if bool(config.show_plot):
                     plt.show()
