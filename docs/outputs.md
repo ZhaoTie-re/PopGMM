@@ -128,9 +128,14 @@ figure to stand on its own in a talk. Below it: the derivations, the caveats,
 and the symbol table.
 
 **The rule is at the same place on all four**, so one crop setting serves the
-set — at the 600 dpi these are written, **cut at row 5316** (±1 px from
+set — at the 600 dpi these are written, **cut at row 5315** (±1 px from
 `bbox_inches="tight"`), i.e. 9.39 in from the top. The cropped band is roughly
 2:1. `scripts.plotting.rank._crop_offset(dpi)` returns that offset for any dpi.
+
+Below the rule the derivations are packed into columns whose widths follow their
+content, so the columns end at about the same depth rather than the band being
+sized to the longest and the rest left blank. Topics stay whole and stay in
+order: a column may hold two of them, but none is broken across a gutter.
 
 Every formula is presented the same way — the question it answers, the formula,
 then how to read its result. No figure declares a canvas size: each is measured
@@ -142,7 +147,7 @@ at a size meant to be read across a room rather than at a desk.
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$ |
 | `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
 | `02_intermediate.png` | The obstacle (A), the rule and every cut's distance (B), and the weight sweep (C); the three derivations sit below the crop rule |
-| `03_cohorts.png` | The three delivered sets, where they sit, why each one exists, and what each costs |
+| `03_cohorts.png` | Where the three sit on the trade-off (A), why you would pick each one (B), and what each delivers (C) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number the figures draw |
