@@ -122,20 +122,34 @@ Four figures and three tables. The figures are numbered in reading order and
 answer one question each.
 
 **Each figure is in two bands, and the lower one is meant to be cropped away.**
-Above a labelled rule: the governing formulas, the answer they reach, the
-evidence panels in a row, and one caption per panel — everything needed for the
-figure to stand on its own in a talk. Below it: the derivations, the caveats,
-and the symbol table.
+Above a labelled rule: the governing equations — **numbered `(1)`, `(2)`, …
+per figure** so captions and prose can cite them — the answer they reach, the
+evidence panels in a row, and one caption per panel. Everything needed for the
+figure to stand on its own in a talk. Below it: why each of those choices, and
+not another.
+
+Each thing is said in exactly one place. Symbols are defined once, in the line
+under the equations; what an equation computes is said once, by the equation;
+why it is that equation and not another is said once, below the crop line. A
+symbol table used to sit at the foot repeating all three, and the figures said
+"the corner (0,1)" twelve times between them.
 
 **The rule is at the same place on all four**, so one crop setting serves the
-set — at the 600 dpi these are written, **cut at row 5315** (±1 px from
-`bbox_inches="tight"`), i.e. 9.39 in from the top. The cropped band is roughly
-2:1. `scripts.plotting.rank._crop_offset(dpi)` returns that offset for any dpi.
+set — at the 600 dpi these are written, **cut at row 5886** (±1 px from
+`bbox_inches="tight"`), i.e. 10.34 in from the top. The cropped band is roughly
+1.9:1. `scripts.plotting.rank._crop_offset(dpi)` returns that offset for any dpi.
 
-Below the rule the derivations are packed into columns whose widths follow their
-content, so the columns end at about the same depth rather than the band being
-sized to the longest and the rest left blank. Topics stay whole and stay in
+Below the rule the justifications are packed into columns whose widths follow
+their content, so the columns end at about the same depth rather than the band
+being sized to the longest and the rest left blank. Topics stay whole and stay in
 order: a column may hold two of them, but none is broken across a gutter.
+
+The detail is deliberately uneven. Textbook steps — equating two variances for
+$N_{eff}$, the pooled $S$ and Mahalanobis $\hat D^2$, Hotelling's $T^2$, min-max
+scaling — get the equation and a clause. The steps a reviewer would question get
+a column each: why $d = 4$ mainland axes rather than global PC1–PC2, why (2)
+rescales twice, why $w = \tfrac12$ is a floor rather than a fitted value, and
+why $P_k$ is reported and never selected on.
 
 Notation follows the slide deck these figures sit in: `p` for allele frequency,
 `N_case` / `N_ctrl` / `N_tot` / `N_eff` for the counts, `H` for residual spread.
@@ -157,7 +171,7 @@ at a size meant to be read across a room rather than at a desk.
 |---|---|
 | `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$ |
 | `01_narrow.png` | The first cut: the walk with its average rate drawn as a chord (A), and $E_k$ — the gap between them — peaking at $k$ = 9 (B) |
-| `02_intermediate.png` | The obstacle (A), the rule and every cut's distance (B), and the weight sweep (C); the three derivations sit below the crop rule |
+| `02_intermediate.png` | The obstacle (A), the $(\tilde H_k, y_k)$ plane that (3) minimises over (B), and the weight sweep (C); four justification columns below the crop rule |
 | `03_cohorts.png` | Where the three sit on the trade-off (A), why you would pick each one (B), and what each delivers (C) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |

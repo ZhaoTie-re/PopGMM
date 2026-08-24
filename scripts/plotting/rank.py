@@ -343,10 +343,20 @@ class _Column:
                          color=colour, linespacing=1.5)
         self._drop([t], gap)
 
-    def rule(self, tex: str, *, gap: float = 11.0, indent: float = 0.0) -> None:
-        """One formula in the strip above the panels, at presentation size."""
+    def rule(self, tex: str, *, eq: "int | None" = None, gap: float = 11.0,
+             indent: float = 0.0) -> None:
+        """One numbered equation in the strip above the panels.
+
+        Numbered per figure, right-aligned, one to a line, so a caption can say
+        "scored by (3)" instead of "the rule" -- and so three formulas are not
+        set side by side across one line at presentation size.
+        """
         t = self.ax.text(indent, self.y, tex, fontsize=self.scale["rule"],
                          ha="left", va="top", color=_BK)
+        if eq is not None:
+            self.ax.text(1.0, self.y - self._height_of(t) / 2.0, f"({eq})",
+                         fontsize=self.scale["answer"], ha="right", va="center",
+                         color=_GR)
         self._drop([t], gap)
 
     def answer(self, text: str, colour: str, *, gap: float = 6.0) -> None:
@@ -395,7 +405,6 @@ _SIDE_IN = 0.62
 _TITLE_IN = 1.45
 _FOOT_IN = 0.80
 _GUTTER_IN = 0.62
-_BAND_GAP_IN = 0.70
 _RULE_GAP_IN = 0.34
 
 #: Room a panel needs outside its own box: for its title above, and for its tick
@@ -412,7 +421,7 @@ _TITLE_LINE_IN = 0.32
 #: series on purpose: one crop setting has to work for all four, which is worth
 #: a little slack on the figures with less to show. :func:`_frame` fails if a
 #: figure cannot fit inside it.
-_MAIN_IN = 7.60
+_MAIN_IN = 8.55
 
 #: Room under the crop rule for the label that names what follows it.
 _SUPP_HEAD_IN = 0.52
@@ -440,6 +449,18 @@ def _column_widths(width: float) -> "tuple[float, float]":
     avail = width - 2.0 * _SIDE_IN - _GUTTER_IN
     unit = avail / sum(_COL_RATIO)
     return _COL_RATIO[0] * unit, _COL_RATIO[1] * unit
+
+
+#: Height of the throwaway figure the measurements are taken on. Only has to
+#: exceed anything a real column needs; nothing about it reaches the output. It
+#: is left at the default dpi on purpose -- glyph metrics are hinted to whole
+#: pixels, so measuring at one dpi and drawing at another gives a wrap width
+#: that is a line or two off.
+_PROBE_IN = 24.0
+
+#: Slack added to a measured height, so a sub-point rounding difference between
+#: the probe and the drawing cannot fail the build. Far below anything visible.
+_SLACK_IN = 0.08
 
 
 def _measure(draw: "Callable[[_Column], None]", width: float, *,
@@ -610,140 +631,10 @@ def _measure_rule(rule: "Callable[[_Column], None]",
     return used
 
 
-def _symbol_gutter(ax: "plt.Axes", rows: "Sequence[tuple[str, str]]") -> float:
-    r"""Width the symbol column needs, measured from the widest symbol drawn.
-
-    A constant was near enough until a symbol turned out to be a whole
-    expression -- $x_k, y_k, \tilde{s}_k$ is many times the width of $S$ -- and
-    ran into the explanation beside it.
-    """
-    fig = ax.get_figure()
-    inv = ax.transAxes.inverted()
-    widest = 0.0
-    for sym, _ in rows:
-        t = ax.text(0.0, -9.0, sym, fontsize=_SUPP["symbol"])
-        box = t.get_window_extent(renderer=fig.canvas.get_renderer())
-        t.remove()
-        widest = max(widest, inv.transform((box.width, 0.0))[0]
-                     - inv.transform((0.0, 0.0))[0])
-    return widest + 0.012
-
-
-#: Height of the throwaway figure the measurements are taken on. Only has to
-#: exceed anything a real column needs; nothing about it reaches the output. It
-#: is left at the default dpi on purpose -- glyph metrics are hinted to whole
-#: pixels, so measuring at one dpi and drawing at another gives a wrap width
-#: that is a line or two off.
-_PROBE_IN = 24.0
-
-#: Slack added to a measured height, so a sub-point rounding difference between
-#: the probe and the drawing cannot fail the build. Far below anything visible.
-_SLACK_IN = 0.08
-
-
-def _symbol_wrap(ax: "plt.Axes", rows: "Sequence[tuple[str, str]]",
-                 avail: float, size: float) -> int:
-    """Widest character wrap at which every explanation still fits ``avail``.
-
-    One width for the whole table, found by measuring rather than assumed from
-    a characters-per-inch constant: mathtext in an explanation is wider than
-    the letters around it, and a constant is what let a two-column table run
-    into its own neighbour.
-
-    Every row is measured, not just the longest. Wrapping is by character count
-    and a shorter explanation can still produce the widest line -- which is how
-    one row's text ended up printed over the next column's symbol.
-    """
-    fig = ax.get_figure()
-    inv = ax.transAxes.inverted()
-    zero = inv.transform((0.0, 0.0))[0]
-    best = _WRAP_MIN
-    for n in range(_WRAP_MIN, _WRAP_MAX, 2):
-        widest = 0.0
-        for _, meaning in rows:
-            t = ax.text(0.0, -9.0, "\n".join(_wrap(meaning, n)),
-                        fontsize=size)
-            box = t.get_window_extent(renderer=fig.canvas.get_renderer())
-            t.remove()
-            widest = max(widest, inv.transform((box.width, 0.0))[0] - zero)
-            if widest > avail:
-                break
-        if widest > avail:
-            break
-        best = n
-    return best
-
-
 #: Bounds on the search above. The floor keeps a pathological column from
 #: wrapping to one word a line; the ceiling is past any width these bands have.
 _WRAP_MIN = 22
 _WRAP_MAX = 140
-
-
-def _symbol_columns(rows: "Sequence[tuple[str, str]]") -> int:
-    """How many sub-columns to spread the symbols across.
-
-    Three keeps the band shallow when there are many symbols; two gives each
-    explanation more width when there are few, which is worth more than a
-    shallower band nobody was struggling with.
-    """
-    return 2 if len(rows) <= 8 else 3
-
-
-def _symbol_table(
-    ax: "plt.Axes", rows: "Sequence[tuple[str, str]]", *,
-    columns: "int | None" = None, title: str = "Symbols",
-    size: float = _SUPP["explain"],
-    what: str = "symbols",
-) -> float:
-    """Draw a symbol / explanation table and return the height it used.
-
-    Two fields per row, not three. A value column would take the width the
-    explanation needs, and the values are on the panels and in
-    ``rank_decision_table.tsv`` already. Each explanation has to stand on its
-    own -- "the two pooled" tells a reader nothing unless they have just read
-    the row above it, and standing alone is what costs the width.
-
-    The table spans the whole figure rather than sitting under the evidence,
-    because beside three panels there is no width at which thirteen standalone
-    explanations fit, and squeezing them there is what made them overprint.
-    """
-    columns = _symbol_columns(rows) if columns is None else columns
-    top = 1.0
-    ax.text(0.0, top, title, fontsize=_SUPP["title"], fontweight="bold",
-            ha="left", va="top", color=_BK)
-    head = _Column(ax, top=top)
-    head._drop([ax.texts[-1]], 4.0)
-    rule = head.y
-    ax.plot([0.0, 1.0], [rule, rule], color="#CFCFCF", linewidth=1.0)
-    # In points, not in a fraction of the axes: this table is measured once on a
-    # tall probe and drawn once on a short band, and a fraction means a
-    # different number of inches on each of them.
-    head._drop([], 5.0)
-
-    per = -(-len(rows) // max(columns, 1))
-    span = 1.0 / columns
-    gutter = min(_symbol_gutter(ax, rows), span * 0.34)
-    wrap = _symbol_wrap(ax, rows, span - gutter - 0.014, size)
-    floor = rule
-    for c in range(columns):
-        chunk = rows[c * per:(c + 1) * per]
-        if not chunk:
-            continue
-        col = _Column(ax, top=head.y)
-        left = c * span
-        for sym, meaning in chunk:
-            s = ax.text(left, col.y, sym, fontsize=_SUPP["symbol"], ha="left",
-                        va="top", color=_BK)
-            m = ax.text(left + gutter, col.y,
-                        "\n".join(_wrap(meaning, wrap)),
-                        fontsize=size, ha="left", va="top", color=_GR,
-                        linespacing=1.35)
-            col._drop([s, m], 7.0)
-        floor = min(floor, col.y)
-    if floor < -0.01:
-        raise AssertionError(f"{what}: symbol table overruns its band")
-    return top - floor
 
 
 def _verdict(ax: "plt.Axes", text: str, colour: str) -> None:
@@ -766,7 +657,7 @@ def _crop_rule(fig: Figure, y_in: float, height: float, width: float) -> None:
                                   color="#BDBDBD", linewidth=1.0,
                                   transform=fig.transFigure, zorder=1))
     fig.text(x0, (y_in - 0.088) / height,
-             "supporting detail — derivations, caveats, and symbols",
+             "supporting detail — why each of these choices, and not another",
              fontsize=_SUPP["title"], color=_DIM, ha="left", va="top",
              fontstyle="italic")
 
@@ -838,9 +729,10 @@ def _symbol_note(fig: Figure, x0: float, y_in: float, height: float,
     """The one line of definitions that keeps a cropped figure self-contained.
 
     Everything above the crop line has to stand on its own, and a formula whose
-    symbols are only explained below the cut does not. The full standalone
-    explanations still live in the band at the foot, for reading at a desk;
-    this is the minimum a reader needs to follow the formulas beside it.
+    symbols are only explained below the cut does not. This is the only place a
+    symbol is defined: a table at the foot said the same thing again at greater
+    length, and the derivations below said it a third time with a justification
+    attached, so what a reader met three times they now meet once.
     """
     fig.text(x0, y_in / height,
              _wrap_to_width(fig, text, 1.0 - 2.0 * x0, _MAIN["note"]),
@@ -852,15 +744,13 @@ def _frame(
     rule: "Callable[[_Column], None]",
     apparatus: "Sequence[Callable[[_Column], None]]",
     panel_text: "Sequence[tuple[str, str, str]]",
-    symbols: "Sequence[tuple[str, str]]",
     *,
     note: str = "",
-    columns: "int | None" = None,
 ) -> "tuple[Figure, list]":
     """The two-band frame every formula figure in this stage uses.
 
     Above the crop line: the rule, the evidence panels in a row, and a caption
-    under each. Below it: the derivations in columns, then the symbols. The band
+    under each. Below it: the derivations, in columns. The band
     above is the same height on all four figures so that one crop setting serves
     the set; the band below is measured and is whatever its content needs.
 
@@ -881,12 +771,6 @@ def _frame(
     groups, w_cols, h_cols = _balance_columns(apparatus, inner, _GUTTER_IN)
     text_in = max(h_cols, default=0.0) + _SLACK_IN
 
-    probe = plt.figure(figsize=(inner, _PROBE_IN))
-    ax_probe = probe.add_axes((0.0, 0.0, 1.0, 1.0))
-    _note_axis(ax_probe)
-    band_in = _symbol_table(ax_probe, symbols, columns=columns) * _PROBE_IN + _SLACK_IN
-    plt.close(probe)
-
     # How much room the titles need is not a constant: three panels in a row
     # are narrow enough that a title wraps, and a wrapped one printed straight
     # through the answer box above it.
@@ -902,7 +786,7 @@ def _frame(
             f"{panel_in:.2f}in of panel inside the {_MAIN_IN:.2f}in band"
         )
 
-    support_in = text_in + _BAND_GAP_IN + band_in
+    support_in = text_in
     height = (_TITLE_IN + _MAIN_IN + _RULE_GAP_IN + _SUPP_HEAD_IN + support_in
               + _FOOT_IN)
 
@@ -942,7 +826,7 @@ def _frame(
 
     _crop_rule(fig, height - _TITLE_IN - _MAIN_IN - _RULE_GAP_IN, height, width)
 
-    y_text = (_FOOT_IN + band_in + _BAND_GAP_IN) / height
+    y_text = _FOOT_IN / height
     lefts = [_SIDE_IN + sum(w_cols[:i]) + i * _GUTTER_IN for i in range(len(w_cols))]
     for i, (group, w_col, left) in enumerate(zip(groups, w_cols, lefts)):
         ax_c = fig.add_axes((left / width, y_text, w_col / width,
@@ -954,10 +838,6 @@ def _frame(
                 col._drop([], _TOPIC_GAP_PT)
             fn(col)
         col.check(f"apparatus column {i + 1}")
-
-    ax_tab = fig.add_axes((x0, _FOOT_IN / height, inner / width, band_in / height))
-    _note_axis(ax_tab)
-    _symbol_table(ax_tab, symbols, columns=columns)
 
     return fig, panels
 
@@ -990,91 +870,62 @@ def plot_problem(
     sig = np.isfinite(pval) & (pval < 0.05)
     ratios = rank_table.sort_values("Rank")["Case_Ctrl_Ratio"].to_numpy(dtype=float)
 
-    symbols = (
-        (r"$K$", "How many components the major cluster was split into by the mixture "
-                 "model. It bounds the walk: there is no cut wider than all of them."),
-        (r"$k$", "The cut being chosen. Components are ordered by how case-rich they "
-                 "are and cut $k$ keeps the $k$ richest, so the cuts are nested."),
-        (r"$N_{\mathrm{case}},\ N_{\mathrm{ctrl}}$",
-         f"How many {case_label} and how many {control_label} survive at that cut. "
-         f"Both grow with $k$, but not in step, which is why balance has to be "
-         f"accounted for."),
-        (r"$N_{\mathrm{tot}},\ r$", r"The raw head-count $N_{\mathrm{case}} + "
-                                    r"N_{\mathrm{ctrl}}$, and the imbalance "
-                                    r"$r = N_{\mathrm{case}}/N_{\mathrm{ctrl}}$ that "
-                                    r"decides how much of it counts."),
-        (r"$p$", r"The frequency of the allele being tested. It appears on both sides of "
-                 r"the equation and cancels, which is what makes $N_{\mathrm{eff}}$ a "
-                 r"property of the design rather than of any one variant."),
-        (r"$N_{\mathrm{eff}}$", r"The effective sample size: how large a perfectly "
-                                r"balanced study would have to be to have the power this "
-                                r"unbalanced one has. Written $N_{\mathrm{eff},k}$ where "
-                                r"it is the value at cut $k$."),
-        (r"$d$", f"How many axes of the {basis} PCA the spread is measured on. More axes "
-                 f"take in weaker structure that the leading pair misses."),
-        (r"$\Sigma_k$", "The covariance of the retained samples on those axes — their "
-                        "spread and the correlations between axes, in one matrix."),
-        (r"$\lambda_i$", "The eigenvalues of that covariance: the variance along each of "
-                         "its principal directions, so their product is its determinant."),
-        (r"$H$", r"The residual spread: the geometric mean of the per-axis standard "
-                 r"deviations, which stays in SD units however many axes are used. "
-                 r"Written $H_k$ where it is the value at cut $k$."),
-    )
+    def why_basis(col: _Column) -> None:
+        col.head(rf"Why $d = {d}$ mainland axes")
+        col.says(f"$H$ could be measured on the global PCA's leading pair, and earlier "
+                 f"versions of this analysis were. It is measured instead on {d} axes of "
+                 f"a PCA fitted to the major cluster itself, and the choice changes which "
+                 f"cut wins.", gap=14.0)
+        col.says("The global PC1–PC2 are dominated by the split between the major cluster "
+                 "and everything outside it. Inside the major cluster — which is all these "
+                 "cuts ever contain — that pair carries little of the remaining structure, "
+                 "so spread measured on it is close to flat along the walk.", gap=14.0)
+        col.says(f"A basis fitted to the cluster puts the residual structure on its own "
+                 f"leading axes, and {d} of them rather than 2 because the pair alone "
+                 f"leaves visible structure on the next two. The exponent $1/2d$ keeps the "
+                 f"result in SD units at any $d$, so (2) is comparable across that choice "
+                 f"even though its value is not.", gap=14.0)
+        col.says("Two values of $H$ are only comparable when they share a basis and a $d$. "
+                 "Everything on these four figures shares both.")
 
     def why_neff(col: _Column) -> None:
-        col.head(r"Where  $N_{\mathrm{eff}}$  comes from")
-        col.why("An unbalanced study is worth less than its head-count. How much less? "
-                "Equate the variance of an allele-frequency difference in the unbalanced "
-                "set to the balanced design that would have the same variance.")
-        col.formula(r"$\mathrm{Var} = p(1-p)\left(\dfrac{1}{N_{\mathrm{case}}}"
-                    r"+\dfrac{1}{N_{\mathrm{ctrl}}}\right)"
-                    r"\;\equiv\;\dfrac{2p(1-p)}{N_{\mathrm{eff}}}$")
-        col.formula(r"$\Longrightarrow\;\; N_{\mathrm{eff}} = "
-                    r"\dfrac{4\,N_{\mathrm{case}} N_{\mathrm{ctrl}}}"
-                    r"{N_{\mathrm{case}} + N_{\mathrm{ctrl}}} = "
-                    r"N_{\mathrm{tot}} \cdot \dfrac{4r}{(1+r)^2}$")
-        col.says(r"$p$ is the allele frequency and cancels, so $N_{\mathrm{eff}}$ depends "
-                 r"only on the two arm sizes — it is a property of the design, not of any "
-                 r"one variant.")
-        col.says(rf"An unbalanced set is worth less than its raw total: "
-                 rf"{n1[-1]:,} + {n2[-1]:,} samples give "
-                 rf"$N_{{\mathrm{{eff}}}}$ = {neff[-1]:,.0f}, not {n1[-1] + n2[-1]:,}.")
-
-    def why_spread(col: _Column) -> None:
-        col.head(r"Where  $H$  comes from")
-        col.why(f"How wide the retained set still is on the {d} leading axes of a PCA "
-                f"fitted to the major cluster itself. Spread on {d} axes is {d} numbers "
-                f"plus their correlations, so it has to be reduced to one.")
-        col.formula(rf"$H = \left|\Sigma\right|^{{1/2d}} = "
-                    rf"\left(\prod_{{i=1}}^{{d}} \sqrt{{\lambda_i}}\right)^{{1/d}}$")
-        col.says(r"$\Sigma$ is the sample covariance of the retained samples and "
-                 r"$\lambda_i$ its eigenvalues, so $H$ is the geometric mean of the "
-                 r"per-axis SDs — one number carrying both the variances and their "
-                 r"correlations, in the units of a standard deviation at any $d$.")
-        col.says("Adding samples from further out can only raise it, which is what makes "
-                 "it the quantity to trade power against.")
+        col.head(r"Why $N_{\mathrm{eff}}$ and not the head-count")
+        col.why(r"(1) is the standard result: equate the variance of an allele-frequency "
+                r"difference in an unbalanced set to the balanced design that would have "
+                r"the same variance, and the frequency $p$ cancels. Against the "
+                r"head-count and the imbalance it reads")
+        col.formula(r"$N_{\mathrm{eff}} = N_{\mathrm{tot}} \cdot "
+                    r"\dfrac{4r}{(1+r)^2}, \qquad r = N_{\mathrm{case}}/"
+                    r"N_{\mathrm{ctrl}}$", gap=13.0)
+        col.says(rf"What it buys is a fair axis. The walk adds {case_label} and "
+                 rf"{control_label} at very different rates — the ratio $r$ runs from "
+                 rf"{n1[0] / max(n2[0], 1):.2f} at $k = 1$ to "
+                 rf"{n1[-1] / max(n2[-1], 1):.2f} at $k = K$ — so raw totals would credit "
+                 rf"a cut for samples that add almost nothing to power.", gap=14.0)
+        col.says(rf"At the widest cut that is the difference between "
+                 rf"{n1[-1] + n2[-1]:,} samples and {neff[-1]:,.0f} effective ones.")
 
     def rule(col: _Column) -> None:
-        col.why(f"The major cluster splits into K = {rank.max()} components. Order them by "
-                f"{case_label}/{control_label} ratio and let cut $k$ keep the top $k$; two "
-                f"quantities change along that walk, and they change together.")
-        col.rule(r"$N_{\mathrm{eff},k} = \dfrac{4\,N_{\mathrm{case}} N_{\mathrm{ctrl}}}{N_{\mathrm{case}} + N_{\mathrm{ctrl}}}$"
-                 r"$\qquad\qquad$"
-                 r"$H_k = \left|\Sigma_k\right|^{1/2d} = "
+        col.why(f"Order the major cluster's {rank.max()} components by "
+                f"{case_label}/{control_label} ratio and let cut $k$ keep the top $k$. "
+                f"Two quantities change along that walk, and they change together.")
+        col.rule(r"$N_{\mathrm{eff},k} = \dfrac{4\,N_{\mathrm{case}} "
+                 r"N_{\mathrm{ctrl}}}{N_{\mathrm{case}} + N_{\mathrm{ctrl}}}$",
+                 eq=1)
+        col.rule(rf"$H_k = \left|\Sigma_k\right|^{{1/2d}} = "
                  rf"\left(\prod_{{i=1}}^{{d}} \sqrt{{\lambda_i}}\right)^{{1/d}}, "
-                 rf"\quad d = {d}$")
+                 rf"\qquad d = {d}$", eq=2)
         col.answer("Neither can be improved without giving up the other — so $k$ has to "
                    "be chosen, not computed", _BK)
 
     fig, (ax_r, ax_b) = _frame(
-        rule, (why_neff, why_spread),
+        rule, (why_basis, why_neff),
         (("A", "the order the walk follows",
           "Each bar is one component, labelled with its id; cut $k$ keeps the "
           "leftmost $k$."),
          ("B", r"both rise strictly with $k$",
           "Power and spread, min-max scaled onto one axis. Widening the set buys "
           "one and costs the other.")),
-        symbols,
         note=(rf"$k$ the cut, one of $K = {rank.max()}$  ·  "
               rf"$N_{{\mathrm{{case}}}}, N_{{\mathrm{{ctrl}}}}$ samples per arm at that "
               rf"cut  ·  $N_{{\mathrm{{eff}},k}}$ the balanced study of equal power  ·  "
@@ -1134,70 +985,51 @@ def plot_narrow(
     excess_peak = float(excess[i_pk])
     colour = _EDGE["narrow"]
 
-    symbols = (
-        (r"$N_{\mathrm{eff},1},\ H_1$", "Power and spread at the tightest cut, $k = 1$ — the origin the "
-                          "walk is measured from."),
-        (r"$N_{\mathrm{eff},K},\ H_K$", "The same two at the widest cut, $k = K$. Together with the "
-                          "origin they fix the line the whole walk is priced against."),
-        (r"$\gamma$", "The average exchange rate over the whole walk: how much effective "
-                 "sample size one unit of residual spread buys, taken end to end."),
-        (r"$E_k$", "What cut $k$ has bought above that rate, in effective samples. "
-                   "Positive means the spread taken on so far has more than repaid "
-                   "itself; the peak is where it stops doing so."),
-        (r"margin", "How far the peak leads the next-best cut, in the same units — the "
-                    "honest measure of how firmly the data places it."),
-    )
-
-    def why_rate(col: _Column) -> None:
-        col.head("Why the walk has one price", colour=colour)
-        col.why("Both quantities rise together. At what rate does the walk trade one for "
-                "the other? Take the whole walk end to end, so the rate is a property of "
-                "the walk and not of any one step.")
-        col.formula(r"$\gamma = \dfrac{N_{\mathrm{eff},K} - N_{\mathrm{eff},1}}{H_K - H_1}$" rf"$\;=\;{rate:,.1f}$")
-        col.why("Given that rate, has a cut paid above it or below it? Subtract what the "
-                "spread it took on would have cost at the average price.")
-        col.formula(r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1}) - \gamma\,(H_k - H_1)$")
-        col.says(r"$E_k$ is in units of $N_{\mathrm{eff}}$: the surplus, in effective samples, that "
-                 r"cut $k$ has over paying the average price for the spread it took on. "
-                 r"Where $E_k$ peaks, spread stops repaying.")
+    def why_end_to_end(col: _Column) -> None:
+        col.head("Why the walk is priced end to end", colour=colour)
+        col.says(r"(1) takes a single rate from the two ends of the walk, and (2) scores "
+                 r"every cut against it. The alternative is to price each step against "
+                 r"its own predecessor.", gap=14.0)
+        col.says("That alternative asks a different question, and gets a different "
+                 "answer. A per-step rate is not monotone here: it crosses the average "
+                 "repeatedly, so 'the last step that paid above the average' lands on a "
+                 "late cut for no reason beyond where the noise in one step fell.",
+                 gap=14.0)
+        col.says(r"The cumulative form asks whether the walk *so far* has repaid what it "
+                 r"took on, which is a property of the retained set rather than of the "
+                 r"one component that entered last. Panel A draws that as a chord: (2) "
+                 r"is the vertical gap between the curve and the straight line.")
 
     def why_margin(col: _Column) -> None:
-        col.head("How firmly it is placed", colour=colour)
-        col.why("A peak is only worth taking if the next-best cut is meaningfully behind "
-                "it. How far back is it, and what does that licence?")
-        col.says(f"The margin is the lead over the runner-up in the same units: "
-                 f"{margin:,.1f} effective samples out of {excess_peak:,.1f}, so the "
-                 f"neighbouring cuts sit close behind. It is reported rather than "
-                 f"optimised — nothing about the rule changes if the margin is small, "
-                 f"but how much weight the answer carries does.", gap=14.0)
-        col.says("What a narrow margin does licence is the reading that any cut in that "
-                 "neighbourhood prices about the same, which is the honest version of "
-                 "the claim. What it does not licence is treating the peak as sharp: "
-                 "panel B is drawn for every cut precisely so the flatness around it is "
-                 "visible rather than hidden behind a single marker.", gap=14.0)
-        col.says(f"The same margin is what makes the second cut a separate question. "
-                 f"Nothing here says $k$ = {k_nar} is the only defensible set — only "
-                 f"that it is where spread stops repaying at the walk's own average "
-                 f"price.")
+        col.head("What the margin does and does not licence", colour=colour)
+        col.says(f"The peak leads the runner-up by {margin:,.1f} effective samples out of "
+                 f"{excess_peak:,.1f}, so the neighbouring cuts price about the same.",
+                 gap=14.0)
+        col.says("What that licences is the reading that any cut in that neighbourhood is "
+                 "defensible on this criterion. What it does not licence is treating the "
+                 "peak as sharp — which is why panel B is drawn for every cut rather than "
+                 "marking the winner alone.", gap=14.0)
+        col.says("The margin is reported, never optimised. Nothing about the rule would "
+                 "change if it were larger or smaller; only how much weight the answer "
+                 "carries would.")
 
     def rule(col: _Column) -> None:
-        col.why("Both axes rise together, so the whole walk exchanges spread for power at "
-                "one average rate — and every cut can then be scored by how much power it "
-                "bought above that rate.")
-        col.rule(r"$\gamma = \dfrac{N_{\mathrm{eff},K} - N_{\mathrm{eff},1}}{H_K - H_1}$" rf"$\;=\;{rate:,.0f}$"
-                 r"$\qquad\qquad$"
-                 r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1}) - \gamma\,(H_k - H_1)$")
+        col.why("Both axes rise together, so the walk has one average price — and every "
+                "cut can be scored by how much power it bought above it.")
+        col.rule(r"$\gamma = \dfrac{N_{\mathrm{eff},K} - N_{\mathrm{eff},1}}"
+                 r"{H_K - H_1}$" rf"$\;=\;{rate:,.0f}$", eq=1)
+        col.rule(r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1}) "
+                 r"- \gamma\,(H_k - H_1)$", eq=2)
         col.answer(rf"narrow  =  $\arg\max_k E_k$  =  {k_nar}", colour)
 
     fig, (ax_s, ax_e) = _frame(
-        rule, (why_rate, why_margin),
+        rule, (why_end_to_end, why_margin),
         (("A", r"the walk, and the average rate priced across it",
           r"$E_k$ is the vertical gap between the curve and the chord — how much "
           r"power a cut bought above the average price."),
          ("B", rf"$E_k$ peaks at $k$ = {k_nar},  +{excess_peak:,.1f}",
           f"Every cut scored, so the maximum can be checked rather than taken on "
           f"faith. It leads the next by {margin:,.1f}.")),
-        symbols,
         note=(r"$N_{\mathrm{eff},k}, H_k$ power and spread at cut $k$  ·  "
               r"$k = 1$ the tightest cut, $k = K$ the widest  ·  "
               r"$\gamma$ the average exchange rate over the whole walk  ·  "
@@ -1289,139 +1121,97 @@ def plot_intermediate(
     on = weight_grid[weight_winner == k_int]
     lo, hi = (float(on.min()), float(on.max())) if on.size else (float("nan"),) * 2
 
-    symbols = (
-        (r"$C_1,\ C_2$", f"How the {case_label} and the {control_label} arms are each "
-                          f"spread out on the {d} axes, taken separately."),
-        (r"$S$", "Those two scatters pooled into one covariance, so a single yardstick "
-                 "exists against which the gap between the arms can be measured."),
-        (r"$\Delta\bar{x}$", "The vector from the control centroid to the case centroid: "
-                             "where the two arms sit relative to each other."),
-        (r"$\hat{D}^2_k$", "That gap measured in units of $S$ — a distance that does not "
-                           "change if the axes are rescaled."),
-        (r"$s_k$", r"The distance with the sampling floor "
-                   r"$d(1/N_{\mathrm{case}}+1/N_{\mathrm{ctrl}})$ removed — what two "
-                   r"sample means would differ by even drawn from the same population. "
-                   r"Comparable across cuts of different sizes; negative means the gap "
-                   r"is smaller than sampling would have given."),
-        (r"$T^2_k,\ \nu$", r"The same distance weighted by how many samples support it, "
-                           r"with $\nu$ its degrees of freedom — the statistic, rather "
-                           r"than the effect."),
-        (r"$P_k$", "The chance of seeing a gap that large if the two arms really came "
-                   "from the same place. Reported, never optimised against."),
-        (r"$x_k,\ y_k,\ \tilde{s}_k$", "Spread, power and de-biased distance each "
-                                       "rescaled to $[0,1]$, so quantities in different "
-                                       "units can be combined at all."),
-        (r"$u_k(w)$", "The two kinds of residual structure combined into one number, at "
-                      "weight $w$."),
-        (r"$\tilde{H}_k$", "That combination rescaled again, so the distance below is "
-                           "measured across a full unit axis rather than a fraction of "
-                           "one."),
-        (r"$w$", "How much of the combined axis is residual spread; the rest is "
-                 "case/control distance."),
-        (r"$k^{*}$", "The cut whose combined structure and power land closest to the "
-                     "corner where structure is zero and power is maximal."),
-    )
-
-    def why_distance(col: _Column) -> None:
-        col.step("1", "The obstacle", "A", "#B35806")
+    def why_second_axis(col: _Column) -> None:
+        col.step("1", "Why a second axis at all", "A", "#B35806")
         col.says("Spread says how wide the retained set is. It does not say whether the "
-                 "two arms sit at different places inside it — and only that biases an "
-                 "association test.", gap=14.0)
-        col.why("How far apart do the two arms sit inside the retained set? Measure the "
-                "gap between their centroids against the scatter within them, so the "
-                "answer does not depend on how the axes are scaled.")
-        col.formula(r"$S = \dfrac{(N_{\mathrm{case}}-1)C_1 + (N_{\mathrm{ctrl}}-1)C_2}{N_{\mathrm{case}} + N_{\mathrm{ctrl}} - 2}$")
-        col.formula(r"$\hat{D}^2_k = \Delta\bar{x}^{\top} S^{-1} \Delta\bar{x}$")
-        col.why("Some of that gap is sampling noise, and more of it in small cuts. "
-                "Subtract what noise alone contributes, so cuts of different sizes can be "
-                "compared.")
-        col.formula(r"$s_k = \hat{D}^2_k - d\left(\dfrac{1}{N_{\mathrm{case}}}+\dfrac{1}{N_{\mathrm{ctrl}}}\right)$")
-        col.says(r"Two sample means never coincide and $\hat{D}^2$ squares the gap, so "
-                 r"sampling alone contributes $d(1/N_{\mathrm{case}} + 1/N_{\mathrm{ctrl}})$ whatever the truth.")
+                 "two arms sit at different places inside it, and only that biases an "
+                 "association test — so a set can be homogeneous and still be the wrong "
+                 "one to run on.", gap=14.0)
+        col.says(r"(1) is the standard pieces: the case/control centroid gap as a "
+                 r"Mahalanobis distance $\hat{D}^2_k$ against the pooled within-arm "
+                 r"scatter, less the floor $d(1/N_{\mathrm{case}}+1/N_{\mathrm{ctrl}})$ "
+                 r"that two sample means show even drawn from one population.", gap=14.0)
+        col.says(f"What is worth saying is that the floor matters here: the retained set "
+                 f"grows more than tenfold along the walk, so a raw $\\hat{{D}}^2$ would "
+                 f"fall across it for arithmetic reasons alone and the whole axis would "
+                 f"be an artefact of sample size.")
 
-    def why_real(col: _Column) -> None:
-        col.step("1", "…and is it real?", "A", "#B35806")
-        col.why("De-biasing removes what sampling gives on average. It does not say the "
-                "remainder is anything, so test the gap outright against the distribution "
-                "it would follow if the two arms came from one population.")
-        col.formula(r"$T^2_k = \hat{D}^2_k\,\dfrac{N_{\mathrm{case}} N_{\mathrm{ctrl}}}{N_{\mathrm{case}}+N_{\mathrm{ctrl}}}$")
-        col.formula(r"$F = \dfrac{T^2_k\,(\nu - d + 1)}{d\,\nu} \sim F_{d,\ \nu-d+1}$")
-        col.says(f"{int(sig.sum())} of {len(pval)} cuts separate significantly, so this is "
-                 f"a phenomenon and not noise — which is what makes it worth selecting "
-                 f"against.", gap=14.0)
-        col.says(f"But $s_k$ reverses direction {reversals} times. There is no single rate "
-                 f"to read off it, so the pricing argument of the first cut cannot be "
-                 f"repeated here.", colour="#B35806")
-
-    def why_rule(col: _Column) -> None:
-        col.step("2", "The rule", "B", colour)
-        col.says("Two kinds of residual structure, one cut to choose. They are in "
-                 "different units, so neither can be traded against the other directly.",
-                 gap=14.0)
-        col.why("Weigh them into a single number, and rescale it so the axis it forms "
-                "spans a full unit — otherwise the distance below is measured across a "
-                "fraction of one axis and the whole of the other.")
-        col.formula(r"$u_k(w) = w\,x_k + (1-w)\,\tilde{s}_k$")
-        col.formula(r"$\tilde{H}_k = \mathrm{minmax}(u_k(w))$")
-        col.why("And which cut comes closest to having neither problem? Take the one "
-                "nearest the corner where residual structure is lowest and power is "
-                "highest.")
-        col.formula(r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{H}_k^{\,2} + (1 - y_k)^2}$")
-        col.says(r"$x_k, y_k, \tilde{s}_k$ are $H_k$, $N_{\mathrm{eff},k}$, $s_k$ min-max scaled to "
-                 r"$[0,1]$. The corner $(0,1)$ is unattainable — no cut has zero structure "
-                 r"and full power — so the nearest cut to it is taken.", gap=14.0)
-        col.says(f"The rule is the proximity to that corner. The weight only decides how "
-                 f"the two kinds of structure are mixed before it is measured.")
+    def why_rescale(col: _Column) -> None:
+        col.step("2", "Why (2) rescales twice", "B", colour)
+        col.says(r"$x_k$ and $\tilde{s}_k$ are already on $[0,1]$, so the blend inside "
+                 r"(2) is too — but only in the sense that it cannot leave the interval. "
+                 r"Its own range is narrower, because the two terms peak at different "
+                 r"cuts and the average of them never reaches either end.", gap=14.0)
+        col.says(f"(3) then measures a distance in a unit square. Left unrescaled, one "
+                 f"of its two axes would span a fraction of that square and the other "
+                 f"all of it, so the vertical and horizontal parts of the same distance "
+                 f"would not be in the same units.", gap=14.0)
+        col.says(f"This is not cosmetic. Without the second rescale the minimum is "
+                 f"0.3446 rather than the recorded {dist_min:.4f}, and it does not fall "
+                 f"at the same cut. It is the step of the whole procedure most likely "
+                 f"to be dropped by someone reimplementing it from the formulas.",
+                 colour=colour)
 
     def why_weight(col: _Column) -> None:
-        col.step("3", r"The weight", "C", colour)
-        col.says(f"Nothing in the data fixes $w$, so the honest thing is to say what "
-                 f"bounds it and then show the answer does not turn on the choice.",
-                 gap=14.0)
-        col.why("What fixes its floor is which of the two terms is allowed to dominate "
-                "the other.")
+        col.step("3", r"Why $w = \frac{1}{2}$ is a floor", "C", colour)
+        col.why("Nothing in the data fixes $w$, so the honest thing is to say what "
+                "bounds it rather than to fit it.")
         col.formula(r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$")
-        col.says(f"Below ½ the term built from {case_label}/{control_label} labels would "
-                 f"outweigh the one built from genotypes, and minimising that optimises "
-                 f"what the association test is meant to measure. ½ is the boundary, not "
-                 f"a tuned value.", gap=14.0)
-        col.says(f"Panel C sweeps $w$ across its whole range. The answer holds across "
-                 f"$w \\in [{lo:.2f},\\ {hi:.2f}]$, so ½ sits inside a plateau rather than "
-                 f"on a knife edge.")
+        col.says(f"Below ½ the term built from {case_label}/{control_label} labels "
+                 f"outweighs the one built from genotypes — and minimising that is "
+                 f"optimising the very thing the association test is meant to measure. "
+                 f"½ is where that stops being true, not a value that was tuned.",
+                 gap=14.0)
+        col.says(f"Panel C sweeps $w$ across its whole range. The answer holds on "
+                 f"$w \\in [{lo:.2f},\\ {hi:.2f}]$, so ½ sits inside a plateau rather "
+                 f"than on a knife edge. What that licenses is the claim that the cut "
+                 f"does not depend on the weight; what it does not licence is any "
+                 f"reading of ½ as optimal.")
+
+    def why_reported(col: _Column) -> None:
+        col.step("4", r"Why $P_k$ is only reported", "A", "#B35806")
+        col.says(f"De-biasing removes what sampling gives on average; it does not say "
+                 f"the remainder is anything. Hotelling's exact $F$ test does, and "
+                 f"{int(sig.sum())} of {len(pval)} cuts separate at $P<0.05$ — which is "
+                 f"what makes this axis a phenomenon rather than noise.", gap=14.0)
+        col.says("It is reported everywhere and selected on nowhere. Choosing the cut "
+                 "with the largest $P$ would be choosing the set that best hides a real "
+                 "difference between the arms, which is the opposite of what a cohort "
+                 "is for.", gap=14.0)
+        col.says(f"$s_k$ also reverses direction {reversals} times along the walk. There "
+                 f"is no single rate to read off it, which is why the pricing argument "
+                 f"of the first cut cannot simply be repeated on this axis.")
 
     def rule(col: _Column) -> None:
-        col.why(f"A second kind of residual structure — how far apart the two arms sit "
-                f"inside the retained set — has no rate to price against: it reverses "
-                f"{reversals} times. So the two axes are combined and the cut nearest the "
-                f"unattainable corner is taken.")
-        col.rule(r"$s_k = \hat{D}^2_k - d\left(\dfrac{1}{N_{\mathrm{case}}}+\dfrac{1}{N_{\mathrm{ctrl}}}\right)$"
-                 r"$\qquad$"
-                 r"$\tilde{H}_k = \mathrm{minmax}\left(w\,x_k + "
-                 r"(1-w)\,\tilde{s}_k\right)$"
-                 r"$\qquad$"
-                 r"$k^{*} = \arg\min_k \sqrt{\tilde{H}_k^{\,2} + (1 - y_k)^2}$")
+        col.why(f"A second kind of residual structure has no rate to price against: it "
+                f"reverses {reversals} times. The two axes are combined instead, and the "
+                f"cut nearest the unattainable corner is taken.")
+        col.rule(r"$s_k = \hat{D}^2_k - d\left(\dfrac{1}{N_{\mathrm{case}}}"
+                 r"+\dfrac{1}{N_{\mathrm{ctrl}}}\right)$", eq=1)
+        col.rule(r"$\tilde{H}_k = \mathrm{minmax}\left(w\,x_k + "
+                 r"(1-w)\,\tilde{s}_k\right)$", eq=2)
+        col.rule(r"$k^{*} = \arg\min_k \sqrt{\tilde{H}_k^{\,2} "
+                 r"+ (1 - y_k)^2}$", eq=3)
         col.answer(rf"intermediate  =  {k_int}   at  $w = \frac{{1}}{{2}}$,   "
                    rf"distance {dist_min:.4f}", colour)
 
     fig, (ax_o, ax_g, ax_w) = _frame(
-        rule, (why_distance, why_real, why_rule, why_weight),
+        rule, (why_second_axis, why_rescale, why_weight, why_reported),
         (("A", "one axis has a rate; the other has none",
-          f"$s_k$ reverses {reversals}×, so it cannot be priced — but it is real: "
-          f"filled markers are the {int(sig.sum())} cuts that separate at "
+          f"$s_k$ from (1) reverses {reversals}×, so it cannot be priced — but it "
+          f"is real: filled markers are the {int(sig.sum())} cuts separating at "
           f"$P<0.05$."),
-         ("B", rf"every cut's distance, smallest at $k$ = {k_int}",
-          "All 17 scored, so the minimum is checkable. Inset: what a distance is, "
-          "on the blended plane."),
+         ("B", r"the plane (3) minimises over",
+          rf"Every cut placed by structure and power; the dashed segment is the "
+          rf"distance (3) makes smallest. Inset: all 17 scored."),
          ("C", rf"it holds across $w \in [{lo:.2f},\ {hi:.2f}]$",
           r"The answer over the whole sweep of $w$. Shaded: where labels would "
           r"outweigh genotypes.")),
-        symbols,
-        note=(r"$\hat{D}^2_k$ the case/control centroid gap in units of the pooled "
-              r"within-arm scatter, over $d$ axes and $N_{\mathrm{case}}, "
-              r"N_{\mathrm{ctrl}}$ samples  ·  $s_k$ that gap with the sampling floor "
-              r"removed  ·  $x_k, y_k, \tilde{s}_k$ spread, power and $s_k$ each "
-              r"rescaled to $[0,1]$  ·  $w$ the weight on spread  ·  $\tilde{H}_k$ "
-              r"the two of them blended and rescaled again  ·  $k^{*}$ the cut it picks"))
+        note=(r"$\hat{D}^2_k$ centroid gap, pooled-scatter units  ·  $d$ axes, "
+              r"$N_{\mathrm{case}}, N_{\mathrm{ctrl}}$ samples  ·  $s_k$ the gap less "
+              r"its sampling floor  ·  $x_k, y_k, \tilde{s}_k$ spread, power, $s_k$ on "
+              r"$[0,1]$  ·  $w$ weight on spread  ·  $\tilde{H}_k$ the blend, rescaled "
+              r" ·  $k^{*}$ the cut chosen"))
 
     # ── evidence ─────────────────────────────────────────────────────
     ax_o.axhline(0.0, color=_DIM, linewidth=1.0, linestyle=":")
@@ -1445,57 +1235,64 @@ def plot_intermediate(
     ax_o.legend(loc="upper center", fontsize=_MAIN["legend"], ncol=2, frameon=True,
                 framealpha=0.95, edgecolor="#CFCFCF")
 
-    # The rule is "nearest the corner", so the readable evidence is the ranked
-    # distances -- the scatter shows what a distance is, but you cannot see
-    # which of 17 is smallest by eye. The curve makes the minimum checkable and
-    # mirrors how 01_narrow shows E_k peaking.
+    # The rule is a distance in a plane, so the plane is the panel. The ranked
+    # distances say which of the seventeen is smallest, which the eye cannot
+    # read off a scatter -- but that is an audit trail, and it belongs in the
+    # inset the geometry used to be squeezed into.
     i_int = int(np.argmin(np.abs(rank - k_int)))
     dist = np.sqrt(blended ** 2 + (1.0 - y) ** 2)
     order = np.argsort(dist)
     runner = int(order[1])
-    ax_g.vlines(rank, 0.0, dist, color="#D6D6D6", linewidth=4.0, zorder=2)
-    ax_g.vlines(rank[i_int], 0.0, dist[i_int], color=colour, linewidth=4.0, zorder=3)
-    ax_g.plot(rank, dist, "-", color=_GR, linewidth=1.3, zorder=4)
-    ax_g.plot([rank[runner]], [dist[runner]], "o", color="white", markersize=8.0,
-              markeredgecolor=_GR, markeredgewidth=1.4, zorder=5)
-    ax_g.annotate(f"runner-up $k$ = {rank[runner]}\n{dist[runner]:.4f}",
-                  xy=(rank[runner], dist[runner]), xytext=(0, -14),
-                  textcoords="offset points", fontsize=_MAIN["annot"], color=_GR,
-                  ha="center", va="top", zorder=6)
-    ax_g.plot([rank[i_int]], [dist[i_int]], _MARK["intermediate"], color=colour,
-              markersize=12.0, markeredgecolor="white", markeredgewidth=1.4, zorder=7)
-    ax_g.annotate(f"$k$ = {k_int}   {dist[i_int]:.4f}\n"
-                  f"{(dist[runner] / dist[i_int] - 1) * 100:.0f}% clear of the next",
-                  xy=(rank[i_int], dist[i_int]), xytext=(-12, -8),
-                  textcoords="offset points", fontsize=_MAIN["annot"], fontweight="bold",
-                  color=colour, ha="right", va="top", zorder=8)
-    ax_g.set_xticks(rank[::2])
-    # Headroom for the inset, which sits over the top-right corner.
-    ax_g.set_ylim(0.0, float(dist.max()) * 1.34)
-    ax_g.set_xlabel(r"cumulative rank $k$", fontsize=_MAIN["axis"], labelpad=3)
-    ax_g.set_ylabel(r"distance to $(0,1)$", fontsize=_MAIN["axis"])
+
+    ax_g.plot(blended, y, "o", color=_GR, markersize=8.0, alpha=0.75,
+              markerfacecolor="white", markeredgewidth=1.4, zorder=3)
+    # Only the cuts a reader needs to find are labelled. Seventeen labels over a
+    # cluster this tight is not a scatter plot, it is a smudge.
+    for _i in (0, int(np.argmax(rank))):
+        ax_g.annotate(rf"$k$ = {int(rank[_i])}", xy=(blended[_i], y[_i]),
+                      xytext=(9, 0), textcoords="offset points",
+                      fontsize=_MAIN["annot"], color=_DIM, ha="left",
+                      va="center", zorder=4)
+    ax_g.plot([0.0, blended[i_int]], [1.0, y[i_int]], "--", color=colour,
+              linewidth=2.2, zorder=5)
+    ax_g.plot([0.0], [1.0], "*", color=colour, markersize=26.0, zorder=6,
+              markeredgecolor="white", markeredgewidth=1.6)
+    ax_g.annotate("the unattainable corner $(0,\\,1)$", xy=(0.0, 1.0),
+                  xytext=(16, 6), textcoords="offset points",
+                  fontsize=_MAIN["annot"], color=colour, ha="left", va="bottom",
+                  zorder=7)
+    ax_g.plot([blended[runner]], [y[runner]], "o", color="white", markersize=11.0,
+              markeredgecolor=_GR, markeredgewidth=1.8, zorder=6)
+    ax_g.annotate(f"runner-up $k$ = {rank[runner]}", xy=(blended[runner], y[runner]),
+                  xytext=(11, 6), textcoords="offset points",
+                  fontsize=_MAIN["annot"], color=_GR, ha="left", va="bottom",
+                  zorder=7)
+    ax_g.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
+              markersize=15.0, markeredgecolor="white", markeredgewidth=1.6,
+              zorder=8)
+    ax_g.annotate(rf"$k^{{*}}$ = {k_int}", xy=(blended[i_int], y[i_int]),
+                  xytext=(0, -14), textcoords="offset points",
+                  fontsize=_MAIN["annot"], fontweight="bold", color=colour,
+                  ha="center", va="top", zorder=8)
+    ax_g.set_xlim(-0.07, 1.10); ax_g.set_ylim(-0.10, 1.20)
+    ax_g.set_xlabel(r"$\tilde{H}_k$   $\rightarrow$ more residual structure",
+                    fontsize=_MAIN["axis"], labelpad=3)
+    ax_g.set_ylabel(r"$y_k$   $\rightarrow$ more power", fontsize=_MAIN["axis"])
     ax_g.tick_params(labelsize=_MAIN["tick"])
 
-    # What that distance is, as an inset: the blended plane, the unattainable
-    # corner, and the segment being minimised.
-    ax_in = ax_g.inset_axes((0.585, 0.545, 0.345, 0.425))
-    ax_in.plot(blended, y, "o", color=_GR, markersize=3.0, alpha=0.65,
-               markerfacecolor="white", markeredgewidth=0.8, zorder=3)
-    ax_in.plot([0.0], [1.0], "*", color=colour, markersize=13.0, zorder=5,
-               markeredgecolor="white", markeredgewidth=0.8)
-    ax_in.plot([0.0, blended[i_int]], [1.0, y[i_int]], "--", color=colour,
-               linewidth=1.6, zorder=4)
-    ax_in.plot([blended[i_int]], [y[i_int]], _MARK["intermediate"], color=colour,
-               markersize=7.0, markeredgecolor="white", markeredgewidth=1.0, zorder=6)
-    ax_in.set_xlim(-0.06, 1.06); ax_in.set_ylim(-0.06, 1.10)
-    ax_in.set_xticks([0, 1]); ax_in.set_yticks([0, 1])
+    # The audit trail, in the corner the cuts leave empty: every cut scored, so
+    # "smallest" is checkable rather than a judgement about a scatter.
+    ax_in = ax_g.inset_axes((0.055, 0.055, 0.44, 0.34))
+    ax_in.vlines(rank, 0.0, dist, color="#D6D6D6", linewidth=2.6, zorder=2)
+    ax_in.vlines(rank[i_int], 0.0, dist[i_int], color=colour, linewidth=2.6, zorder=3)
+    ax_in.plot(rank, dist, "-", color=_GR, linewidth=1.0, zorder=4)
+    ax_in.set_xticks([1, k_int, int(rank.max())])
+    ax_in.set_ylim(0.0, float(dist.max()) * 1.10)
     ax_in.tick_params(labelsize=_MAIN["inset"], length=3.0, pad=2)
-    ax_in.set_xlabel(r"$\tilde{H}_k$", fontsize=_MAIN["inset"], labelpad=1)
-    ax_in.set_ylabel(r"$y_k$", fontsize=_MAIN["inset"], labelpad=1)
-    ax_in.set_title(r"the corner $(0,1)$", fontsize=_MAIN["inset"], pad=3, color=_GR)
+    ax_in.set_title(rf"(3) for every cut $k$ — least at {k_int}",
+                    fontsize=_MAIN["inset"], pad=3, color=_GR)
     ax_in.grid(True, alpha=0.25, linewidth=0.5)
     ax_in.set_axisbelow(True)
-
 
     won = weight_winner[weight_winner > 0]
     ax_w.fill_between([0.0, safe_weight_floor], -100, 100, color=_BAR, alpha=0.55, linewidth=0)
@@ -1549,23 +1346,6 @@ def plot_cohorts(
         r = decision_table.loc[decision_table["Included_Max_Rank"] == k_of[name]]
         return float(to_numeric_array(r[col])[0]) if col in r.columns and not r.empty else float("nan")
 
-    symbols = (
-        (r"$k$", "The cut: the components are ordered by how case-rich they are and "
-                 "cut $k$ keeps the $k$ richest, so the three sets are nested."),
-        (r"$N_{\mathrm{eff},k}$", "The effective sample size: how large a perfectly balanced study "
-                   "would have to be to have the power this unbalanced one has."),
-        (r"$H_k$", "The residual spread: how wide the retained set still is on the "
-                   "mainland PCA axes, as a geometric mean of the per-axis SDs."),
-        (r"$E_k$", "What a cut bought above the walk's average exchange rate, in "
-                   "effective samples. Its peak locates narrow."),
-        (r"$\tilde{H}_k,\ y_k$", "Residual structure and power, each rescaled to "
-                                 "$[0,1]$ so the distance to the ideal corner can be "
-                                 "measured. Their nearest point locates intermediate."),
-        (r"$P_k$", "The chance of seeing a case/control centroid gap that large if the "
-                   "two arms really came from the same place. Reported, never "
-                   "optimised against."),
-    )
-
     def why_three(col: _Column) -> None:
         col.head("Why three, and not one")
         col.why("A single cohort would need one worry to dominate. Three different things "
@@ -1598,18 +1378,11 @@ def plot_cohorts(
                  "walk. Both are consequences of where the cuts fell, not reasons they "
                  "fell there.")
 
-    symbol_cols = 3
     width = FIGURE_SIZE[0]
     inner = width - 2.0 * _SIDE_IN
     apparatus = (why_three, why_p)
     groups, w_cols, h_cols = _balance_columns(apparatus, inner, _GUTTER_IN)
     text_in = max(h_cols) + _SLACK_IN
-
-    probe = plt.figure(figsize=(inner, _PROBE_IN))
-    ax_probe = probe.add_axes((0.0, 0.0, 1.0, 1.0))
-    _note_axis(ax_probe)
-    band_in = _symbol_table(ax_probe, symbols, columns=symbol_cols) * _PROBE_IN + _SLACK_IN
-    plt.close(probe)
 
     # Same presented band as the other three, split differently inside it. The
     # locator and the three reasons sit side by side, so the locator gets a
@@ -1624,7 +1397,7 @@ def plot_cohorts(
     top_in = 3.10
     table_in = (_MAIN_IN - note_in - top_in - 2.0 * _PANEL_TOP_IN - _XLABEL_IN
                 - _CAPTION_IN)
-    support_in = text_in + _BAND_GAP_IN + band_in
+    support_in = text_in
     height = (_TITLE_IN + _MAIN_IN + _RULE_GAP_IN + _SUPP_HEAD_IN + support_in
               + _FOOT_IN)
 
@@ -1646,7 +1419,7 @@ def plot_cohorts(
 
     _crop_rule(fig, height - _TITLE_IN - _MAIN_IN - _RULE_GAP_IN, height, width)
 
-    y_text = (_FOOT_IN + band_in + _BAND_GAP_IN) / height
+    y_text = _FOOT_IN / height
     lefts = [_SIDE_IN + sum(w_cols[:i]) + i * _GUTTER_IN for i in range(len(w_cols))]
     for i, (group, w_col, left) in enumerate(zip(groups, w_cols, lefts)):
         ax_c = fig.add_axes((left / width, y_text, w_col / width,
@@ -1658,10 +1431,6 @@ def plot_cohorts(
                 c._drop([], _TOPIC_GAP_PT)
             fn(c)
         c.check(f"03 apparatus column {i + 1}")
-
-    ax_tab = fig.add_axes((x0, _FOOT_IN / height, w, band_in / height))
-    _note_axis(ax_tab)
-    _symbol_table(ax_tab, symbols, columns=symbol_cols)
 
     ax_loc.plot(het, neff, "-o", color=_GR, markersize=4.4, linewidth=1.4,
                 markerfacecolor="white", markeredgewidth=1.0, zorder=3,
