@@ -119,17 +119,29 @@ region rather than jumping elsewhere.
 ### `03_rank_selection/` [6]
 
 Four figures and three tables. The figures are numbered in reading order and
-answer one question each. Every formula is presented the same way — the question
-it answers, the formula, then how to read its result — and every symbol in it
-has a row in a band across the foot of that figure saying what it is. No figure
-declares a canvas size: each is measured from its own content and made exactly
-that tall.
+answer one question each.
+
+**Each figure is in two bands, and the lower one is meant to be cropped away.**
+Above a labelled rule: the governing formulas, the answer they reach, the
+evidence panels in a row, and one caption per panel — everything needed for the
+figure to stand on its own in a talk. Below it: the derivations, the caveats,
+and the symbol table.
+
+**The rule is at the same place on all four**, so one crop setting serves the
+set — at the 600 dpi these are written, **cut at row 5316** (±1 px from
+`bbox_inches="tight"`), i.e. 9.39 in from the top. The cropped band is roughly
+2:1. `scripts.plotting.rank._crop_offset(dpi)` returns that offset for any dpi.
+
+Every formula is presented the same way — the question it answers, the formula,
+then how to read its result. No figure declares a canvas size: each is measured
+from its own content and made exactly that tall, and the presented band is set
+at a size meant to be read across a room rather than at a desk.
 
 | File | Contents |
 |---|---|
-| `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$, each derived |
+| `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$ |
 | `01_narrow.png` | The first cut: pricing the walk against its own average exchange rate |
-| `02_intermediate.png` | Three numbered sub-steps, each with the panel that backs it: the obstacle (A), the rule and every cut's distance (B), the weight (C) |
+| `02_intermediate.png` | The obstacle (A), the rule and every cut's distance (B), and the weight sweep (C); the three derivations sit below the crop rule |
 | `03_cohorts.png` | The three delivered sets, where they sit, why each one exists, and what each costs |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
