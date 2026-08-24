@@ -244,6 +244,11 @@ class _Column:
         self.scale = scale
 
     # -- measurement ---------------------------------------------------
+    def _axes_width(self, display: float) -> float:
+        """Convert a width in display pixels to a fraction of the axes."""
+        inv = self.ax.transAxes.inverted()
+        return inv.transform((display, 0.0))[0] - inv.transform((0.0, 0.0))[0]
+
     def _axes_height(self, display: float) -> float:
         """Convert a height in display pixels to a fraction of the axes."""
         inv = self.ax.transAxes.inverted()
@@ -291,13 +296,21 @@ class _Column:
 
     def step(self, num: str, text: str, panel: str, colour: str, *,
              gap: float = 8.0) -> None:
-        """A numbered sub-step, ruled off and pointing at its evidence panel."""
+        """A numbered sub-step, ruled off and pointing at its evidence panel.
+
+        The badge's width is measured, not assumed: the columns are no longer
+        all the same width, and a fixed fraction that cleared the circle in a
+        wide one printed the title straight through it in a narrow one.
+        """
         self.ax.plot([0.0, 1.0], [self.y + 0.014, self.y + 0.014],
                      color="#E0E0E0", linewidth=0.9)
-        t = self.ax.text(0.042, self.y, text, fontsize=self.scale["step"],
-                         fontweight="bold", ha="left", va="top", color=colour)
+        badge = 0.5 * self._axes_width(
+            self.scale["badge"] * 2.2 * self.ax.get_figure().dpi / 72.0)
+        t = self.ax.text(badge * 2.0 + 0.012, self.y, text,
+                         fontsize=self.scale["step"], fontweight="bold",
+                         ha="left", va="top", color=colour)
         mid = self.y - self._height_of(t) / 2.0
-        self.ax.text(0.006, mid, num, fontsize=self.scale["badge"],
+        self.ax.text(badge, mid, num, fontsize=self.scale["badge"],
                      fontweight="bold", ha="center", va="center", color=colour,
                      zorder=5, bbox=dict(boxstyle="circle,pad=0.24",
                                          facecolor="white", edgecolor=colour,
@@ -337,12 +350,28 @@ class _Column:
         self._drop([t], gap)
 
     def answer(self, text: str, colour: str, *, gap: float = 6.0) -> None:
-        """The conclusion the rule reaches, banded so it reads as the point."""
-        t = self.ax.text(0.0, self.y, text, fontsize=self.scale["answer"],
-                         fontweight="bold", ha="left", va="top", color=colour,
-                         bbox=dict(boxstyle="round,pad=0.42", facecolor="white",
-                                   edgecolor=colour, linewidth=1.6))
-        self._drop([t], gap)
+        """The conclusion the rule reaches, banded so it reads as the point.
+
+        Drawn into its own axes beside the formulas when the frame gave the
+        column one, and centred against them. Stacked under the formulas it had
+        a whole line to itself and left the right half of the strip empty.
+        """
+        into = getattr(self, "answer_at", None)
+        if into is None:
+            t = self.ax.text(0.0, self.y, text, fontsize=self.scale["answer"],
+                             fontweight="bold", ha="left", va="top", color=colour,
+                             bbox=dict(boxstyle="round,pad=0.42",
+                                       facecolor="white", edgecolor=colour,
+                                       linewidth=1.6))
+            self._drop([t], gap)
+            return
+        into.text(1.0, (1.0 + self.y) / 2.0, _wrap_to_width(
+                      into.get_figure(), text,
+                      into.get_position().width * 0.92, self.scale["answer"]),
+                  fontsize=self.scale["answer"], fontweight="bold", ha="right",
+                  va="center", color=colour, linespacing=1.4,
+                  bbox=dict(boxstyle="round,pad=0.46", facecolor="white",
+                            edgecolor=colour, linewidth=1.8))
 
     # -- guard ---------------------------------------------------------
     def check(self, what: str) -> None:
@@ -388,6 +417,10 @@ _MAIN_IN = 7.60
 #: Room under the crop rule for the label that names what follows it.
 _SUPP_HEAD_IN = 0.52
 
+#: How much of the rule strip the formulas take; the answer takes the rest,
+#: beside them rather than beneath.
+_RULE_SHARE = 0.72
+
 #: Width split when a figure puts text beside its evidence rather than above it.
 _COL_RATIO = (1.14, 1.0)
 
@@ -424,6 +457,155 @@ def _measure(draw: "Callable[[_Column], None]", width: float, *,
     col = _Column(ax, top=1.0, indent=indent, scale=scale)
     draw(col)
     used = (1.0 - col.y) * _PROBE_IN
+    plt.close(probe)
+    return used
+
+
+#: How narrow and how wide an apparatus column may be set, in inches. Roughly
+#: 42 and 88 characters at the apparatus size -- the bounds inside which prose
+#: stays readable. Balancing must not buy a flat bottom with a measure nobody
+#: can follow.
+_COL_MIN_IN = 3.55
+_COL_MAX_IN = 7.60
+
+
+#: Vertical space between two topics sharing a column, in points.
+_TOPIC_GAP_PT = 26.0
+
+
+def _measured(fn, width: float, _memo: dict = {}) -> float:
+    """:func:`_measure`, remembered.
+
+    The packing below measures the same topic at a handful of widths while it
+    searches. Laying text out is the expensive part of drawing these figures,
+    and the same question asked twice has the same answer.
+    """
+    key = (id(fn), round(width, 2))
+    if key not in _memo:
+        _memo[key] = _measure(fn, width)
+    return _memo[key]
+
+
+def _partitions(n: int) -> "list[list[int]]":
+    """Every way of cutting ``n`` topics into contiguous runs, longest first.
+
+    Contiguous because the topics are numbered steps and a reader follows them
+    in order; a packing that put step 3 above step 1 would balance the band and
+    ruin it.
+    """
+    out = []
+
+    def walk(start: int, acc: "list[int]") -> None:
+        if start == n:
+            out.append(list(acc)); return
+        for take in range(1, n - start + 1):
+            acc.append(take); walk(start + take, acc); acc.pop()
+
+    walk(0, [])
+    return sorted(out, key=len, reverse=True)
+
+
+def _size_columns(
+    groups: "Sequence[Sequence[Callable[[_Column], None]]]",
+    total: float, gutter: float, gap_in: float,
+) -> "tuple[list[float], list[float]]":
+    """Widths that make these columns end at about the same depth.
+
+    A column's height at a given width is very nearly its area divided by that
+    width, so allocating width in proportion to area levels the bottoms. Two
+    passes converge; a third is not worth the layout time.
+    """
+    n = len(groups)
+    avail = total - (n - 1) * gutter
+
+    def heights(ws: "Sequence[float]") -> "list[float]":
+        return [sum(_measured(fn, w) for fn in g) + (len(g) - 1) * gap_in
+                for g, w in zip(groups, ws)]
+
+    widths = [avail / n] * n
+    hs = heights(widths)
+    for _ in range(2):
+        areas = [h * w for h, w in zip(hs, widths)]
+        widths = _clamp_to_total([avail * a / sum(areas) for a in areas], avail)
+        hs = heights(widths)
+    return widths, hs
+
+
+def _clamp_to_total(widths: "Sequence[float]", avail: float) -> "list[float]":
+    """Hold every column inside the readable measure, still summing to ``avail``.
+
+    Clamping alone would change the total, so whatever a clamp took or gave is
+    pushed onto the columns that are still free to move.
+    """
+    out = [min(max(w, _COL_MIN_IN), _COL_MAX_IN) for w in widths]
+    for _ in range(4):
+        slack = avail - sum(out)
+        free = [i for i, w in enumerate(out) if _COL_MIN_IN < w < _COL_MAX_IN]
+        if abs(slack) < 1e-6 or not free:
+            break
+        for i in free:
+            out[i] = min(max(out[i] + slack / len(free), _COL_MIN_IN), _COL_MAX_IN)
+    return out
+
+
+def _balance_columns(
+    draws: "Sequence[Callable[[_Column], None]]", total: float, gutter: float,
+) -> "tuple[list[list], list[float], list[float]]":
+    """Pack the apparatus topics into columns that end at the same depth.
+
+    Equal-width, one-topic-per-column sized the band to the tallest column, so
+    the short ones left a void -- on the three-column figure that was 6.9 in,
+    forty per cent of the band. Widening the tall column alone does not close
+    it either: that topic is half again the next even at the widest measure
+    prose stays readable in.
+
+    So both are searched together -- how many columns, which topics share one,
+    and how wide each is -- and the packing with the shallowest band wins.
+    Topics stay whole and stay in order: a newspaper flow would level the
+    bottoms exactly, but it can put a formula and the gloss that reads it on
+    opposite sides of a gutter, which costs more than the void did.
+
+    Returns the topic groups, their widths, and their heights.
+    """
+    gap_in = _TOPIC_GAP_PT / 72.0
+    best = None
+    for parts in _partitions(len(draws)):
+        groups, at = [], 0
+        for take in parts:
+            groups.append(list(draws[at:at + take])); at += take
+        widths, hs = _size_columns(groups, total, gutter, gap_in)
+        if min(widths) < _COL_MIN_IN - 1e-6:
+            continue
+        score = (round(max(hs), 2), round(sum(max(hs) - h for h in hs), 2))
+        if best is None or score < best[0]:
+            best = (score, groups, widths, hs)
+    if best is None:
+        raise AssertionError("no apparatus packing fits the readable measure")
+    return best[1], best[2], best[3]
+
+
+def _measure_rule(rule: "Callable[[_Column], None]",
+                  w_formula: float, w_answer: float) -> float:
+    """Height the rule strip needs with the answer beside the formulas.
+
+    Measuring it with :func:`_measure` alone counts the answer as if it were
+    stacked under the formulas, because that is what a column with nowhere to
+    put it does -- and the strip then reserved half an inch it never used. Both
+    halves are laid out here and the taller one wins.
+    """
+    probe = plt.figure(figsize=(w_formula + w_answer, _PROBE_IN))
+    frac = w_formula / (w_formula + w_answer)
+    ax_f = probe.add_axes((0.0, 0.0, frac, 1.0))
+    ax_a = probe.add_axes((frac, 0.0, 1.0 - frac, 1.0))
+    _note_axis(ax_f)
+    _note_axis(ax_a)
+    col = _Column(ax_f, top=1.0, indent=0.0, scale=_MAIN)
+    col.answer_at = ax_a
+    rule(col)
+    used = (1.0 - col.y) * _PROBE_IN
+    for t in ax_a.texts:
+        box = t.get_window_extent(renderer=probe.canvas.get_renderer())
+        used = max(used, box.height / probe.dpi + 0.30)
     plt.close(probe)
     return used
 
@@ -663,10 +845,10 @@ def _frame(
     inner = width - 2.0 * _SIDE_IN
     n_evidence = len(panel_text)
 
-    rule_in = _measure(rule, inner, scale=_MAIN) + _SLACK_IN
-    n_cols = max(len(apparatus), 1)
-    w_col = (inner - (n_cols - 1) * _GUTTER_IN) / n_cols
-    text_in = max((_measure(fn, w_col) for fn in apparatus), default=0.0) + _SLACK_IN
+    rule_in = _measure_rule(rule, inner * _RULE_SHARE - _GUTTER_IN,
+                            inner * (1.0 - _RULE_SHARE)) + _SLACK_IN
+    groups, w_cols, h_cols = _balance_columns(apparatus, inner, _GUTTER_IN)
+    text_in = max(h_cols, default=0.0) + _SLACK_IN
 
     probe = plt.figure(figsize=(inner, _PROBE_IN))
     ax_probe = probe.add_axes((0.0, 0.0, 1.0, 1.0))
@@ -696,10 +878,19 @@ def _frame(
     x0 = _SIDE_IN / width
     y_main = (height - _TITLE_IN - _MAIN_IN) / height
 
+    # The formulas take the left of the strip and the answer sits beside them,
+    # not under them: stacked, the strip used barely half the width and the
+    # answer had a whole line to itself.
     ax_rule = fig.add_axes((x0, (height - _TITLE_IN - rule_in) / height,
-                            inner / width, rule_in / height))
+                            inner * _RULE_SHARE / width, rule_in / height))
     _note_axis(ax_rule)
     col_rule = _Column(ax_rule, top=1.0, indent=0.0, scale=_MAIN)
+    col_rule.answer_at = fig.add_axes(
+        (x0 + inner * _RULE_SHARE / width + _GUTTER_IN / width,
+         (height - _TITLE_IN - rule_in) / height,
+         inner * (1.0 - _RULE_SHARE) / width - _GUTTER_IN / width,
+         rule_in / height))
+    _note_axis(col_rule.answer_at)
     rule(col_rule)
     col_rule.check("rule strip")
 
@@ -717,12 +908,16 @@ def _frame(
     _crop_rule(fig, height - _TITLE_IN - _MAIN_IN - _RULE_GAP_IN, height, width)
 
     y_text = (_FOOT_IN + band_in + _BAND_GAP_IN) / height
-    for i, fn in enumerate(apparatus):
-        ax_c = fig.add_axes(((_SIDE_IN + i * (w_col + _GUTTER_IN)) / width,
-                             y_text, w_col / width, text_in / height))
+    lefts = [_SIDE_IN + sum(w_cols[:i]) + i * _GUTTER_IN for i in range(len(w_cols))]
+    for i, (group, w_col, left) in enumerate(zip(groups, w_cols, lefts)):
+        ax_c = fig.add_axes((left / width, y_text, w_col / width,
+                             text_in / height))
         _note_axis(ax_c)
         col = _Column(ax_c, top=1.0, indent=0.0)
-        fn(col)
+        for j, fn in enumerate(group):
+            if j:
+                col._drop([], _TOPIC_GAP_PT)
+            fn(col)
         col.check(f"apparatus column {i + 1}")
 
     ax_tab = fig.add_axes((x0, _FOOT_IN / height, inner / width, band_in / height))
@@ -956,8 +1151,8 @@ def plot_narrow(
     fig, (ax_s, ax_e) = _frame(
         rule, (why_rate, why_cumulative, why_margin),
         (("A", f"the per-step rate rebounds — it would answer $k$ = {max(above)}",
-          f"Why the rule is cumulative: read one step at a time, the rate crosses "
-          f"$r$ repeatedly and the answer would be {max(above)}."),
+          "Drawn because it disagrees: a rule that looks just as reasonable "
+          "picks a different cut."),
          ("B", rf"$E_k$ peaks at $k$ = {k_nar},  +{excess_peak:,.1f}",
           f"Every cut scored, so the maximum can be checked rather than taken on "
           f"faith. It leads the next by {margin:,.1f}.")),
@@ -1067,7 +1262,7 @@ def plot_intermediate(
                      "corner where structure is zero and power is maximal."),
     )
 
-    def why_obstacle(col: _Column) -> None:
+    def why_distance(col: _Column) -> None:
         col.step("1", "The obstacle", "A", "#B35806")
         col.says("Spread says how wide the retained set is. It does not say whether the "
                  "two arms sit at different places inside it — and only that biases an "
@@ -1082,11 +1277,13 @@ def plot_intermediate(
                 "compared.")
         col.formula(r"$s_k = \hat{D}^2_k - d\left(\dfrac{1}{n_1}+\dfrac{1}{n_2}\right)$")
         col.says(r"Two sample means never coincide and $\hat{D}^2$ squares the gap, so "
-                 r"sampling alone contributes $d(1/n_1 + 1/n_2)$ whatever the truth.",
-                 gap=14.0)
-        col.why("Removing the average noise does not say the rest is real. Test the gap "
-                "outright, against the distribution it would follow if the arms came from "
-                "one population.")
+                 r"sampling alone contributes $d(1/n_1 + 1/n_2)$ whatever the truth.")
+
+    def why_real(col: _Column) -> None:
+        col.step("1", "…and is it real?", "A", "#B35806")
+        col.why("De-biasing removes what sampling gives on average. It does not say the "
+                "remainder is anything, so test the gap outright against the distribution "
+                "it would follow if the two arms came from one population.")
         col.formula(r"$T^2_k = \hat{D}^2_k\,\dfrac{n_1 n_2}{n_1+n_2}$")
         col.formula(r"$F = \dfrac{T^2_k\,(\nu - d + 1)}{d\,\nu} \sim F_{d,\ \nu-d+1}$")
         col.says(f"{int(sig.sum())} of {len(pval)} cuts separate significantly, so this is "
@@ -1147,8 +1344,8 @@ def plot_intermediate(
                    rf"distance {dist_min:.4f}", colour)
 
     fig, (ax_o, ax_g, ax_w) = _frame(
-        rule, (why_obstacle, why_rule, why_weight),
-        (("A", "one axis has a rate; the other has none — but is real",
+        rule, (why_distance, why_real, why_rule, why_weight),
+        (("A", "one axis has a rate; the other has none",
           f"$s_k$ reverses {reversals}×, so it cannot be priced — but it is real: "
           f"filled markers are the {int(sig.sum())} cuts that separate at "
           f"$p<0.05$."),
@@ -1312,7 +1509,16 @@ def plot_cohorts(
                  r"between three different lists. A narrower set buys homogeneity with "
                  r"effective sample size; a broader one does the reverse.")
         col.says(f"Cuts resolved in mode: {mode}. The automatic and manual answers agree "
-                 f"on both selected cuts; `cut_record.tsv` carries that comparison.")
+                 f"on both selected cuts; cut_record.tsv carries that comparison.")
+        col.head("What each one contains")
+        for i, name in enumerate(order):
+            added = (comps[name] if i == 0
+                     else [c for c in comps[name]
+                           if c not in set(comps[order[i - 1]])])
+            col.says(f"{name} — " + ("" if i == 0 else "adds ")
+                     + ", ".join(str(c) for c in added)
+                     + (f"  ({len(comps[name])} components)" if i else ""),
+                     colour=_EDGE[name], gap=5.0)
 
     def why_p(col: _Column) -> None:
         col.head(r"What  $p_k$  is, and is not")
@@ -1330,8 +1536,8 @@ def plot_cohorts(
     width = FIGURE_SIZE[0]
     inner = width - 2.0 * _SIDE_IN
     apparatus = (why_three, why_p)
-    w_col = (inner - (len(apparatus) - 1) * _GUTTER_IN) / len(apparatus)
-    text_in = max(_measure(fn, w_col) for fn in apparatus) + _SLACK_IN
+    groups, w_cols, h_cols = _balance_columns(apparatus, inner, _GUTTER_IN)
+    text_in = max(h_cols) + _SLACK_IN
 
     probe = plt.figure(figsize=(inner, _PROBE_IN))
     ax_probe = probe.add_axes((0.0, 0.0, 1.0, 1.0))
@@ -1339,13 +1545,13 @@ def plot_cohorts(
     band_in = _symbol_table(ax_probe, symbols, columns=symbol_cols) * _PROBE_IN + _SLACK_IN
     plt.close(probe)
 
-    # Same presented band as the other three, split differently inside it: the
-    # cohort table is the deliverable and is inherently full-width, so it cannot
-    # sit beside the locator the way two plots would. Both still get the room a
-    # panel needs outside its own box -- the locator's axis label hung into the
-    # table's header when they did not.
-    locator_in = 2.45
-    table_in = (_MAIN_IN - locator_in - 2.0 * _PANEL_TOP_IN - _XLABEL_IN
+    # Same presented band as the other three, split differently inside it. The
+    # locator and the three reasons sit side by side, so the locator gets a
+    # panel's proportions instead of the 7:1 strip it had when it spanned the
+    # page; the numeric table keeps the full width beneath them, and is now only
+    # numbers, the reasons having moved into the cards.
+    top_in = 3.30
+    table_in = (_MAIN_IN - top_in - 2.0 * _PANEL_TOP_IN - _XLABEL_IN
                 - _CAPTION_IN)
     support_in = text_in + _BAND_GAP_IN + band_in
     height = (_TITLE_IN + _MAIN_IN + _RULE_GAP_IN + _SUPP_HEAD_IN + support_in
@@ -1354,22 +1560,29 @@ def plot_cohorts(
     fig = plt.figure(figsize=(width, height))
     x0, w = _SIDE_IN / width, inner / width
     y_main = (height - _TITLE_IN - _MAIN_IN) / height
-    ax_loc = fig.add_axes(
-        (x0 + 0.030,
-         y_main + (_CAPTION_IN + table_in + _PANEL_TOP_IN + _XLABEL_IN) / height,
-         w - 0.030, locator_in / height))
+    y_top = y_main + (_CAPTION_IN + table_in + _PANEL_TOP_IN + _XLABEL_IN) / height
+    w_loc = inner * 0.56
+    ax_loc = fig.add_axes(((_SIDE_IN + 0.55) / width, y_top,
+                           (w_loc - 0.55) / width, top_in / height))
+    ax_card = fig.add_axes(((_SIDE_IN + w_loc + _GUTTER_IN) / width, y_top,
+                            (inner - w_loc - _GUTTER_IN) / width, top_in / height))
     ax_t = fig.add_axes((x0, y_main + _CAPTION_IN / height, w, table_in / height))
+    _note_axis(ax_card)
     _note_axis(ax_t)
 
     _crop_rule(fig, height - _TITLE_IN - _MAIN_IN - _RULE_GAP_IN, height, width)
 
     y_text = (_FOOT_IN + band_in + _BAND_GAP_IN) / height
-    for i, fn in enumerate(apparatus):
-        ax_c = fig.add_axes(((_SIDE_IN + i * (w_col + _GUTTER_IN)) / width,
-                             y_text, w_col / width, text_in / height))
+    lefts = [_SIDE_IN + sum(w_cols[:i]) + i * _GUTTER_IN for i in range(len(w_cols))]
+    for i, (group, w_col, left) in enumerate(zip(groups, w_cols, lefts)):
+        ax_c = fig.add_axes((left / width, y_text, w_col / width,
+                             text_in / height))
         _note_axis(ax_c)
         c = _Column(ax_c, top=1.0, indent=0.0)
-        fn(c)
+        for j, fn in enumerate(group):
+            if j:
+                c._drop([], _TOPIC_GAP_PT)
+            fn(c)
         c.check(f"03 apparatus column {i + 1}")
 
     ax_tab = fig.add_axes((x0, _FOOT_IN / height, w, band_in / height))
@@ -1413,51 +1626,66 @@ def plot_cohorts(
                  "Power is the main worry, or a reference is wanted. Nothing was "
                  "selected, so nothing can have been selected wrongly."),
     }
-    _panel_title(ax_t, "B", "what each one is, why it exists, and what it delivers")
-    cols = ("", "definition", "why this one exists", "$k$", case_label, control_label,
-            "n", r"$N_k$", r"$H_k$", r"$p_k$")
-    xs = (0.004, 0.100, 0.286, 0.608, 0.652, 0.722, 0.793, 0.855, 0.908, 0.956)
-    why_width = (xs[3] - xs[2] - 0.014) * (w * width) / width
+    # The reasons, beside the locator rather than inside the table. Read as
+    # three cards they are a decision the reader makes; read as a wrapped cell
+    # in a numeric row they were something to skip past.
+    _panel_title(ax_card, "B", "which one to use")
+    card_h = 0.94 / len(order)
+    for i, name in enumerate(order):
+        top = 0.96 - i * card_h
+        ax_card.add_patch(FancyBboxPatch(
+            (0.0, top - card_h + 0.030), 1.0, card_h - 0.045,
+            boxstyle="round,pad=0.004", facecolor=_TINT[name],
+            edgecolor=_EDGE[name], linewidth=1.4, alpha=0.85, zorder=1))
+        ax_card.plot([0.014, 0.014], [top - card_h + 0.050, top - 0.022],
+                     color=_EDGE[name], linewidth=5.0, solid_capstyle="butt",
+                     zorder=3)
+        ax_card.text(0.042, top - 0.055, name, fontsize=_MAIN["panel"],
+                     fontweight="bold", ha="left", va="top", color=_EDGE[name],
+                     zorder=3)
+        ax_card.text(0.99, top - 0.055, f"$k$ = {k_of[name]}",
+                     fontsize=_MAIN["panel"], fontweight="bold", ha="right",
+                     va="top", color=_EDGE[name], zorder=3)
+        ax_card.text(0.042, top - 0.055 - card_h * 0.30,
+                     _wrap_to_width(fig, defs[name][1],
+                                    ax_card.get_position().width * 0.93,
+                                    _MAIN["caption"]),
+                     fontsize=_MAIN["caption"], ha="left", va="top", color=_BK,
+                     linespacing=1.4, zorder=3)
+
+    _panel_title(ax_t, "C", "and what each one delivers")
+    cols = ("", "definition", "$k$", case_label, control_label,
+            "n", r"$N_k$", r"$H_k$", r"$p_k$", "")
+    xs = (0.004, 0.108, 0.448, 0.520, 0.606, 0.692, 0.762, 0.828, 0.892, 0.999)
     for xx, c in zip(xs, cols):
         ax_t.text(xx, 0.880, c, fontsize=_MAIN["caption"], ha="left", va="center",
                   color=_DIM, fontstyle="italic")
     ax_t.plot([0.0, 1.0], [0.815, 0.815], color="#CFCFCF", linewidth=1.0)
     for i, name in enumerate(order):
-        yy = 0.660 - i * 0.262
-        ax_t.add_patch(FancyBboxPatch((0.0, yy - 0.118), 1.0, 0.238, boxstyle="square,pad=0",
+        yy = 0.640 - i * 0.268
+        ax_t.add_patch(FancyBboxPatch((0.0, yy - 0.120), 1.0, 0.250, boxstyle="square,pad=0",
                                       facecolor=_TINT[name], edgecolor="none", alpha=0.60, zorder=1))
-        extra = ("" if i == 0 else "+ ") + ", ".join(
-            str(c) for c in (comps[name] if i == 0
-                             else [c for c in comps[name] if c not in set(comps[order[i - 1]])]))
-        vals = (name, defs[name][0],
-                _wrap_to_width(fig, defs[name][1], why_width, _MAIN["caption"]),
-                str(k_of[name]),
+        vals = (name, defs[name][0], str(k_of[name]),
                 f"{val(name, f'{case_label}_Count'):,.0f}",
                 f"{val(name, f'{control_label}_Count'):,.0f}",
                 f"{val(name, 'Total_Count'):,.0f}",
                 f"{val(name, 'GWAS_Neff'):,.0f}",
                 f"{val(name, rgv_column):.5f}",
-                f"{val(name, 'Mainland_CaseCtrl_P'):.1e}")
+                f"{val(name, 'Mainland_CaseCtrl_P'):.1e}",
+                "separated" if val(name, "Mainland_CaseCtrl_P") < 0.05
+                else "not detectable")
         _sig = val(name, "Mainland_CaseCtrl_P") < 0.05
         for j, (xx, t) in enumerate(zip(xs, vals)):
-            ax_t.text(xx, yy + 0.048, t,
+            last = j == len(xs) - 1
+            ax_t.text(xx, yy + 0.008, t,
                       fontsize=(_MAIN["panel"] if j == 0
-                                else (_MAIN["caption"] if j == 2 else _MAIN["annot"])),
-                      ha="left", va="center", zorder=3,
-                      color=_EDGE[name] if j == 0 else (_GR if j == 2 else _BK),
-                      fontweight="bold" if j in (0, 3) else "normal",
-                      linespacing=1.4)
-        # The one property of the deliverable that the selection never optimised
-        # for, and the only place the three visibly differ in kind.
-        # Right-aligned against the frame: "not detectable" is wider than the
-        # column it sits under and would otherwise run off the page.
-        ax_t.text(1.0, yy - 0.100,
-                  "separated" if _sig else "not detectable",
-                  fontsize=_MAIN["bar"], ha="right", va="center", zorder=3,
-                  color="#B35806" if _sig else _EDGE["intermediate"], fontstyle="italic")
-        ax_t.text(xs[1], yy - 0.100, f"components added:  {extra}",
-                  fontsize=_MAIN["bar"], ha="left", va="center", zorder=3,
-                  color=_DIM, fontstyle="italic")
+                                else (_MAIN["bar"] if last else _MAIN["annot"])),
+                      ha="right" if last else "left", va="center", zorder=3,
+                      color=(_EDGE[name] if j == 0 else
+                             (("#B35806" if _sig else _EDGE["intermediate"])
+                              if last else _BK)),
+                      fontweight="bold" if j in (0, 2) else "normal",
+                      fontstyle="italic" if last else "normal")
     box = ax_t.get_position()
     fig.text(box.x0, box.y0 - 0.006,
              _wrap_to_width(fig,
