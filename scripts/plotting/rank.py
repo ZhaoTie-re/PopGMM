@@ -108,6 +108,15 @@ _EDGE = {"narrow": "#0571B0", "intermediate": "#008837", "full": "#B2182B"}
 #: it.
 _BAR, _BAR_INK = "#F4C7C3", "#9B2226"
 
+#: What each cut is chosen by, in the words used on the criteria panel. Two are
+#: optimisations of a stated quantity; the third is a definition, and saying so
+#: is the point of putting all three on one axis.
+_CRITERION = {
+    "narrow": r"$\max_k E_k$ — excess return",
+    "intermediate": r"$\min_k$ distance to $(0,1)$",
+    "full": "every component — no optimum",
+}
+
 #: Marker shape per cut, so the three stay distinguishable without colour.
 _MARK = {"narrow": "D", "intermediate": "s", "full": "o"}
 
@@ -500,17 +509,25 @@ _COL_MAX_IN = 7.60
 _TOPIC_GAP_PT = 26.0
 
 
-def _measured(fn, width: float, _memo: dict = {}) -> float:
-    """:func:`_measure`, remembered.
+def _measured(fn, width: float, memo: dict) -> float:
+    """:func:`_measure`, remembered for the duration of one packing search.
 
-    The packing below measures the same topic at a handful of widths while it
-    searches. Laying text out is the expensive part of drawing these figures,
-    and the same question asked twice has the same answer.
+    The search measures the same topic at a handful of widths, and laying text
+    out is the expensive part of drawing these figures.
+
+    ``memo`` is supplied by the caller and lives only as long as that search.
+    It used to be a module-level default keyed on ``id(fn)``, which is wrong
+    twice over: the apparatus closures are created per figure and dropped
+    afterwards, so CPython reuses their ids, and a process-lifetime cache then
+    hands a later figure a height measured for an earlier figure's topic. The
+    layout became a function of allocation history -- identical code produced
+    figures 0.4 in different in height depending only on what had run before it
+    in the same process.
     """
     key = (id(fn), round(width, 2))
-    if key not in _memo:
-        _memo[key] = _measure(fn, width)
-    return _memo[key]
+    if key not in memo:
+        memo[key] = _measure(fn, width)
+    return memo[key]
 
 
 def _partitions(n: int) -> "list[list[int]]":
@@ -534,7 +551,7 @@ def _partitions(n: int) -> "list[list[int]]":
 
 def _size_columns(
     groups: "Sequence[Sequence[Callable[[_Column], None]]]",
-    total: float, gutter: float, gap_in: float,
+    total: float, gutter: float, gap_in: float, memo: dict,
 ) -> "tuple[list[float], list[float]]":
     """Widths that make these columns end at about the same depth.
 
@@ -546,7 +563,7 @@ def _size_columns(
     avail = total - (n - 1) * gutter
 
     def heights(ws: "Sequence[float]") -> "list[float]":
-        return [sum(_measured(fn, w) for fn in g) + (len(g) - 1) * gap_in
+        return [sum(_measured(fn, w, memo) for fn in g) + (len(g) - 1) * gap_in
                 for g, w in zip(groups, ws)]
 
     widths = [avail / n] * n
@@ -595,12 +612,13 @@ def _balance_columns(
     Returns the topic groups, their widths, and their heights.
     """
     gap_in = _TOPIC_GAP_PT / 72.0
+    memo: dict = {}
     best = None
     for parts in _partitions(len(draws)):
         groups, at = [], 0
         for take in parts:
             groups.append(list(draws[at:at + take])); at += take
-        widths, hs = _size_columns(groups, total, gutter, gap_in)
+        widths, hs = _size_columns(groups, total, gutter, gap_in, memo)
         if min(widths) < _COL_MIN_IN - 1e-6:
             continue
         score = (round(max(hs), 2), round(sum(max(hs) - h for h in hs), 2))
@@ -924,14 +942,18 @@ def plot_problem(
         col.answer("Neither can be improved without giving up the other — so $k$ has to "
                    "be chosen, not computed", _BK)
 
-    fig, (ax_r, ax_b) = _frame(
+    fig, (ax_r, ax_n, ax_b) = _frame(
         rule, (note_basis, note_neff),
         (("A", "the order the walk follows",
           "Each bar is one component, labelled with its id; cut $k$ keeps the "
           "leftmost $k$."),
-         ("B", r"both rise strictly with $k$",
-          "Power and spread, min-max scaled onto one axis. Widening the set buys "
-          "one and costs the other.")),
+         ("B", r"what the imbalance costs — (1)",
+          rf"Raw head-count against effective size. The shaded gap is what the "
+          rf"{case_label}/{control_label} imbalance gives up; at $k$ = "
+          rf"{int(rank.max())} it is {n1[-1] + n2[-1] - neff[-1]:,.0f} samples."),
+         ("C", r"(1) and (2) both rise strictly with $k$",
+          "Min-max scaled onto one axis. Widening the set buys one and costs "
+          "the other.")),
         note=(rf"$k$ the cut, one of $K = {rank.max()}$  ·  "
               rf"$N_{{\mathrm{{case}}}}, N_{{\mathrm{{ctrl}}}}$ samples per arm at that "
               rf"cut  ·  $N_{{\mathrm{{eff}},k}}$ the balanced study of equal power  ·  "
@@ -952,6 +974,22 @@ def plot_problem(
     ax_r.set_ylabel(f"{case_label}/{control_label} ratio", fontsize=_MAIN["axis"])
     ax_r.tick_params(labelsize=_MAIN["tick"])
 
+    # (1) drawn rather than asserted: the whole point of an effective size is
+    # that it is below the head-count, and by how much.
+    ax_n.fill_between(rank, neff, n1 + n2, color="#D6D6D6", alpha=0.75, zorder=2,
+                      label="what imbalance gives up")
+    ax_n.plot(rank, n1 + n2, "-", color=_GR, linewidth=1.8, zorder=3,
+              label=r"$N_{\mathrm{tot}}$ — raw head-count")
+    ax_n.plot(rank, neff, "-o", color=_BK, markersize=4.2, linewidth=1.8,
+              markerfacecolor="white", markeredgewidth=1.0, zorder=4,
+              label=r"$N_{\mathrm{eff},k}$ — effective")
+    ax_n.set_xticks(rank[::2])
+    ax_n.set_xlabel(r"cumulative rank $k$", fontsize=_MAIN["axis"], labelpad=3)
+    ax_n.set_ylabel("samples", fontsize=_MAIN["axis"])
+    ax_n.tick_params(labelsize=_MAIN["tick"])
+    ax_n.legend(loc="upper left", fontsize=_MAIN["legend"], frameon=True,
+                framealpha=0.95, edgecolor="#CFCFCF")
+
     ax_b.plot(rank, _safe_norm(neff), "-o", color=_BK, markersize=4.2, linewidth=1.6,
               markerfacecolor="white", markeredgewidth=1.0, label=r"$N_{\mathrm{eff},k}$")
     ax_b.plot(rank, _safe_norm(het), "-s", color="#8C8C8C", markersize=4.2, linewidth=1.6,
@@ -963,7 +1001,7 @@ def plot_problem(
     ax_b.legend(loc="upper left", fontsize=_MAIN["legend"], ncol=2, frameon=True,
                 framealpha=0.95, edgecolor="#CFCFCF")
 
-    for a in (ax_r, ax_b):
+    for a in (ax_r, ax_n, ax_b):
         a.grid(True, alpha=0.30, linewidth=0.7); a.set_axisbelow(True)
 
     _figure_title(fig, "The Problem",
@@ -1034,7 +1072,7 @@ def plot_narrow(
         (("A", r"the walk, and the rate (1) prices across it",
           r"$E_k$ is the vertical gap between the curve and the chord — how much "
           r"power a cut bought above the average price."),
-         ("B", rf"$E_k$ peaks at $k$ = {k_nar},  +{excess_peak:,.1f}",
+         ("B", rf"(2) peaks at $k$ = {k_nar},  $E_k$ = +{excess_peak:,.1f}",
           f"Every cut scored, so the maximum can be checked rather than taken on "
           f"faith. It leads the next by {margin:,.1f}.")),
         note=(r"$N_{\mathrm{eff},k}, H_k$ power and spread at cut $k$  ·  "
@@ -1146,10 +1184,10 @@ def plot_intermediate(
 
     def note_rescaling(col: _Column) -> None:
         col.step("2", "The second rescaling in (2)", "B", colour)
-        col.gloss(r"$x_k$ and $\tilde{s}_k$ are already on $[0,1]$, so the blend inside "
-                 r"(2) is too — but only in the sense that it cannot leave the interval. "
-                 r"Its own range is narrower, because the two terms peak at different "
-                 r"cuts and the average of them never reaches either end.", gap=14.0)
+        col.gloss(r"$\tilde{H}_k$ and $\tilde{s}_k$ are already on $[0,1]$, so $u_k(w)$ "
+                  r"is too — but only in the sense that it cannot leave the interval. Its "
+                  r"own range is narrower, because the two terms peak at different cuts "
+                  r"and the average of them never reaches either end.", gap=14.0)
         col.gloss(f"(3) then measures a distance in a unit square. Left unrescaled, one "
                  f"of its two axes would span a fraction of that square and the other "
                  f"all of it, so the vertical and horizontal parts of the same distance "
@@ -1195,19 +1233,19 @@ def plot_intermediate(
                 f"cut nearest the unattainable corner is taken.")
         col.rule(r"$s_k = \hat{D}^2_k - d\left(\dfrac{1}{N_{\mathrm{case}}}"
                  r"+\dfrac{1}{N_{\mathrm{ctrl}}}\right)$", eq=1)
-        col.rule(r"$\tilde{H}_k = \mathrm{minmax}\left(w\,x_k + "
-                 r"(1-w)\,\tilde{s}_k\right)$", eq=2)
-        col.rule(r"$k^{*} = \arg\min_k \sqrt{\tilde{H}_k^{\,2} "
-                 r"+ (1 - y_k)^2}$", eq=3)
+        col.rule(r"$u_k(w) = w\,\tilde{H}_k + (1-w)\,\tilde{s}_k, \qquad "
+                 r"\tilde{u}_k = \mathrm{minmax}\left(u_k(w)\right)$", eq=2)
+        col.rule(r"$k^{*} = \arg\min_k \sqrt{\tilde{u}_k^{\,2} "
+                 r"+ (1 - \tilde{N}_k)^2}$", eq=3)
         col.answer(rf"intermediate  =  {k_int}   at  $w = \frac{{1}}{{2}}$,   "
                    rf"distance {dist_min:.4f}", colour)
 
     fig, (ax_o, ax_g, ax_w) = _frame(
         rule, (note_second_axis, note_rescaling, note_weight, note_significance),
-        (("A", "one axis has a rate; the other has none",
-          f"$s_k$ from (1) reverses {reversals}×, so it cannot be priced — but it "
-          f"is real: filled markers are the {int(sig.sum())} cuts separating at "
-          f"$P<0.05$."),
+        (("A", "the two inputs to (2), and the blend they make",
+          f"$\\tilde{{s}}_k$ from (1) reverses {reversals}×, so it cannot be priced "
+          f"— but it is real: filled markers are the {int(sig.sum())} cuts "
+          f"separating at $P<0.05$. $\\tilde{{u}}_k$ is their blend at $w$ = ½."),
          ("B", r"the plane (3) minimises over",
           rf"Every cut placed by structure and power; the dashed segment is the "
           rf"distance (3) makes smallest. Inset: all 17 scored."),
@@ -1216,17 +1254,19 @@ def plot_intermediate(
           r"outweigh genotypes.")),
         note=(r"$\hat{D}^2_k$ centroid gap, pooled-scatter units  ·  $d$ axes, "
               r"$N_{\mathrm{case}}, N_{\mathrm{ctrl}}$ samples  ·  $s_k$ the gap less "
-              r"its sampling floor  ·  $x_k, y_k, \tilde{s}_k$ spread, power, $s_k$ on "
-              r"$[0,1]$  ·  $w$ weight on spread  ·  $\tilde{H}_k$ the blend, rescaled "
-              r" ·  $k^{*}$ the cut chosen"))
+              r"its sampling floor  ·  a tilde is that quantity min-max scaled to "
+              r"$[0,1]$, so $\tilde{H}_k, \tilde{N}_k, \tilde{s}_k$ are spread, power "
+              r"and $s_k$ on a common scale  ·  $w$ weight on spread  ·  $u_k(w)$ their "
+              r"blend, $\tilde{u}_k$ it rescaled  ·  $k^{*}$ the cut chosen"))
 
     # ── evidence ─────────────────────────────────────────────────────
     ax_o.axhline(0.0, color=_DIM, linewidth=1.0, linestyle=":")
     ax_o.plot(rank, _safe_norm(het), "-s", color="#8C8C8C", markersize=4.0, linewidth=1.5,
-              markerfacecolor="white", markeredgewidth=1.0, label=r"$H_k$ — never reverses")
+              markerfacecolor="white", markeredgewidth=1.0,
+              label=r"$\tilde{H}_k$ — never reverses")
     _sn = _safe_norm(sep)
     ax_o.plot(rank, _sn, "-", color="#B35806", linewidth=1.8, zorder=3,
-              label=rf"$s_k$ — reverses {reversals}×")
+              label=rf"$\tilde{{s}}_k$ — reverses {reversals}×")
     # Filled where the separation is significant: the de-biased value alone does
     # not say whether what is left is real, and that is what makes this axis a
     # phenomenon rather than noise.
@@ -1235,6 +1275,10 @@ def plot_intermediate(
               label=rf"$P < 0.05$  ({int(sig.sum())} of {len(pval)})")
     ax_o.plot(rank[~sig], _sn[~sig], "^", color="white", markersize=5.4, zorder=4,
               markeredgecolor="#B35806", markeredgewidth=1.4, label=r"$P \geq 0.05$")
+    # (2) has no panel of its own, but its two inputs are already on this one --
+    # so drawing the blend here is drawing the equation being made.
+    ax_o.plot(rank, blended, "-", color=colour, linewidth=2.4, zorder=5,
+              label=r"$\tilde{u}_k$ — the blend, (2)")
     ax_o.set_xticks(rank[::2]); ax_o.set_ylim(-0.10, 1.34)
     ax_o.set_xlabel(r"cumulative rank $k$", fontsize=_MAIN["axis"], labelpad=3)
     ax_o.set_ylabel("min-max normalised", fontsize=_MAIN["axis"])
@@ -1264,9 +1308,9 @@ def plot_intermediate(
               linewidth=2.2, zorder=5)
     ax_g.plot([0.0], [1.0], "*", color=colour, markersize=26.0, zorder=6,
               markeredgecolor="white", markeredgewidth=1.6)
-    ax_g.annotate("the unattainable corner $(0,\\,1)$", xy=(0.0, 1.0),
-                  xytext=(16, 6), textcoords="offset points",
-                  fontsize=_MAIN["annot"], color=colour, ha="left", va="bottom",
+    ax_g.annotate("the unattainable\ncorner $(0,\\,1)$", xy=(0.0, 1.0),
+                  xytext=(14, -10), textcoords="offset points",
+                  fontsize=_MAIN["annot"], color=colour, ha="left", va="top",
                   zorder=7)
     ax_g.plot([blended[runner]], [y[runner]], "o", color="white", markersize=11.0,
               markeredgecolor=_GR, markeredgewidth=1.8, zorder=6)
@@ -1282,9 +1326,9 @@ def plot_intermediate(
                   fontsize=_MAIN["annot"], fontweight="bold", color=colour,
                   ha="center", va="top", zorder=8)
     ax_g.set_xlim(-0.07, 1.10); ax_g.set_ylim(-0.10, 1.20)
-    ax_g.set_xlabel(r"$\tilde{H}_k$   $\rightarrow$ more residual structure",
+    ax_g.set_xlabel(r"$\tilde{u}_k$   $\rightarrow$ more residual structure",
                     fontsize=_MAIN["axis"], labelpad=3)
-    ax_g.set_ylabel(r"$y_k$   $\rightarrow$ more power", fontsize=_MAIN["axis"])
+    ax_g.set_ylabel(r"$\tilde{N}_k$   $\rightarrow$ more power", fontsize=_MAIN["axis"])
     ax_g.tick_params(labelsize=_MAIN["tick"])
 
     # The audit trail, in the corner the cuts leave empty: every cut scored, so
@@ -1336,11 +1380,13 @@ def plot_cohorts(
     rank_table: pd.DataFrame,
     rgv_column: str,
     rank_cuts: "Mapping[str, int | None]",
+    objective_spaces: "Mapping[str, Any]",
+    blend_weight: float,
     mode: str,
     case_label: str = "Case",
     control_label: str = "Control",
 ) -> Figure:
-    """4 of 4 — the three sets steps 1-3 deliver, and what each one costs."""
+    """4 of 4 — the three criteria, the sets they pick, and what each one costs."""
     rank = decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False)
     neff = decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False)
     het = decision_table[rgv_column].to_numpy(dtype=float, copy=False)
@@ -1353,6 +1399,21 @@ def plot_cohorts(
     def val(name: str, col: str) -> float:
         r = decision_table.loc[decision_table["Included_Max_Rank"] == k_of[name]]
         return float(to_numeric_array(r[col])[0]) if col in r.columns and not r.empty else float("nan")
+
+    # The two selection rules, on one axis and both pointing the same way, so
+    # that each is read the same way: higher is better, and the peak is the
+    # answer. Their optima are checked against cut_record rather than trusted.
+    _rate = float(rows["narrow"]["Exchange_Rate"])
+    excess = (neff - neff[0]) - _rate * (het - het[0])
+    _blend = np.asarray(objective_spaces["intermediate"].structure, dtype=float)
+    _power = _safe_norm(neff)
+    _dist = np.sqrt(_blend ** 2 + (1.0 - _power) ** 2)
+    score = {"narrow": _safe_norm(excess), "intermediate": 1.0 - _safe_norm(_dist)}
+    for _n, _sc in score.items():
+        if int(rank[int(np.argmax(_sc))]) != k_of[_n]:
+            raise AssertionError(
+                f"the {_n} criterion drawn on 03 peaks at "
+                f"{int(rank[int(np.argmax(_sc))])}, not the recorded {k_of[_n]}")
 
     def note_cohorts(col: _Column) -> None:
         col.head("Three cohorts rather than one")
@@ -1399,7 +1460,8 @@ def plot_cohorts(
     # numbers, the reasons having moved into the cards.
     note = (r"$k$ the cut  ·  $N_{\mathrm{eff},k}$ effective sample size  ·  "
             r"$H_k$ residual spread  ·  $E_k$ excess over the walk's average rate  ·  "
-            r"$\tilde{H}_k, y_k$ structure and power on $[0,1]$  ·  "
+            r"a tilde is that quantity min-max scaled to $[0,1]$: $\tilde{u}_k$ "
+            r"blended structure, $\tilde{N}_k$ power  ·  "
             r"$P_k$ separation p-value")
     note_in = _note_height(note, inner)
     top_in = 3.10
@@ -1440,27 +1502,55 @@ def plot_cohorts(
             fn(c)
         c.check(f"03 apparatus column {i + 1}")
 
-    ax_loc.plot(het, neff, "-o", color=_GR, markersize=4.4, linewidth=1.4,
-                markerfacecolor="white", markeredgewidth=1.0, zorder=3,
-                label=f"the {rank.max()} cumulative cuts")
+    # The three criteria on one axis, both rules mapped so that higher is
+    # better, so each is read the same way and each peaks at its own answer.
+    # Until now they lived on separate figures and the comparison had to be
+    # assembled by the reader.
+    for name in ("narrow", "intermediate"):
+        ax_loc.plot(rank, score[name], "-", color=_EDGE[name], linewidth=2.4,
+                    zorder=3, label=_CRITERION[name])
+        i = int(np.argmin(np.abs(rank - k_of[name])))
+        ax_loc.plot([rank[i]], [score[name][i]], _MARK[name], color=_EDGE[name],
+                    markersize=15.0, markeredgecolor="white", markeredgewidth=1.8,
+                    zorder=6)
+        ax_loc.annotate(f"{name}\n$k$ = {k_of[name]}", xy=(rank[i], score[name][i]),
+                        xytext=(0, 15), textcoords="offset points",
+                        fontsize=_MAIN["annot"], fontweight="bold",
+                        color=_EDGE[name], ha="center", va="bottom", zorder=7)
+    # full is not an optimum of anything, and drawing three curves would imply
+    # it were. It is the end of the walk, taken whole.
+    ax_loc.axvline(k_of["full"], color=_EDGE["full"], linewidth=2.0, linestyle="--",
+                   zorder=4)
+    ax_loc.annotate(f"full\n$k$ = {k_of['full']}\ntaken whole —\nnot an optimum",
+                    xy=(k_of["full"], 0.30), xytext=(-12, 0),
+                    textcoords="offset points", fontsize=_MAIN["annot"],
+                    fontweight="bold", color=_EDGE["full"], ha="right",
+                    va="center", zorder=7)
+    ax_loc.set_xticks(rank[::2]); ax_loc.set_ylim(-0.06, 1.30)
+    ax_loc.set_xlabel(r"cumulative rank $k$", fontsize=_MAIN["axis"], labelpad=3)
+    ax_loc.set_ylabel("criterion score\n" r"$\rightarrow$ better", fontsize=_MAIN["axis"])
+    ax_loc.tick_params(labelsize=_MAIN["tick"])
+    ax_loc.legend(loc="lower center", fontsize=_MAIN["legend"], frameon=True,
+                  framealpha=0.95, edgecolor="#CFCFCF")
+    ax_loc.grid(True, alpha=0.30, linewidth=0.7); ax_loc.set_axisbelow(True)
+    _panel_title(ax_loc, "A", "three criteria, three answers")
+
+    # Where those answers land on the trade-off the whole series is about.
+    ax_tr = ax_loc.inset_axes((0.605, 0.615, 0.335, 0.335))
+    ax_tr.plot(het, neff, "-o", color=_GR, markersize=2.6, linewidth=1.0,
+               markerfacecolor="white", markeredgewidth=0.7, zorder=3)
     for name in order:
         i = int(np.argmin(np.abs(rank - k_of[name])))
-        ax_loc.plot([het[i]], [neff[i]], _MARK[name], color=_EDGE[name], markersize=15.0,
-                    markeredgecolor="white", markeredgewidth=1.8, zorder=6)
-        ax_loc.annotate(f"{name}\n$k$ = {k_of[name]}", xy=(het[i], neff[i]),
-                        xytext={"narrow": (-64, -44), "intermediate": (4, 30),
-                                "full": (-14, -38)}[name],
-                        textcoords="offset points", fontsize=_MAIN["annot"], fontweight="bold",
-                        color=_EDGE[name], ha="center", va="center", zorder=7)
-    ax_loc.set_xlabel(r"residual spread  $H_k$   $\rightarrow$ less homogeneous",
-                      fontsize=_MAIN["axis"], labelpad=4)
-    ax_loc.set_ylabel(r"$N_{\mathrm{eff},k}$   $\rightarrow$ more power", fontsize=_MAIN["axis"])
-    ax_loc.tick_params(labelsize=_MAIN["tick"])
-    ax_loc.legend(loc="lower right", fontsize=_MAIN["legend"], frameon=True, framealpha=0.95,
-                  edgecolor="#CFCFCF")
-    ax_loc.grid(True, alpha=0.30, linewidth=0.7); ax_loc.set_axisbelow(True)
-    ax_loc.margins(x=0.14, y=0.12)
-    _panel_title(ax_loc, "A", "where the three sit on the trade-off")
+        ax_tr.plot([het[i]], [neff[i]], _MARK[name], color=_EDGE[name],
+                   markersize=8.0, markeredgecolor="white", markeredgewidth=1.1,
+                   zorder=6)
+    ax_tr.set_xticks([]); ax_tr.set_yticks([])
+    ax_tr.set_xlabel(r"$H_k$ $\rightarrow$", fontsize=_MAIN["inset"], labelpad=1)
+    ax_tr.set_ylabel(r"$N_{\mathrm{eff},k}$ $\rightarrow$", fontsize=_MAIN["inset"],
+                     labelpad=1)
+    ax_tr.set_title("where they land", fontsize=_MAIN["inset"], pad=3, color=_GR)
+    ax_tr.margins(x=0.16, y=0.16)
+    ax_tr.grid(True, alpha=0.25, linewidth=0.5); ax_tr.set_axisbelow(True)
 
     # The reason each cohort is offered, not a restatement of the rule that
     # located it: three sets exist because three different things can be the
@@ -1469,7 +1559,7 @@ def plot_cohorts(
         "narrow": (r"$\arg\max_k E_k$",
                    "Residual stratification is the main worry. Buys the most "
                    "homogeneity the walk offers before spread stops repaying."),
-        "intermediate": (r"$\arg\min_k \sqrt{\tilde{H}_k(\frac{1}{2})^2 + (1-y_k)^2}$",
+        "intermediate": (r"$\arg\min_k \sqrt{\tilde{u}_k(\frac{1}{2})^2 + (1-\tilde{N}_k)^2}$",
                          "Both worries at once. The only one of the three whose "
                          f"{case_label}/{control_label} gap is not detectable, at 94% of "
                          "full's power."),

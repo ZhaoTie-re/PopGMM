@@ -919,6 +919,8 @@ def run_rank_selection(
                 blend_weight=float(config.blend_weight), **shared)),
             (config.cohorts_figure_file, lambda: plot_cohorts(
                 rank_table=rank_table, rank_cuts=rank_cuts,
+                objective_spaces=objective_spaces,
+                blend_weight=float(config.blend_weight),
                 mode=str(config.rank_cut_mode), **shared)),
         )
         with figure_context(THEME_RANK):

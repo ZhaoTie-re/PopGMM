@@ -153,6 +153,11 @@ why $P_k$ is reported and never selected on.
 
 Notation follows the slide deck these figures sit in: `p` for allele frequency,
 `N_case` / `N_ctrl` / `N_tot` / `N_eff` for the counts, `H` for residual spread.
+**A tilde always means "min-max scaled to [0,1]"** — `H̃_k`, `Ñ_k`, `s̃_k` — and
+the blend of two of them keeps its own letter, `u_k(w)` rescaled to `ũ_k`. That
+convention replaced three: `H_k` rescaled used to be `x_k`, `N_eff,k` used to be
+`y_k`, and `H̃_k` used to name the blend, so `H_k`, `x_k` and `H̃_k` read as one
+quantity rescaled twice when only the first two were related.
 Two symbols the deck already spends are kept free — the walk's exchange rate is
 `γ`, not `r`, and the separation p-value is `P`, not `p`. The cut index is a
 subscript throughout (`N_eff,k`, `H_k`, `E_k`, `s_k`, `P_k`), because every one
@@ -171,13 +176,26 @@ at a size meant to be read across a room rather than at a desk.
 
 | File | Contents |
 |---|---|
-| `00_problem.png` | What has to be decided, and the two quantities that decide it — $N_k$ and $H_k$ |
+| `00_problem.png` | What has to be decided (A), what the case/control imbalance costs (B), and the two quantities rising together (C) |
 | `01_narrow.png` | The first cut: the walk with its average rate drawn as a chord (A), and $E_k$ — the gap between them — peaking at $k$ = 9 (B) |
 | `02_intermediate.png` | The obstacle (A), the $(\tilde H_k, y_k)$ plane that (3) minimises over (B), and the weight sweep (C); four justification columns below the crop rule |
-| `03_cohorts.png` | Where the three sit on the trade-off (A), why you would pick each one (B), and what each delivers (C) |
+| `03_cohorts.png` | The three criteria on one axis with their answers (A), why you would pick each one (B), and what each delivers (C) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number the figures draw |
+
+**`03` panel A is where the three criteria meet.** Both selection rules are
+drawn over the same `k` and mapped so that higher is better, so each peaks at
+its own answer — `max E_k` at 9, `min` distance at 12 — while `full` is a dashed
+rule at 17 labelled *taken whole — not an optimum*. Two of the three are
+optimisations and the third is a definition; drawing all three as curves would
+have implied otherwise. The figure asserts at build time that each drawn curve
+peaks at the cut `cut_record.tsv` records.
+
+Every numbered equation is named by a panel, so no equation is asserted without
+being shown: `00` (1) is the shaded gap between raw head-count and effective
+size, `00` (2) and (1) rise together in C, `02` (2) is the blend drawn over its
+two inputs in A.
 
 The argument runs across the four in order:
 
