@@ -1183,7 +1183,7 @@ def plot_intermediate(
                   f"sample size rather than of ancestry.")
 
     def note_rescaling(col: _Column) -> None:
-        col.step("2", "The second rescaling in (2)", "B", colour)
+        col.step("3", "The second rescaling in (2)", "B", colour)
         col.gloss(r"$\tilde{H}_k$ and $\tilde{s}_k$ are already on $[0,1]$, so $u_k(w)$ "
                   r"is too — but only in the sense that it cannot leave the interval. Its "
                   r"own range is narrower, because the two terms peak at different cuts "
@@ -1199,7 +1199,7 @@ def plot_intermediate(
                  colour=colour)
 
     def note_weight(col: _Column) -> None:
-        col.step("3", r"Admissible range of $w$", "C", colour)
+        col.step("4", r"Admissible range of $w$", "C", colour)
         col.lead("Nothing in the data fixes $w$, so the honest thing is to say what "
                 "bounds it rather than to fit it.")
         col.formula(r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$")
@@ -1214,11 +1214,12 @@ def plot_intermediate(
                   f"does not turn on the weight; it does not make ½ optimal.")
 
     def note_significance(col: _Column) -> None:
-        col.step("4", r"Role of $P_k$", "A", "#B35806")
-        col.gloss(f"De-biasing removes what sampling gives on average; it does not say "
-                 f"the remainder is anything. Hotelling's exact $F$ test does, and "
-                 f"{int(sig.sum())} of {len(pval)} cuts separate at $P<0.05$ — which is "
-                 f"what makes this axis a phenomenon rather than noise.", gap=14.0)
+        col.step("2", r"Is it real? The role of $P_k$", "A", "#B35806")
+        col.gloss(f"Subtracting that floor does not say the remainder is anything. "
+                  f"Hotelling's exact $F$ test does, and {int(sig.sum())} of {len(pval)} "
+                  f"cuts separate at $P<0.05$ — which is what makes this axis a "
+                  f"phenomenon rather than noise, and worth selecting against at all.",
+                  gap=14.0)
         col.gloss("It is reported everywhere and selected on nowhere. Choosing the cut "
                  "with the largest $P$ would be choosing the set that best hides a real "
                  "difference between the arms, which is the opposite of what a cohort "
@@ -1241,17 +1242,17 @@ def plot_intermediate(
                    rf"distance {dist_min:.4f}", colour)
 
     fig, (ax_o, ax_g, ax_w) = _frame(
-        rule, (note_second_axis, note_rescaling, note_weight, note_significance),
-        (("A", "the two inputs to (2), and the blend they make",
+        rule, (note_second_axis, note_significance, note_rescaling, note_weight),
+        (("A", "one axis has a rate, one has none — so (2)",
           f"$\\tilde{{s}}_k$ from (1) reverses {reversals}×, so it cannot be priced "
           f"— but it is real: filled markers are the {int(sig.sum())} cuts "
           f"separating at $P<0.05$. $\\tilde{{u}}_k$ is their blend at $w$ = ½."),
          ("B", r"the plane (3) minimises over",
           rf"Every cut placed by structure and power; the dashed segment is the "
           rf"distance (3) makes smallest. Inset: all 17 scored."),
-         ("C", rf"$k^{{*}}$ unchanged across $w \in [{lo:.2f},\ {hi:.2f}]$",
-          r"The answer over the whole sweep of $w$. Shaded: where labels would "
-          r"outweigh genotypes.")),
+         ("C", rf"(3) gives the same cut across $w \in [{lo:.2f},\ {hi:.2f}]$",
+          r"(3) re-run at every $w$ in (2). Shaded: below ½ the labels would "
+          r"outweigh the genotypes.")),
         note=(r"$\hat{D}^2_k$ centroid gap, pooled-scatter units  ·  $d$ axes, "
               r"$N_{\mathrm{case}}, N_{\mathrm{ctrl}}$ samples  ·  $s_k$ the gap less "
               r"its sampling floor  ·  a tilde is that quantity min-max scaled to "
@@ -1308,9 +1309,9 @@ def plot_intermediate(
               linewidth=2.2, zorder=5)
     ax_g.plot([0.0], [1.0], "*", color=colour, markersize=26.0, zorder=6,
               markeredgecolor="white", markeredgewidth=1.6)
-    ax_g.annotate("the unattainable\ncorner $(0,\\,1)$", xy=(0.0, 1.0),
-                  xytext=(14, -10), textcoords="offset points",
-                  fontsize=_MAIN["annot"], color=colour, ha="left", va="top",
+    ax_g.annotate("unattainable $(0,\\,1)$", xy=(0.0, 1.0),
+                  xytext=(15, 7), textcoords="offset points",
+                  fontsize=_MAIN["annot"], color=colour, ha="left", va="bottom",
                   zorder=7)
     ax_g.plot([blended[runner]], [y[runner]], "o", color="white", markersize=11.0,
               markeredgecolor=_GR, markeredgewidth=1.8, zorder=6)
