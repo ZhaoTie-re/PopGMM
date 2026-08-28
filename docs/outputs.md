@@ -121,51 +121,20 @@ region rather than jumping elsewhere.
 Four figures and three tables. The figures are numbered in reading order and
 answer one question each.
 
-**Each figure is in two bands, and the lower one is meant to be cropped away.**
-Above a labelled rule: the governing equations — **numbered `(1)`, `(2)`, …
-per figure** so captions and prose can cite them — the answer they reach, the
-evidence panels in a row, and one caption per panel. Everything needed for the
-figure to stand on its own in a talk. Below it, under the heading *Methodological
-notes*, the basis for each of those choices.
+Each figure is one band: the numbered equations and the cut they reach, a line
+of symbol definitions, the evidence panels in a row, and a caption under each.
+Nothing needs cropping — the whole figure is the presentable part.
 
-Each thing is said in exactly one place. Symbols are defined once, in the line
-under the equations; what an equation computes is said once, by the equation;
-why it is that equation and not another is said once, below the crop line. A
-symbol table used to sit at the foot repeating all three, and the figures said
-"the corner (0,1)" twelve times between them.
-
-**The rule is at the same place on all four**, so one crop setting serves the
-set — at the 600 dpi these are written, **cut at row 5886** (±1 px from
-`bbox_inches="tight"`), i.e. 10.34 in from the top. The cropped band is roughly
-1.9:1. `scripts.plotting.rank._crop_offset(dpi)` returns that offset for any dpi.
-
-Below the rule the justifications are packed into columns whose widths follow
-their content, so the columns end at about the same depth rather than the band
-being sized to the longest and the rest left blank. Topics stay whole and stay in
-order: a column may hold two of them, but none is broken across a gutter.
-
-The detail is deliberately uneven. Textbook steps — equating two variances for
-$N_{eff}$, the pooled $S$ and Mahalanobis $\hat D^2$, Hotelling's $T^2$, min-max
-scaling — get the equation and a clause. The steps a reviewer would question get
-a column each: why $d = 4$ mainland axes rather than global PC1–PC2, why (2)
-rescales twice, why $w = \tfrac12$ is a floor rather than a fitted value, and
-why $P_k$ is reported and never selected on.
+There used to be a second band below a crop rule carrying the argument for each
+choice. It grew to two thirds of the text on these figures — 1,352 words of
+prose set as pictures — and it is now the *Methodological notes* below, where
+prose belongs. The figures went from 2,130 words to 842 and from ~15 in tall to
+10–13 in.
 
 Notation follows the slide deck these figures sit in: `p` for allele frequency,
 `N_case` / `N_ctrl` / `N_tot` / `N_eff` for the counts, `H` for residual spread.
 **A tilde always means "min-max scaled to [0,1]"** — `H̃_k`, `Ñ_k`, `s̃_k` — and
-the blend of two of them keeps its own letter, `u_k(w)` rescaled to `ũ_k`. That
-convention replaced three: `H_k` rescaled used to be `x_k`, `N_eff,k` used to be
-`y_k`, and `H̃_k` used to name the blend, so `H_k`, `x_k` and `H̃_k` read as one
-quantity rescaled twice when only the first two were related.
-Two symbols the deck already spends are kept free — the walk's exchange rate is
-`γ`, not `r`, and the separation p-value is `P`, not `p`. The cut index is a
-subscript throughout (`N_eff,k`, `H_k`, `E_k`, `s_k`, `P_k`), because every one
-of these figures is a walk over `k`.
-
-Each figure carries one line of symbol definitions **above** the crop line,
-scoped to exactly the symbols its own formulas use, so a cropped figure is
-self-contained; the standalone explanations stay in the band below.
+the blend of two of them keeps its own letter, `u_k(w)` rescaled to `ũ_k`.
 
 Every equation is presented the same way — a clause setting it up, the equation,
 then a gloss reading the result off it. Headings are noun phrases, not questions:
@@ -178,8 +147,8 @@ at a size meant to be read across a room rather than at a desk.
 |---|---|
 | `00_problem.png` | What has to be decided (A), what the case/control imbalance costs (B), and the two quantities rising together (C) |
 | `01_narrow.png` | The first cut: the walk with its average rate drawn as a chord (A), and $E_k$ — the gap between them — peaking at $k$ = 9 (B) |
-| `02_intermediate.png` | The obstacle (A), the $(\tilde H_k, y_k)$ plane that (3) minimises over (B), and the weight sweep (C); four justification columns below the crop rule |
-| `03_cohorts.png` | The three criteria on one axis with their answers (A), why you would pick each one (B), and what each delivers (C) |
+| `02_intermediate.png` | The two inputs to (2) and the blend they make (A), the plane (3) minimises over (B), and the weight sweep (C) |
+| `03_cohorts.png` | The three criteria on one axis with their answers (A), where those answers land on the trade-off (B), why you would pick each one (C), and what each delivers (D) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number the figures draw |
@@ -265,6 +234,86 @@ The second rescaling in step 3 is not cosmetic: without it the recorded distance
 read from `cut_record.tsv` rather than recomputed, so figures and tables cannot
 disagree. Nothing downstream reads any file here — the subcluster stage consumes
 the resolved cuts in memory.
+
+#### Methodological notes
+
+These were carried on the figures themselves until they grew to two thirds of
+the text on them. They are the argument for each choice, and prose belongs here.
+
+**Basis and dimension of $H$.** $H$ could be measured on the global PCA's
+leading pair, and earlier versions of this analysis were; it is measured instead
+on 4 axes of a PCA fitted to the major cluster, and the choice changes which cut
+wins. The global PC1–PC2 are dominated by the split between the major cluster
+and everything outside it, so inside the cluster — which is all these cuts ever
+contain — that pair carries little of the remaining structure and spread on it is
+close to flat along the walk. A basis fitted to the cluster puts the residual
+structure on its own leading axes, and 4 of them rather than 2 because the pair
+alone leaves visible structure on the next two. The $1/2d$ exponent keeps the
+result in SD units at any $d$. Two values of $H$ are comparable only when they
+share a basis *and* a $d$; everything in this stage shares both.
+
+**Effective size against head-count.** The walk adds cases and controls at very
+different rates, so raw totals would credit a cut for samples that add almost
+nothing to power. At the widest cut that is the difference between 3,101 samples
+and 1,507 effective ones.
+
+**End-to-end pricing.** $\gamma$ takes a single rate from the two ends of the
+walk and $E_k$ scores every cut against it. The alternative — pricing each step
+against its predecessor — asks a different question and gets a different answer:
+a per-step rate is not monotone here, it crosses the average repeatedly, so "the
+last step that paid above the average" lands on a late cut for no reason beyond
+where the noise in one step fell. The cumulative form asks whether the walk up to
+that cut has repaid what it took on, which is a property of the retained set
+rather than of the component that entered last.
+
+**Interpretation of the margin.** The peak leads the runner-up by 3.1 effective
+samples out of 525.1, so neighbouring cuts price about the same. That supports
+the reading that any cut in the neighbourhood is defensible on this criterion; it
+does not support treating the peak as sharp, which is why `01` panel B scores
+every cut rather than marking the winner alone. The margin is reported, never
+optimised.
+
+**The second axis, and whether it is real.** Spread says how wide the retained
+set is, not whether the two arms sit at different places inside it — and only
+that biases an association test, so a set can be homogeneous and still be the
+wrong one to run on. The sampling floor $d(1/N_{case}+1/N_{ctrl})$ matters at
+this scale: the retained set grows more than tenfold along the walk, so a raw
+$\hat{D}^2$ would fall across it for arithmetic reasons alone. Subtracting the
+floor does not say the remainder is anything; Hotelling's exact $F$ test does,
+and 12 of 17 cuts separate at $P<0.05$, which is what makes this axis a
+phenomenon rather than noise. $s_k$ also reverses direction 7 times, which is why
+the pricing argument of the first cut cannot be repeated on it.
+
+**Why (2) rescales twice.** $\tilde H_k$ and $\tilde s_k$ are already on $[0,1]$,
+so $u_k(w)$ cannot leave the interval — but its own range is narrower, because
+the two terms peak at different cuts and their average never reaches either end.
+$k^{*}$ then measures a distance in a unit square; left unrescaled one of its two
+axes would span a fraction of that square and the other all of it, so the
+vertical and horizontal parts of the same distance would not be in the same
+units. This is not cosmetic: without the second rescale the minimum is 0.3446
+rather than 0.3596 and does not fall at the same cut. It is the step most likely
+to be dropped by someone reimplementing this from the formulas.
+
+**Admissible range of $w$.** Nothing in the data fixes $w$, so the honest thing
+is to bound it rather than fit it: $w \geq \frac12 \iff w \geq 1-w$. Below ½ the
+term built from case/control labels outweighs the one built from genotypes, and
+minimising that is optimising the very thing the association test is meant to
+measure. ½ is where that stops being true, not a tuned value. The answer holds on
+$w \in [0.37, 0.71]$, so ½ sits inside a plateau; the plateau supports the claim
+that the cut does not turn on the weight, and does not make ½ optimal.
+
+**Three cohorts rather than one.** A single cohort would need one worry to
+dominate; three different things can, so three sets are delivered and the reason
+for each is stated on `03`. They are nested, so this is a choice of where to stop
+along one walk rather than between three lists.
+
+**Role of $P_k$.** It is Hotelling's exact $F$ test on the case/control centroid
+gap inside the retained set — reported everywhere, selected on nowhere. Choosing
+the cut with the largest $P$ would be choosing the set that best hides a real
+difference between the arms, which is the opposite of what a cohort is for. Of
+the three, `intermediate` is the only one where the gap is not detectable and
+`narrow` sits at the strongest separation in the walk; both are consequences of
+where the cuts fell, not reasons they fell there.
 
 ### `04_subcluster_variants/<variant>/` [7]
 
