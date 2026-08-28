@@ -4598,14 +4598,14 @@
       ]
     },
     "03_rank_selection/02_intermediate.png": {
-      "bytes": 5131363,
+      "bytes": 5101898,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 245.97492110804436,
-      "sha256": "8e3416f4e4bb47f050eab2254322dc7240c976b199c9f48e3d52373e63822887",
+      "pixel_mean": 245.8767124482726,
+      "sha256": "4daf5b363e1a7972006319086b909ac36a9d69c5c00058b207dfb888d28e1e51",
       "size": [
         11211,
-        9294
+        9197
       ]
     },
     "03_rank_selection/03_cohorts.png": {
