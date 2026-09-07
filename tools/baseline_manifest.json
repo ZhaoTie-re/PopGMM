@@ -4576,14 +4576,14 @@
       ]
     },
     "03_rank_selection/00_cohorts.png": {
-      "bytes": 1235724,
+      "bytes": 1641327,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 246.6407318880059,
-      "sha256": "c451125699d12bdccfd90a45f462371197a684a5faae1aa72c7df8f91c713a59",
+      "pixel_mean": 248.26341101227888,
+      "sha256": "d11c645f3de72ae0bd8814268e3759b90f208de0e0b9c65584c604c40e32c449",
       "size": [
-        10902,
-        4368
+        12286,
+        4902
       ]
     },
     "03_rank_selection/component_ranking.tsv": {
