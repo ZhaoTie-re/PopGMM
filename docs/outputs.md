@@ -118,87 +118,35 @@ region rather than jumping elsewhere.
 
 ### `03_rank_selection/` [4]
 
-One figure and three tables. The figure answers the only question a reader of
-this stage has to act on — **which cohort to run on** — and nothing else.
+One figure and three tables. `00_cohorts.png` is the whole argument for the
+three cohorts, read left to right in four steps joined by arrows:
 
-`00_cohorts.png` is the walk of cumulative cuts drawn as a trade-off curve, with
-the three delivered cohorts marked on it, beside one card per cohort: what it is
-for, and what it contains. 105 words, 18 × 8 in.
+1. **one walk, two quantities** — the major cluster's 17 components ordered by
+   case/control ratio, cut `k` keeping the top `k`. Effective sample size and
+   residual spread both rise along it, so a stop has to be chosen.
+2. **price the walk** — the walk has one average exchange rate `γ`, and `E_k`
+   scores each cut against it. Its peak is `narrow`, `k` = 9.
+3. **a second kind of structure** — the case/control centroid gap `s_k` has no
+   rate to price against, so it is blended with spread and the cut nearest the
+   ideal corner is taken. That is `intermediate`, `k` = 12.
+4. **three cohorts** — what each one is for, and what it contains.
 
-It was four figures once — the problem, each selected cut, and the cohorts —
-carrying 842 words of derivation between them, and before that 2,130. Every
-round of making that derivation more rigorous made the thing harder to read.
-The derivation is not lost, it is just not on the figure: the argument for every
-choice is under *Methodological notes* below, `rank_decision_table.tsv` carries
-every number at every `k`, and `cut_record.tsv` carries the operator, the value
-and the automatic/manual agreement behind each cut.
+Each step is a heading, a small plot, the equations that plot draws, and the
+answer they reach. The equations are on the figure because they are the
+reasoning; a picture that asserted three numbers without them would not be an
+argument. The figure fails to build if either criterion drawn on it peaks
+somewhere other than the cut `cut_record.tsv` records, and if any equation runs
+out of its own column.
 
 | File | Contents |
 |---|---|
-| `00_cohorts.png` | The three cohorts on the trade-off they were chosen along (A), and when to use each (B) |
+| `00_cohorts.png` | How the three cohorts were chosen, in four steps |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number at every `k` |
 
-The argument runs across the four in order:
-
-1. The major cluster has $K = 17$ components. Order them by case/control ratio;
-   cut $k$ keeps the top $k$. Along that walk
-   $N_{eff} = 4N_{case}N_{ctrl}/(N_{case}+N_{ctrl}) = N_{tot}\cdot 4r/(1+r)^2$ rises — the allele frequency cancels, so an
-   unbalanced set is worth less than its raw total — and so does
-   $H_k = |\Sigma_k|^{1/2d} = (\prod\sqrt{\lambda_i})^{1/d}$ with $d = 4$.
-2. Because both rise, the walk has one average exchange rate
-   $\gamma = (N_{eff,K}-N_{eff,1})/(H_K-H_1) = 381{,}519$, and each cut can be
-   scored by $E_k = (N_{eff,k}-N_{eff,1}) - \gamma(H_k-H_1)$ — its surplus in
-   effective samples over paying that price. **`narrow` $= \arg\max_k E_k = 9$.**
-   Panel A draws the walk and that rate as a straight chord across it, so $E_k$
-   is visible as the vertical gap between the two rather than asserted.
-3. Case/control centroid distance
-   $s_k = \hat{D}^2_k - d(1/N_{case}+1/N_{ctrl})$ reverses direction **7 times**, so it has
-   no rate and step 2 cannot be repeated on it. The two axes are blended
-   instead — $u_k(w) = wx_k + (1-w)\tilde{s}_k$, rescaled to $\tilde{H}_k$, then
-   $k^{*}(w) = \arg\min_k\sqrt{\tilde{H}_k^2+(1-y_k)^2}$ — at
-   $w = \tfrac{1}{2}$, which is the boundary of $w \geq 1-w$: below it the term
-   built from phenotype labels would outweigh the one built from genotypes.
-   **`intermediate` $= 12$**, at distance 0.3596 from the corner — 21% clear of
-   the runner-up ($k = 15$, 0.4346), with nothing else within 10% — and stable
-   across $w \in [0.37, 0.71]$.
-
-4. **`full`** is every major-cluster component — no rule; the population the
-   other two are chosen inside.
-
-Three are delivered rather than one because three different things can be the
-dominant worry, and `00_cohorts.png` states that per card rather than restating
-the rule that located each cut. Pick `narrow` when residual stratification is
-the main worry: it buys the most homogeneity the walk offers before extra
-components stop repaying their spread. Pick `intermediate` when both worries
-apply at once: it is the only one of the three whose case/control gap is not
-detectable, at 94% of `full`'s power. Pick `full` when power is the main worry
-or a reference is wanted: nothing is selected, so nothing can have been selected
-wrongly. The three are nested — `narrow` $\subset$ `intermediate` $\subset$
-`full` — so this is a choice of where to stop, not of which list.
-
-Significance is reported throughout and optimised against nowhere. The de-biasing
-removes what sampling contributes on average; it does not say whether what is
-left is real, and Hotelling's exact $F$ test does — 12 of the 17 cuts separate
-significantly, which is what makes the second axis a phenomenon rather than
-noise. Of the three delivered cohorts, **`intermediate` is the only one where
-the gap is not detectable** ($P = 0.15$, against $3.9\times10^{-8}$ for `narrow`
-and $0.0035$ for `full`); `narrow` sits at the strongest separation in the whole
-walk. Neither fact selected a cut — both are properties of the deliverable,
-reported in `cut_record.tsv` and `rank_decision_table.tsv`.
-
-One thing to reconcile in the deck rather than here: its trade-off slide computes
-`H` as `RGV_Global` on PC1–PC2 (`d = 2`), while the cut is selected on
-`RGV_Mainland` with `mainland_rgv_n_pcs = 4`. Its k = 9 counts are 411 / 1,782 /
-2,193 against the 419 / 1,776 / 2,195 here, so that slide predates this run. The
-formula is the same either way — `det(Σ)^(1/2d)` — only `d` differs.
-
-The second rescaling in step 3 is not cosmetic: without it the recorded distance
-0.3596 is not reproducible (you get 0.3446). Derived values on the figures are
-read from `cut_record.tsv` rather than recomputed, so figures and tables cannot
-disagree. Nothing downstream reads any file here — the subcluster stage consumes
-the resolved cuts in memory.
+The notes below are the reviewer's layer: what each choice rules out, and the
+alternatives it was taken against. None of it is needed to read the figure.
 
 #### Methodological notes
 
