@@ -48,9 +48,6 @@ import pandas as pd
 
 from scripts.plotting.rank import (
     plot_cohorts,
-    plot_intermediate,
-    plot_narrow,
-    plot_problem,
 )
 from scripts.plotting.style import THEME_RANK, figure_context, save_figure
 from scripts.common import gwas_neff as _gwas_neff
@@ -109,10 +106,7 @@ class RankSelectionConfig:
     output_dir: str | Path = "results/03_rank_selection"
     # Two numbered figures, in reading order; tables carry descriptive names
     # because they are reference rather than steps of the argument.
-    problem_figure_file: str = "00_problem.png"
-    narrow_figure_file: str = "01_narrow.png"
-    intermediate_figure_file: str = "02_intermediate.png"
-    cohorts_figure_file: str = "03_cohorts.png"
+    cohorts_figure_file: str = "00_cohorts.png"
     rank_table_file: str = "component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
 
@@ -903,24 +897,11 @@ def run_rank_selection(
             case_label=str(config.case_label),
             control_label=str(config.control_label),
         )
-        # One figure per question, in reading order.
+        # One figure: which cohort to use. The derivation behind each k is in
+        # cut_record.tsv, rank_decision_table.tsv and docs/outputs.md.
         builders = (
-            (config.problem_figure_file, lambda: plot_problem(
-                rank_table=rank_table, mainland_axes=mainland_axes,
-                basis=str(config.rgv_basis),
-                **{k: v for k, v in shared.items() if k != "cut_selection"})),
-            (config.narrow_figure_file, lambda: plot_narrow(
-                rank_cuts=rank_cuts,
-                **{k: v for k, v in shared.items()
-                   if k not in ("case_label", "control_label")})),
-            (config.intermediate_figure_file, lambda: plot_intermediate(
-                objective_spaces=objective_spaces, mainland_axes=mainland_axes,
-                weight_grid=w_grid, weight_winner=w_winner,
-                blend_weight=float(config.blend_weight), **shared)),
             (config.cohorts_figure_file, lambda: plot_cohorts(
                 rank_table=rank_table, rank_cuts=rank_cuts,
-                objective_spaces=objective_spaces,
-                blend_weight=float(config.blend_weight),
                 mode=str(config.rank_cut_mode), **shared)),
         )
         with figure_context(THEME_RANK):

@@ -116,55 +116,29 @@ region rather than jumping elsewhere.
 | `pc_space_<basis>/all_pcs_kde.{png,log}` | Case/control densities on every PC |
 | `pc_space_<basis>/all_pcs_kde_tests.tsv` | Welch $t$ and Mann-Whitney per PC, BH-adjusted |
 
-### `03_rank_selection/` [6]
+### `03_rank_selection/` [4]
 
-Four figures and three tables. The figures are numbered in reading order and
-answer one question each.
+One figure and three tables. The figure answers the only question a reader of
+this stage has to act on — **which cohort to run on** — and nothing else.
 
-Each figure is one band: the numbered equations and the cut they reach, a line
-of symbol definitions, the evidence panels in a row, and a caption under each.
-Nothing needs cropping — the whole figure is the presentable part.
+`00_cohorts.png` is the walk of cumulative cuts drawn as a trade-off curve, with
+the three delivered cohorts marked on it, beside one card per cohort: what it is
+for, and what it contains. 105 words, 18 × 8 in.
 
-There used to be a second band below a crop rule carrying the argument for each
-choice. It grew to two thirds of the text on these figures — 1,352 words of
-prose set as pictures — and it is now the *Methodological notes* below, where
-prose belongs. The figures went from 2,130 words to 842 and from ~15 in tall to
-10–13 in.
-
-Notation follows the slide deck these figures sit in: `p` for allele frequency,
-`N_case` / `N_ctrl` / `N_tot` / `N_eff` for the counts, `H` for residual spread.
-**A tilde always means "min-max scaled to [0,1]"** — `H̃_k`, `Ñ_k`, `s̃_k` — and
-the blend of two of them keeps its own letter, `u_k(w)` rescaled to `ũ_k`.
-
-Every equation is presented the same way — a clause setting it up, the equation,
-then a gloss reading the result off it. Headings are noun phrases, not questions:
-*Basis and dimension of H*, *The second rescaling in (2)*, *Admissible range of
-w*, *Role of P_k*. No figure declares a canvas size: each is measured
-from its own content and made exactly that tall, and the presented band is set
-at a size meant to be read across a room rather than at a desk.
+It was four figures once — the problem, each selected cut, and the cohorts —
+carrying 842 words of derivation between them, and before that 2,130. Every
+round of making that derivation more rigorous made the thing harder to read.
+The derivation is not lost, it is just not on the figure: the argument for every
+choice is under *Methodological notes* below, `rank_decision_table.tsv` carries
+every number at every `k`, and `cut_record.tsv` carries the operator, the value
+and the automatic/manual agreement behind each cut.
 
 | File | Contents |
 |---|---|
-| `00_problem.png` | What has to be decided (A), what the case/control imbalance costs (B), and the two quantities rising together (C) |
-| `01_narrow.png` | The first cut: the walk with its average rate drawn as a chord (A), and $E_k$ — the gap between them — peaking at $k$ = 9 (B) |
-| `02_intermediate.png` | The two inputs to (2) and the blend they make (A), the plane (3) minimises over (B), and the weight sweep (C) |
-| `03_cohorts.png` | The three criteria on one axis with their answers (A), where those answers land on the trade-off (B), why you would pick each one (C), and what each delivers (D) |
+| `00_cohorts.png` | The three cohorts on the trade-off they were chosen along (A), and when to use each (B) |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
-| `rank_decision_table.tsv` | Every number the figures draw |
-
-**`03` panel A is where the three criteria meet.** Both selection rules are
-drawn over the same `k` and mapped so that higher is better, so each peaks at
-its own answer — `max E_k` at 9, `min` distance at 12 — while `full` is a dashed
-rule at 17 labelled *taken whole — not an optimum*. Two of the three are
-optimisations and the third is a definition; drawing all three as curves would
-have implied otherwise. The figure asserts at build time that each drawn curve
-peaks at the cut `cut_record.tsv` records.
-
-Every numbered equation is named by a panel, so no equation is asserted without
-being shown: `00` (1) is the shaded gap between raw head-count and effective
-size, `00` (2) and (1) rise together in C, `02` (2) is the blend drawn over its
-two inputs in A.
+| `rank_decision_table.tsv` | Every number at every `k` |
 
 The argument runs across the four in order:
 
@@ -190,20 +164,11 @@ The argument runs across the four in order:
    the runner-up ($k = 15$, 0.4346), with nothing else within 10% — and stable
    across $w \in [0.37, 0.71]$.
 
-   Panel B plots that distance for *every* cut rather than only the winner, so
-   "nearest" can be checked rather than taken on faith; the scatter that shows
-   what the distance is geometrically sits as an inset. It mirrors how
-   `01_narrow.png` shows $E_k$ peaking.
-
-   The selection rule is the proximity to the corner, not the weight. `02`
-   draws all three in that order — the obstacle, then the rule, then the
-   weight's robustness — because with only the first and last drawn it read as
-   though $w$ were the criterion.
 4. **`full`** is every major-cluster component — no rule; the population the
    other two are chosen inside.
 
 Three are delivered rather than one because three different things can be the
-dominant worry, and `03_cohorts.png` states that per row rather than restating
+dominant worry, and `00_cohorts.png` states that per card rather than restating
 the rule that located each cut. Pick `narrow` when residual stratification is
 the main worry: it buys the most homogeneity the walk offers before extra
 components stop repaying their spread. Pick `intermediate` when both worries
@@ -221,7 +186,7 @@ noise. Of the three delivered cohorts, **`intermediate` is the only one where
 the gap is not detectable** ($P = 0.15$, against $3.9\times10^{-8}$ for `narrow`
 and $0.0035$ for `full`); `narrow` sits at the strongest separation in the whole
 walk. Neither fact selected a cut — both are properties of the deliverable,
-reported in `03_cohorts.png`.
+reported in `cut_record.tsv` and `rank_decision_table.tsv`.
 
 One thing to reconcile in the deck rather than here: its trade-off slide computes
 `H` as `RGV_Global` on PC1–PC2 (`d = 2`), while the cut is selected on
@@ -269,8 +234,8 @@ rather than of the component that entered last.
 **Interpretation of the margin.** The peak leads the runner-up by 3.1 effective
 samples out of 525.1, so neighbouring cuts price about the same. That supports
 the reading that any cut in the neighbourhood is defensible on this criterion; it
-does not support treating the peak as sharp, which is why `01` panel B scores
-every cut rather than marking the winner alone. The margin is reported, never
+does not support treating the peak as sharp: `rank_decision_table.tsv` carries
+$E_k$ at every cut, not only at the winner. The margin is reported, never
 optimised.
 
 **The second axis, and whether it is real.** Spread says how wide the retained
