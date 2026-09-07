@@ -60,3 +60,6 @@ results/**/cohort_posterior_probabilities.tsv
 results/**/subcluster_posterior_probabilities.tsv
 # Historical names for the same tables, kept so an old branch cannot reintroduce them.
 results/**/our_posterior_probabilities_*.tsv
+
+# Local scratch: ad-hoc scripts and figures, never part of a run.
+tmp/
