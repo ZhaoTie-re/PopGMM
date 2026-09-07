@@ -116,37 +116,31 @@ region rather than jumping elsewhere.
 | `pc_space_<basis>/all_pcs_kde.{png,log}` | Case/control densities on every PC |
 | `pc_space_<basis>/all_pcs_kde_tests.tsv` | Welch $t$ and Mann-Whitney per PC, BH-adjusted |
 
-### `03_rank_selection/` [4]
+### `03_rank_selection/` [6]
 
-One figure and three tables. `00_cohorts.png` is the whole argument for the
-three cohorts, read left to right in four steps joined by arrows:
-
-1. **one walk, two quantities** — the major cluster's 17 components ordered by
-   case/control ratio, cut `k` keeping the top `k`. Effective sample size and
-   residual spread both rise along it, so a stop has to be chosen.
-2. **price the walk** — the walk has one average exchange rate `γ`, and `E_k`
-   scores each cut against it. Its peak is `narrow`, `k` = 9.
-3. **a second kind of structure** — the case/control centroid gap `s_k` has no
-   rate to price against, so it is blended with spread and the cut nearest the
-   ideal corner is taken. That is `intermediate`, `k` = 12.
-4. **three cohorts** — what each one is for, and what it contains.
-
-Each step is a heading, a small plot, the equations that plot draws, and the
-answer they reach. The equations are on the figure because they are the
-reasoning; a picture that asserted three numbers without them would not be an
-argument. The figure fails to build if either criterion drawn on it peaks
-somewhere other than the cut `cut_record.tsv` records, and if any equation runs
-out of its own column.
+Three figures and three tables. The argument is in three parts, so it is in
+three figures, and all three are laid out by the same row framework — a row of
+cells, each a heading, a small plot, the equations that plot draws, and the
+answer they reach, joined left to right by arrows. An earlier version had four
+figures with four different layouts and the reader had to assemble the line
+through them; here the line *is* the layout.
 
 | File | Contents |
 |---|---|
-| `00_cohorts.png` | How the three cohorts were chosen, in four steps |
+| `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual stratification `H`, and the case/control shift `s_k` |
+| `01_tradeoff.png` | How they are traded off: one average rate prices power against `H` and fixes `narrow`; `s_k` reverses so it has no rate, which is why it is blended instead and fixes `intermediate`; and the weight does not decide the answer |
+| `02_cohorts.png` | The three cohorts, where they stop on the trade-off, and when to use each |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number at every `k` |
 
-The notes below are the reviewer's layer: what each choice rules out, and the
-alternatives it was taken against. None of it is needed to read the figure.
+The equations are on the figures because they are the reasoning. Two things
+fail the build rather than producing a wrong figure: either criterion drawn on
+`01` peaking somewhere other than the cut `cut_record.tsv` records, and any
+equation or answer running out of its own column.
+
+The notes below are the reviewer's layer — what each choice rules out, and the
+alternatives it was taken against. None of it is needed to read the figures.
 
 #### Methodological notes
 

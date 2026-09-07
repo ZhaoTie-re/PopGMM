@@ -4575,15 +4575,37 @@
         10
       ]
     },
-    "03_rank_selection/00_cohorts.png": {
-      "bytes": 1641327,
+    "03_rank_selection/00_problem.png": {
+      "bytes": 1352892,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.26341101227888,
-      "sha256": "d11c645f3de72ae0bd8814268e3759b90f208de0e0b9c65584c604c40e32c449",
+      "pixel_mean": 249.39649528340684,
+      "sha256": "23810be0237bf26ccf4bac060282445f3df8f08ecdff647a8ed330dd6aed75d8",
       "size": [
-        12286,
-        4902
+        11197,
+        4806
+      ]
+    },
+    "03_rank_selection/01_tradeoff.png": {
+      "bytes": 1581604,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 248.84242483810152,
+      "sha256": "950beb558d74fa81c094e2c322eb522faf2b00421b338bc3a06bb1f246637537",
+      "size": [
+        11347,
+        5082
+      ]
+    },
+    "03_rank_selection/02_cohorts.png": {
+      "bytes": 1054773,
+      "kind": "png",
+      "mode": "RGBA",
+      "pixel_mean": 249.79172210172365,
+      "sha256": "9119396bd95ba0eaf7e14e7bab2440a8d49917d32d586d1426ffc8817d523789",
+      "size": [
+        11207,
+        4680
       ]
     },
     "03_rank_selection/component_ranking.tsv": {
