@@ -90,25 +90,29 @@ _SECTION = {
     "02_cohorts": "Three resolved cuts",
 }
 
-#: What distinguishes each cohort from the other two, and the rule that stopped
-#: the walk there. The two are separate lines on the card for a reason: P is
-#: reported at every cut and selected on at none, so it belongs with the
-#: profile and never with the criterion. An earlier version said only
-#: "both worries matter" of ``intermediate``, which is both vague and wrong --
-#: k = 12 is the one cut of the three whose arms do not separate, and it
-#: carries more effective samples than ``narrow`` as well.
+#: What separates the three cohorts is which of the three quantities their
+#: criterion weighs -- not what happens to fall out at the cut. ``narrow`` is
+#: ``_excess_return(ranks, neff, het)``: effective size against residual
+#: structure, and the case/control shift plays no part in it. ``intermediate``
+#: blends the shift in and takes the nearest cut, so it weighs all three.
+#: ``full`` is not an optimum of anything -- it is the population the other two
+#: are cut from.
 _WHEN = {
-    "narrow": "tightest spread; arms clearly separated",
-    "intermediate": "more power than narrow; arms not separated",
-    "full": "most power; widest spread — the reference",
+    "narrow": "balances sample size against residual structure",
+    "intermediate": "adds the case$-$control shift to that balance",
+    "full": "every mainland sample — not an optimum",
 }
 
-#: The rule that stopped the walk at that cut. Never mentions P.
-_STOPS = {
-    "narrow": r"stops at the peak of $E_k$",
-    "intermediate": r"stops nearest the ideal corner",
-    "full": "every component of the major cluster",
+#: The same statement as a row that can be read down the three cards: filled
+#: for a quantity the criterion weighs, hollow for one it does not.
+_WEIGHS = {
+    "narrow": (True, True, False),
+    "intermediate": (True, True, True),
+    "full": (False, False, False),
 }
+
+#: The quantities that row is over, in the order figure 1 of 3 introduces them.
+_QUANTITIES = (r"N_{\mathrm{eff}}", "H_k", "s_k")
 
 #: One type scale. Every ``fontsize=`` in this module reads from it; passing a
 #: bare number is how several different sizes once ended up on one figure.
@@ -591,7 +595,7 @@ def plot_problem(
         r"$N_{\mathrm{eff},k} = 4N_{\mathrm{case}}N_{\mathrm{ctrl}}"
         r"/N_{\mathrm{tot}}$").concludes(
         f"rises to {neff[-1]:,.0f} effective")
-    spread = _Cell("residual stratification").says(
+    spread = _Cell("residual structure").says(
         rf"$H_k = \left|\Sigma_k\right|^{{1/2d}},\; d = {d}$").concludes(
         "rises with $k$ too")
     shift = _Cell(f"{case_label}$-${control_label} shift", colour=_THIRD).says(
@@ -611,7 +615,7 @@ def plot_problem(
         (r"$N_{\mathrm{eff},k}$", "Effective sample size."),
         (r"$\Sigma_k,\;\lambda_i$",
          "Retained-set covariance and eigenvalues."),
-        ("$H_k$", "Root generalized variance."),
+        ("$H_k$", "Root generalized variance: residual structure."),
         (r"$S,\;\Delta\bar{x}$",
          "Pooled within-arm covariance; centroid gap."),
         (r"$\hat{D}^2_k = \Delta\bar{x}^{\mathsf{T}}S^{-1}\Delta\bar{x}$",
@@ -756,7 +760,8 @@ def plot_tradeoff(
     fig = _story_row(
         "01_tradeoff",
         "The trade-off — one rate prices two of them, and nothing prices the third",
-        f"Power and stratification move together and share one rate; the "
+        f"Power and residual structure move together and share one rate; "
+        f"the "
         f"{case_label}$-${control_label} shift reverses {flips} times and has "
         f"none. Hence two criteria, not one.",
         (price, blend, weight), notation, eq_lines=2)
@@ -875,7 +880,9 @@ def plot_cohorts(
     notation = [
         ("$k$", f"Cut index; the top $k$ of {int(rank.max())} components."),
         (r"$N_{\mathrm{eff},k}$", "Effective sample size."),
-        ("$H_k$", "Residual spread on 4 mainland axes."),
+        ("$H_k$", "Residual structure on the 4 mainland axes."),
+        ("$s_k$", "Case$-$control shift, sampling floor removed."),
+        (r"$\bullet$ / $\circ$", "Weighed by that criterion, or not."),
         (r"$\subset$", "Nesting of the three cohorts."),
         ("narrow", r"Stops at $\arg\max_k E_k$."),
         ("intermediate", r"Stops at $k^{*}$, nearest the ideal corner."),
@@ -888,8 +895,9 @@ def plot_cohorts(
 
     fig = _story_row(
         "02_cohorts", "The three cohorts",
-        "Two criteria stop the walk in two places; taking every component is "
-        f"the third. They are nested. Cuts resolved in mode: {mode}.",
+        "One population, two criteria, three quantities: effective sample "
+        "size, residual structure on the mainland axes, and the "
+        f"{case_label}$-${control_label} shift. Mode: {mode}.",
         (where, which), notation, eq_lines=0)
 
     # Three cohorts are three prefixes of one walk, so the walk is drawn in
@@ -915,7 +923,7 @@ def plot_cohorts(
                     textcoords="offset points", fontsize=_MAIN["annot"],
                     fontweight="bold", color=_EDGE[name], ha="center",
                     va="center", zorder=7)
-    ax.set_xlabel(r"residual spread $H_k$   $\rightarrow$",
+    ax.set_xlabel(r"residual structure $H_k$   $\rightarrow$",
                   fontsize=_MAIN["axis"], labelpad=3)
     ax.set_ylabel(r"$N_{\mathrm{eff},k}$   $\rightarrow$",
                   fontsize=_MAIN["axis"])
@@ -946,15 +954,18 @@ def plot_cohorts(
         ax.text(0.055, top - card_h * 0.41, _WHEN[name],
                 fontsize=_MAIN["card_when"], ha="left", va="top", color=_BK,
                 zorder=3)
-        ax.text(0.055, top - card_h * 0.60, _STOPS[name],
+        chips = "   ".join(
+            rf"${chr(92)}bullet{chr(92)},{q}$" if on else
+            rf"${chr(92)}circ{chr(92)},{q}$"
+            for q, on in zip(_QUANTITIES, _WEIGHS[name]))
+        ax.text(0.055, top - card_h * 0.60, f"weighs   {chips}",
                 fontsize=_MAIN["card_num"], ha="left", va="top", color=_GR,
-                fontstyle="italic", zorder=3)
+                zorder=3)
         ax.text(0.055, top - card_h * 0.78,
                 f"{val(name, f'{case_label}_Count'):,.0f}"
                 f" + {val(name, f'{control_label}_Count'):,.0f}"
                 f" = {val(name, 'Total_Count'):,.0f}"
-                f"  ·  eff. {val(name, 'GWAS_Neff'):,.0f}"
-                f"  ·  {_p_text(val(name, 'Mainland_CaseCtrl_P'))}",
+                f"  ·  eff. {val(name, 'GWAS_Neff'):,.0f}",
                 fontsize=_MAIN["card_num"], ha="left", va="top", color=_GR,
                 zorder=3)
 
