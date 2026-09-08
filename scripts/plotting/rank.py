@@ -84,6 +84,7 @@ _MAIN = {
     "suptitle": 26.0, "lead": 15.0, "step": 17.0, "axis": 13.5, "tick": 12.0,
     "annot": 13.5, "equation": 15.0, "answer": 15.5, "card_name": 17.0,
     "card_when": 13.5, "card_num": 13.0, "foot": 13.0,
+    "note_head": 14.0, "note_sym": 12.5, "note_gloss": 11.0,
 }
 
 #: Inches. Every length on this figure is one, so a change to one cannot
@@ -98,6 +99,16 @@ _EQ_IN = 1.66
 _ANSWER_IN = 0.52
 _FOOT_IN = 0.85
 _GUTTER_IN = 0.72
+
+#: The right-hand notation region, and the columns inside it. Every symbol a
+#: figure uses is defined once, on that figure -- an earlier version carried one
+#: general table repeated on all four pages, which is why it was deleted.
+_NOTE_W_IN = 3.60
+_NOTE_PAD_IN = 0.24
+_NOTE_SYM_IN = 0.98
+_NOTE_GAP_IN = 0.12
+_NOTE_LINE_IN = 0.175
+_NOTE_ENTRY_IN = 0.105
 
 #: The fourth step is three cards rather than a plot, and needs the width for
 #: them; the three plots share what is left.
@@ -144,6 +155,53 @@ def _wrap_to(fig: Figure, text: str, avail_in: float, size: float) -> str:
     return "\n".join(best)
 
 
+def _notation(fig: Figure, name: str, entries: "Sequence[tuple[str, str]]",
+              left_in: float, top: float, bottom: float) -> None:
+    """Define, once per figure, every symbol that figure uses.
+
+    A definition list in the reserved right-hand column: symbol, then one line
+    of plain words. No ranges and no values -- those are on the plots and in
+    ``rank_decision_table.tsv``, and repeating them here is what turned an
+    earlier symbol table into three pages of the same text.
+
+    Glosses are wrapped by measurement, and a column that would not hold its
+    own entries fails the build rather than running off the page.
+    """
+    width, height = fig.get_size_inches()
+    gloss_in = _NOTE_W_IN - _NOTE_PAD_IN - _NOTE_SYM_IN - _NOTE_GAP_IN
+    x_sym = (left_in + _NOTE_PAD_IN) / width
+    x_gloss = (left_in + _NOTE_PAD_IN + _NOTE_SYM_IN + _NOTE_GAP_IN) / width
+
+    fig.lines.append(plt.Line2D(
+        [(left_in - _GUTTER_IN * 0.42) / width] * 2, [bottom, top + 0.014],
+        transform=fig.transFigure, color=_HAIR, linewidth=1.1))
+    fig.text(x_sym, top, "Notation and definitions", fontsize=_MAIN["note_head"],
+             fontweight="bold", color=_BK, ha="left", va="bottom")
+
+    have_in = (top - bottom) * height
+    wrapped = [(sym, _wrap_to(fig, gloss, gloss_in, _MAIN["note_gloss"]))
+               for sym, gloss in entries]
+    need_in = sum(_NOTE_LINE_IN * (g.count("\n") + 1) + _NOTE_ENTRY_IN
+                  for _, g in wrapped)
+    if need_in > have_in:
+        raise AssertionError(
+            f"{name}: the notation column needs {need_in:.2f}in for "
+            f"{len(entries)} entries but has {have_in:.2f}in")
+
+    y = top - 0.34 / height
+    for sym, gloss in wrapped:
+        t = fig.text(x_sym, y, sym, fontsize=_MAIN["note_sym"], color=_BK,
+                     ha="left", va="top")
+        used = t.get_window_extent(renderer=fig.canvas.get_renderer())
+        if used.width / fig.dpi > _NOTE_SYM_IN:
+            raise AssertionError(
+                f"{name}: notation symbol {sym!r} is "
+                f"{used.width / fig.dpi:.2f}in in a {_NOTE_SYM_IN:.2f}in column")
+        fig.text(x_gloss, y, gloss, fontsize=_MAIN["note_gloss"], color=_GR,
+                 ha="left", va="top", linespacing=1.34)
+        y -= (_NOTE_LINE_IN * (gloss.count("\n") + 1) + _NOTE_ENTRY_IN) / height
+
+
 def _series_footer(fig: Figure, name: str, x0: float, y: float) -> None:
     """Stamp which of the three this is, so the three read as one argument."""
     names = [n for n, _ in FIGURE_SERIES]
@@ -185,6 +243,7 @@ def _story_row(
     title: str,
     lead: str,
     cells: "Sequence[_Cell]",
+    notation: "Sequence[tuple[str, str]]",
     *,
     plot_in: float = _PLOT_IN,
     eq_lines: int = 2,
@@ -197,10 +256,11 @@ def _story_row(
 
     Each cell is measured against its own column; an equation or an answer that
     would run into the next cell fails the build rather than being drawn over
-    its neighbour.
+    its neighbour. ``notation`` fills the reserved column on the right, one
+    ``(symbol, gloss)`` per row, and is held to the same rule.
     """
     width = FIGURE_SIZE[0]
-    inner = width - 2.0 * _SIDE_IN
+    inner = width - 2.0 * _SIDE_IN - _NOTE_W_IN - _GUTTER_IN
     n = len(cells)
     fixed = sum(c.width for c in cells if c.width is not None)
     flex = [c for c in cells if c.width is None]
@@ -208,8 +268,9 @@ def _story_row(
     widths = [c.width if c.width is not None else w_flex for c in cells]
 
     eq_in = 0.28 + 0.46 * eq_lines
+    lead_w = width - 2.0 * _SIDE_IN   # the lead runs over the notation column
     probe = plt.figure(figsize=(width, 3.0))
-    lead_lines = _wrap_to(probe, lead, inner, _MAIN["lead"]).count("\n") + 1
+    lead_lines = _wrap_to(probe, lead, lead_w, _MAIN["lead"]).count("\n") + 1
     plt.close(probe)
     lead_in = _LEAD_IN + 0.30 * (lead_lines - 1)
     height = (_TITLE_IN + lead_in + _STEP_IN + plot_in + _XLABEL_IN
@@ -236,9 +297,10 @@ def _story_row(
                              plot_in / height))
         if not c.plot:
             _note_axis(c.ax)
-        fig.text(lefts[i] / width, y_step, f"{i + 1} ·  {c.head}",
-                 fontsize=_MAIN["step"], fontweight="bold", ha="left",
-                 va="bottom", color=c.colour)
+        t = fig.text(lefts[i] / width, y_step, f"{i + 1} ·  {c.head}",
+                     fontsize=_MAIN["step"], fontweight="bold", ha="left",
+                     va="bottom", color=c.colour)
+        fits(t, i, "a heading")
         if i:
             _arrow(fig, (lefts[i] - _GUTTER_IN / 2.0) / width, y_step)
 
@@ -260,15 +322,22 @@ def _story_row(
     fig.suptitle(title, fontsize=_MAIN["suptitle"], fontweight="bold",
                  y=1.0 - 0.46 / height)
     fig.text(x0, 1.0 - (_TITLE_IN + 0.16) / height,
-             _wrap_to(fig, lead, inner, _MAIN["lead"]),
+             _wrap_to(fig, lead, lead_w, _MAIN["lead"]),
              fontsize=_MAIN["lead"], color=_GR, ha="left", va="top",
              linespacing=1.4)
+    _notation(fig, name, notation, _SIDE_IN + inner + _GUTTER_IN,
+              y_step, y_ans)
     _series_footer(fig, name, x0, 0.30 / height)
     fig._draw_story_text = draw_text  # type: ignore[attr-defined]
     return fig
 
 def _walk(decision_table: pd.DataFrame, rgv_column: str):
-    """The three quantities every figure here is about, in walk order."""
+    """The three quantities every figure here is about, in walk order.
+
+    Plus the two the third is built from: the raw squared distance and the
+    floor subtracted off it, which ``00_problem`` draws so the subtraction is
+    something the reader sees rather than something they are told.
+    """
     return (
         decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False),
         decision_table["GWAS_Neff"].to_numpy(dtype=float, copy=False),
@@ -276,6 +345,10 @@ def _walk(decision_table: pd.DataFrame, rgv_column: str):
         decision_table["Mainland_CaseCtrl_D2_Unbiased"].to_numpy(dtype=float,
                                                                 copy=False),
         decision_table["Mainland_CaseCtrl_P"].to_numpy(dtype=float, copy=False),
+        decision_table["Mainland_CaseCtrl_Mahalanobis"].to_numpy(
+            dtype=float, copy=False) ** 2,
+        decision_table["Mainland_CaseCtrl_Noise_Floor"].to_numpy(dtype=float,
+                                                                copy=False),
     )
 
 
@@ -309,7 +382,7 @@ def plot_problem(
     control_label: str = "Control",
 ) -> Figure:
     """1 of 3 — the problem, and the three quantities we watch along the walk."""
-    rank, neff, het, sep, pval = _walk(decision_table, rgv_column)
+    rank, neff, het, sep, pval, d2, floor = _walk(decision_table, rgv_column)
     n1 = decision_table[f"{case_label}_Count"].to_numpy(dtype=float, copy=False)
     n2 = decision_table[f"{control_label}_Count"].to_numpy(dtype=float, copy=False)
     d = len(mainland_axes)
@@ -318,17 +391,49 @@ def plot_problem(
 
     power = _Cell("statistical power").says(
         r"$N_{\mathrm{eff},k} = \dfrac{4\,N_{\mathrm{case}}N_{\mathrm{ctrl}}}"
-        r"{N_{\mathrm{case}} + N_{\mathrm{ctrl}}}$").concludes(
-        f"rises with $k$ — {n1[-1] + n2[-1]:,.0f} samples, "
-        f"{neff[-1]:,.0f} effective")
+        r"{N_{\mathrm{case}} + N_{\mathrm{ctrl}}}"
+        r" = N_{\mathrm{tot}}\dfrac{4r}{(1+r)^2}$",
+        r"$r = N_{\mathrm{case}}/N_{\mathrm{ctrl}}$").concludes(
+        f"rises with $k$ — {neff[-1]:,.0f} effective")
     spread = _Cell("residual stratification").says(
-        rf"$H_k = \left|\Sigma_k\right|^{{1/2d}}, \quad d = {d}$").concludes(
+        rf"$H_k = \left|\Sigma_k\right|^{{1/2d}}"
+        rf" = \left(\prod_i\lambda_i\right)^{{1/2d}}\!,\; d = {d}$").concludes(
         "rises with $k$ too")
-    shift = _Cell(f"{case_label}/{control_label} shift", colour=_THIRD).says(
-        r"$s_k = \hat{D}^2_k - d\left(\frac{1}{N_{\mathrm{case}}}"
-        r"+\frac{1}{N_{\mathrm{ctrl}}}\right)$").concludes(
-        f"reverses {flips}×; {int(sig.sum())} of {len(pval)} real",
+    shift = _Cell(f"{case_label}$-${control_label} shift", colour=_THIRD).says(
+        r"$\hat{D}^2_k = \Delta\bar{x}^{\mathsf{T}} S^{-1} \Delta\bar{x},"
+        r"\quad b_k = d\left(\frac{1}{N_{\mathrm{case}}}"
+        r"+\frac{1}{N_{\mathrm{ctrl}}}\right)$",
+        r"$\mathbb{E}\!\left[\hat{D}^2_k\right] = D^2_k + b_k"
+        r" \;\Rightarrow\; s_k = \hat{D}^2_k - b_k$",
+        r"$T^2 = \hat{D}^2_k\dfrac{N_{\mathrm{case}}N_{\mathrm{ctrl}}}"
+        r"{N_{\mathrm{tot}}}, \quad \nu = N_{\mathrm{tot}} - 2$",
+        r"$F = \dfrac{\nu-d+1}{d\,\nu}T^2 \sim F_{d,\,\nu-d+1}$",
+        r"$P_k = \Pr\!\left(F_{d,\,\nu-d+1} > F\right)$").concludes(
+        f"reverses {flips}×; {int(sig.sum())} of {len(pval)} at $P < 0.05$",
         _THIRD)
+
+    notation = [
+        ("$k$", f"the cut: components ranked by {case_label}/{control_label} "
+                f"ratio, cut $k$ keeps the top $k$"),
+        ("$d$", "mainland PCA axes carried along the walk"),
+        (r"$N_{\mathrm{case}},\,N_{\mathrm{ctrl}}$",
+         "samples in each arm at that cut"),
+        (r"$N_{\mathrm{tot}},\,r$", "the two arms together, and their ratio"),
+        (r"$N_{\mathrm{eff},k}$",
+         "effective size: the balanced study of equal power"),
+        (r"$\Sigma_k,\,\lambda_i$",
+         "covariance of the retained set, and its eigenvalues"),
+        ("$H_k$", "root generalized variance: the spread that survives"),
+        ("$S$", "within-arm covariance, pooled over the two arms"),
+        (r"$\Delta\bar{x}$",
+         f"{case_label} centroid minus {control_label} centroid"),
+        (r"$\hat{D}^2_k$", "squared gap between the arms, in units of $S$"),
+        ("$b_k$", "the gap sampling alone leaves when the arms are one people"),
+        ("$s_k$", "that gap with the floor taken off — the comparable one"),
+        (r"$T^2,\,\nu$",
+         "Hotelling's statistic and its degrees of freedom"),
+        ("$P_k$", "chance of a gap this large were the arms one people"),
+    ]
 
     fig = _story_row(
         "00_problem",
@@ -336,8 +441,11 @@ def plot_problem(
         f"The major cluster splits into {int(rank.max())} components. Order them "
         f"by {case_label}/{control_label} ratio and let cut $k$ keep the top $k$: "
         f"one nested set per $k$. Three quantities move along that walk, and no "
-        f"cut is best on all three.",
-        (power, spread, shift), eq_lines=2)
+        f"cut is best on all three. The third needs care: the retained set grows "
+        f"more than tenfold along the walk, so the gap two arms show by sampling "
+        f"alone shrinks with it. Subtract that floor $b_k$, or a raw distance "
+        f"falls across the walk for arithmetic reasons and reads as progress.",
+        (power, spread, shift), notation, eq_lines=5)
 
     ax = power.ax
     ax.fill_between(rank, neff, n1 + n2, color=_MUTED, alpha=0.75, zorder=2,
@@ -362,18 +470,29 @@ def plot_problem(
     ax.set_ylabel(r"$H_k$", fontsize=_MAIN["axis"])
     _grid(ax)
 
+    # Three curves, not one: the floor falls 6.6x along this walk, so a raw
+    # distance would fall across it for arithmetic reasons alone. Drawing the
+    # floor is what makes the subtraction in s_k an observation.
     ax = shift.ax
     ax.axhline(0.0, color=_DIM, linewidth=0.9, linestyle=":")
-    ax.plot(rank, sep, "-", color=_THIRD, linewidth=1.8, zorder=3)
-    ax.plot(rank[sig], sep[sig], "^", color=_THIRD, markersize=6.0, zorder=4,
-            markeredgecolor="white", markeredgewidth=1.0,
-            label=rf"$P < 0.05$ ({int(sig.sum())})")
-    ax.plot(rank[~sig], sep[~sig], "^", color="white", markersize=6.0, zorder=4,
-            markeredgecolor=_THIRD, markeredgewidth=1.4,
+    ax.fill_between(rank, 0.0, floor, color=_MUTED, alpha=0.7, linewidth=0,
+                    zorder=1)
+    ax.plot(rank, d2, "-", color=_GR, linewidth=1.5, zorder=3,
+            label=r"$\hat{D}^2_k$  raw")
+    ax.plot(rank, floor, "--", color=_DIM, linewidth=1.5, zorder=3,
+            label=r"$b_k$  sampling floor")
+    ax.plot(rank, sep, "-", color=_THIRD, linewidth=2.0, zorder=4,
+            label=r"$s_k = \hat{D}^2_k - b_k$")
+    ax.plot(rank[sig], sep[sig], "^", color=_THIRD, markersize=6.0, zorder=5,
+            markeredgecolor="white", markeredgewidth=1.0, linestyle="none",
+            label=rf"$P < 0.05$ ({int(sig.sum())} of {len(pval)})")
+    ax.plot(rank[~sig], sep[~sig], "^", color="white", markersize=6.0, zorder=5,
+            markeredgecolor=_THIRD, markeredgewidth=1.4, linestyle="none",
             label=r"$P \geq 0.05$")
     ax.set_xticks(rank[::4])
+    ax.set_ylim(top=float(np.nanmax(d2)) * 1.62)
     ax.set_xlabel("cut $k$", fontsize=_MAIN["axis"], labelpad=3)
-    ax.set_ylabel(r"$s_k$", fontsize=_MAIN["axis"])
+    ax.set_ylabel("squared distance", fontsize=_MAIN["axis"])
     ax.legend(loc="upper right", fontsize=_MAIN["tick"], frameon=True,
               framealpha=0.95, edgecolor=_HAIR)
     _grid(ax)
@@ -395,7 +514,7 @@ def plot_tradeoff(
     control_label: str = "Control",
 ) -> Figure:
     """2 of 3 — how the three quantities are traded off against each other."""
-    rank, neff, het, sep, _ = _walk(decision_table, rgv_column)
+    rank, neff, het, sep, *_ = _walk(decision_table, rgv_column)
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_nar = int(rows["narrow"]["Resolved_Rank"])
     k_int = int(rows["intermediate"]["Resolved_Rank"])
@@ -422,25 +541,45 @@ def plot_tradeoff(
         r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1}) - \gamma(H_k - H_1)$",
         r"$k_{\mathrm{narrow}} = \arg\max_k E_k$").concludes(
         rf"$\Rightarrow$  narrow, $k$ = {k_nar}")
-    blocked = _Cell("but not the third", colour=_THIRD).concludes(
-        f"no single rate to read off", _THIRD)
-    blend = _Cell("so blend, then take the nearest", colour=inter).says(
-        r"$\tilde{u}_k = \mathrm{minmax}\!\left(w\tilde{H}_k "
+    blend = _Cell("blend, take the nearest", colour=inter).says(
+        r"$\tilde{u}_k(w) = \mathrm{minmax}\!\left(w\tilde{H}_k "
         r"+ (1-w)\tilde{s}_k\right)$",
-        r"$k^{*} = \arg\min_k \sqrt{\tilde{u}_k^{2} + (1-\tilde{N}_k)^{2}}$").concludes(
+        r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{u}_k(w)^{2} "
+        r"+ (1-\tilde{N}_k)^{2}}$",
+        rf"drawn at $w = {blend_weight:g}$ — one slice").concludes(
         rf"$\Rightarrow$  intermediate, $k$ = {k_int}")
-    weight = _Cell("and the weight does not decide it", colour=inter).says(
+    weight = _Cell(r"and $w$ does not decide it", colour=inter).says(
         r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$").concludes(
         rf"$k^{{*}}$ = {k_int} on a plateau of $w$")
+
+    notation = [
+        ("$k$", f"the cut: the top $k$ of {int(rank.max())} ranked components"),
+        (r"$N_{\mathrm{eff},k}$", "effective size — figure 1 of 3"),
+        ("$H_k$", "residual spread of the retained set"),
+        ("$s_k$", "arm shift with the sampling floor removed"),
+        (r"$\gamma$",
+         r"average rate: effective samples bought per unit of $H$"),
+        ("$E_k$",
+         r"how far cut $k$ beats that average rate, end to end"),
+        (r"$\tilde{x}$",
+         r"a tilde is min-max onto $[0,1]$, over the 17 cuts"),
+        ("$w$", r"weight on $\tilde{H}$; $1-w$ goes to $\tilde{s}$"),
+        (r"$\tilde{u}_k(w)$",
+         "the blend of the two, rescaled again so the plane is square"),
+        (r"$k^{*}(w)$",
+         r"the cut nearest the ideal corner at that $w$"),
+    ]
 
     fig = _story_row(
         "01_tradeoff",
         "The trade-off — one rate prices two of them, and nothing prices the third",
         "Power and residual stratification move together, so the walk has a "
         "single average rate and every cut can be scored against it. The "
-        f"{case_label}/{control_label} shift does not: it reverses, so it has no "
-        "rate. That is why there are two criteria and not one.",
-        (price, blocked, blend, weight), eq_lines=3)
+        f"{case_label}$-${control_label} shift does not — it reverses {flips} "
+        "times along the walk (figure 1 of 3), so there is no rate to read off "
+        "it. That is why there are two criteria and not one: one prices the "
+        "pair, the other blends all three and takes the nearest cut.",
+        (price, blend, weight), notation, eq_lines=3)
 
     ax = price.ax
     i_nar = int(np.argmin(np.abs(rank - k_nar)))
@@ -465,20 +604,6 @@ def plot_tradeoff(
     ax.margins(x=0.12, y=0.14)
     _grid(ax)
 
-    ax = blocked.ax
-    ax.axhline(0.0, color=_DIM, linewidth=0.9, linestyle=":")
-    ax.plot(rank, _norm(het), "-s", color=_GR, markersize=4.0, linewidth=1.5,
-            markerfacecolor="white", markeredgewidth=1.0,
-            label=r"$\tilde{H}_k$ — never reverses")
-    ax.plot(rank, _norm(sep), "-", color=_THIRD, linewidth=2.0,
-            label=rf"$\tilde{{s}}_k$ — reverses {flips}×")
-    ax.set_xticks(rank[::4]); ax.set_ylim(-0.10, 1.34)
-    ax.set_xlabel("cut $k$", fontsize=_MAIN["axis"], labelpad=3)
-    ax.set_ylabel("on $[0,1]$", fontsize=_MAIN["axis"])
-    ax.legend(loc="upper center", fontsize=_MAIN["tick"], frameon=True,
-              framealpha=0.95, edgecolor=_HAIR)
-    _grid(ax)
-
     ax = blend.ax
     i_int = int(np.argmin(np.abs(rank - k_int)))
     ax.plot(blended, power, "o", color=_GR, markersize=6.0, alpha=0.8,
@@ -495,8 +620,8 @@ def plot_tradeoff(
                 color=inter, ha="left", va="top")
     ax.set_xlim(-0.08, 1.10); ax.set_ylim(-0.10, 1.16)
     ax.set_xticks([0.0, 0.5, 1.0]); ax.set_yticks([0.0, 0.5, 1.0])
-    ax.set_xlabel(r"$\tilde{u}_k$   $\rightarrow$", fontsize=_MAIN["axis"],
-                  labelpad=3)
+    ax.set_xlabel(rf"$\tilde{{u}}_k({blend_weight:g})$   $\rightarrow$",
+                  fontsize=_MAIN["axis"], labelpad=3)
     ax.set_ylabel(r"$\tilde{N}_k$   $\rightarrow$", fontsize=_MAIN["axis"])
     _grid(ax)
 
@@ -506,6 +631,9 @@ def plot_tradeoff(
     lo, hi = (float(on.min()), float(on.max())) if on.size else (np.nan,) * 2
     ax.fill_between([0.0, 0.5], -100, 100, color=_BARRED, alpha=0.5,
                     linewidth=0)
+    ax.text(0.25, 0.12, "not admissible\n$w < \\frac{1}{2}$",
+            transform=ax.transAxes, fontsize=_MAIN["annot"], color=_GR,
+            ha="center", va="bottom", zorder=2)
     ax.plot(weight_grid, weight_winner, drawstyle="steps-post", color=_BK,
             linewidth=2.0)
     if on.size:
@@ -513,7 +641,15 @@ def plot_tradeoff(
                 solid_capstyle="butt", alpha=0.85)
     ax.axvline(blend_weight, color=inter, linewidth=1.5, linestyle="-.")
     ax.plot([blend_weight], [k_int], _MARK["intermediate"], color=inter,
-            markersize=11.0, markeredgecolor="white", markeredgewidth=1.3)
+            markersize=11.0, markeredgecolor="white", markeredgewidth=1.3,
+            zorder=5)
+    ax.annotate(f"panel 2 is\nthe slice at $w$ = {blend_weight:g}",
+                xy=(blend_weight, k_int), xycoords="data",
+                xytext=(0.56, 0.88), textcoords="axes fraction",
+                fontsize=_MAIN["annot"], fontweight="bold", color=inter,
+                ha="left", va="top", zorder=6,
+                arrowprops=dict(arrowstyle="->", color=inter, linewidth=1.4,
+                                shrinkB=7))
     ax.set_xlim(0.0, 1.0); ax.set_ylim(int(won.min()) - 1, int(won.max()) + 1)
     ax.set_yticks(sorted({int(v) for v in np.unique(won)}))
     ax.set_xlabel("$w$   weight on $H$", fontsize=_MAIN["axis"], labelpad=3)
@@ -536,7 +672,7 @@ def plot_cohorts(
     control_label: str = "Control",
 ) -> Figure:
     """3 of 3 — the three cohorts, and when to use each."""
-    rank, neff, het, _, _ = _walk(decision_table, rgv_column)
+    rank, neff, het, *_ = _walk(decision_table, rgv_column)
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_of = {n: int(rows[n]["Resolved_Rank"]) for n in rows}
     order = [n for n in CUT_ORDER if n in k_of]
@@ -548,6 +684,19 @@ def plot_cohorts(
             return float("nan")
         return float(to_numeric_array(r[col])[0])
 
+    notation = [
+        ("$k$", f"the cut: the top $k$ of {int(rank.max())} ranked components"),
+        (r"$N_{\mathrm{eff},k}$",
+         "effective size: the balanced study of equal power"),
+        ("$H_k$", "residual spread of the retained set, on 4 mainland axes"),
+        (r"$\subset$",
+         "nesting: every cut keeps everything the tighter cut keeps"),
+        ("narrow", r"stops at $\arg\max_k E_k$ — the best rate on the walk"),
+        ("intermediate",
+         r"stops at $k^{*}$ — nearest the ideal corner of the blend"),
+        ("full", "stops nowhere: every component of the major cluster"),
+    ]
+
     where = _Cell("where the three stop")
     which = _Cell("which one to use", plot=False, width=_CARD_W_IN).concludes(
         r"narrow $\subset$ intermediate $\subset$ full")
@@ -557,7 +706,7 @@ def plot_cohorts(
         "Two criteria stop the walk in two places; taking every component is the "
         "third. They are nested, so this is a choice of where to stop along one "
         f"walk. Cuts resolved in mode: {mode}.",
-        (where, which), plot_in=3.60, eq_lines=1)
+        (where, which), notation, plot_in=4.20, eq_lines=0)
 
     ax = where.ax
     ax.plot(het, neff, "-o", color=_GR, markersize=4.6, linewidth=1.5,

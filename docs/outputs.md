@@ -121,23 +121,30 @@ region rather than jumping elsewhere.
 Three figures and three tables. The argument is in three parts, so it is in
 three figures, and all three are laid out by the same row framework — a row of
 cells, each a heading, a small plot, the equations that plot draws, and the
-answer they reach, joined left to right by arrows. An earlier version had four
+answer they reach, joined left to right by arrows, with a reserved column on the
+right that defines every symbol that figure uses. An earlier version had four
 figures with four different layouts and the reader had to assemble the line
 through them; here the line *is* the layout.
 
+The notation column carries only the symbols its own figure draws, one gloss
+each, no ranges and no values. An earlier version carried one general symbol
+table repeated on all four pages — the same definitions eight and twelve times
+over — which is why that one was deleted rather than kept.
+
 | File | Contents |
 |---|---|
-| `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual stratification `H`, and the case/control shift `s_k` |
-| `01_tradeoff.png` | How they are traded off: one average rate prices power against `H` and fixes `narrow`; `s_k` reverses so it has no rate, which is why it is blended instead and fixes `intermediate`; and the weight does not decide the answer |
+| `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual stratification `H`, and the case−control shift `s_k`. The third panel draws the raw `D̂²`, the sampling floor `b_k` beneath it and their difference `s_k` on one pair of axes, so the subtraction is shown rather than asserted, and carries the chain `T² → F → P` that the significance marks come from |
+| `01_tradeoff.png` | How they are traded off: one average rate prices power against `H` and fixes `narrow`; `s_k` reverses so it has no rate, which is why it is blended instead and fixes `intermediate`; and the weight does not decide the answer. The blend panel is one slice at `w = ½` and says so on its heading, its equations and its axis; the sweep panel next to it points back at that slice |
 | `02_cohorts.png` | The three cohorts, where they stop on the trade-off, and when to use each |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number at every `k` |
 
-The equations are on the figures because they are the reasoning. Two things
+The equations are on the figures because they are the reasoning. Three things
 fail the build rather than producing a wrong figure: either criterion drawn on
-`01` peaking somewhere other than the cut `cut_record.tsv` records, and any
-equation or answer running out of its own column.
+`01` peaking somewhere other than the cut `cut_record.tsv` records; any heading,
+equation or answer running out of its own column; and a notation column that
+would not hold its own entries.
 
 The notes below are the reviewer's layer — what each choice rules out, and the
 alternatives it was taken against. None of it is needed to read the figures.
@@ -188,7 +195,10 @@ this scale: the retained set grows more than tenfold along the walk, so a raw
 $\hat{D}^2$ would fall across it for arithmetic reasons alone. Subtracting the
 floor does not say the remainder is anything; Hotelling's exact $F$ test does,
 and 12 of 17 cuts separate at $P<0.05$, which is what makes this axis a
-phenomenon rather than noise. $s_k$ also reverses direction 7 times, which is why
+phenomenon rather than noise. Both halves of that are now drawn: `00` plots the
+floor as its own curve — it falls 6.6-fold from $k=1$ to $k=17$ — and carries
+$T^2 = \hat{D}^2 N_{case}N_{ctrl}/N_{tot}$, $F = \frac{\nu-d+1}{d\nu}T^2 \sim
+F_{d,\nu-d+1}$ with $\nu = N_{tot}-2$, and $P_k$ as the upper tail of that $F$. $s_k$ also reverses direction 7 times, which is why
 the pricing argument of the first cut cannot be repeated on it.
 
 **Why (2) rescales twice.** $\tilde H_k$ and $\tilde s_k$ are already on $[0,1]$,

@@ -298,9 +298,10 @@ def pc12_rgv(xy: np.ndarray) -> float:
 def mahalanobis_bias(n_case: int, n_ctrl: int, n_dim: int) -> float:
     """Expected ``D^2`` between two group means drawn from the *same* population.
 
-    ``p * (1/n_case + 1/n_control)``. Two sample means never coincide, and
-    ``D^2`` squares the gap between them, so sampling scatter can only add to
-    it: the axis count multiplies the contribution, the group sizes divide it.
+    ``d * (1/n_case + 1/n_ctrl)``, for ``d = n_dim`` axes. Two sample means
+    never coincide, and ``D^2`` squares the gap between them, so sampling
+    scatter can only add to it: the axis count multiplies the contribution, the
+    group sizes divide it.
 
     It matters here because the retained set grows more than tenfold across the
     rank walk, so this floor falls with it and a raw ``D^2`` drifts downwards
