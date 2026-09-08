@@ -143,7 +143,7 @@ rather than kept.
 |---|---|
 | `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual stratification `H`, and the case−control shift `s_k`. The third panel draws the raw `D̂²`, the sampling floor `b_k` beneath it and their difference `s_k` on one pair of axes, so the subtraction is shown rather than asserted; `E[D̂²] = D² + b_k` and the chain `T² → F → P` that the significance marks come from are rows of the notation table |
 | `01_tradeoff.png` | How they are traded off: one average rate prices power against `H` and fixes `narrow`; `s_k` reverses so it has no rate, which is why it is blended instead and fixes `intermediate`; and the weight does not decide the answer. The blend panel is one slice at `w = ½` and says so on its heading, its equations and its axis; the sweep panel next to it points back at that slice |
-| `02_cohorts.png` | The three cohorts, where they stop on the trade-off, and when to use each |
+| `02_cohorts.png` | The three cohorts: their positions on the trade-off — drawn as three coloured stretches of one walk, so the nesting is seen rather than asserted — and a profile card each, carrying what sets that cohort apart, the rule that stopped the walk there, and its counts, effective size and `P` |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
 | `cut_record.tsv` | How each cut was arrived at, and whether the automatic and manual answers agree |
 | `rank_decision_table.tsv` | Every number at every `k` |
@@ -233,16 +233,27 @@ that the cut does not turn on the weight, and does not make ½ optimal.
 
 **Three cohorts rather than one.** A single cohort would need one worry to
 dominate; three different things can, so three sets are delivered and the reason
-for each is stated on `03`. They are nested, so this is a choice of where to stop
-along one walk rather than between three lists.
+for each is stated on `02_cohorts.png`. They are nested, so this is a choice of
+where to stop along one walk rather than between three lists.
+
+What separates them is not what an earlier version of that figure said. `narrow`
+buys the best exchange rate on the walk, but its arms are the second most
+separated of all seventeen cuts ($s_k$ = 0.108, $P$ = 4×10⁻⁸). `intermediate`
+carries *more* effective samples than `narrow` (1,422 against 1,356) and is the
+one cut of the three whose arms do not separate ($P$ = 0.15). `full` has the most
+effective samples and the widest spread. So the figure states, per cohort, the
+criterion that stopped the walk and — on a separate line, because `P` is selected
+on nowhere — the profile that follows from it.
 
 **Role of $P_k$.** It is Hotelling's exact $F$ test on the case/control centroid
 gap inside the retained set — reported everywhere, selected on nowhere. Choosing
 the cut with the largest $P$ would be choosing the set that best hides a real
 difference between the arms, which is the opposite of what a cohort is for. Of
-the three, `intermediate` is the only one where the gap is not detectable and
-`narrow` sits at the strongest separation in the walk; both are consequences of
-where the cuts fell, not reasons they fell there.
+the three, `intermediate` is the only one where the gap is not detectable
+($P$ = 0.15) and `narrow` sits near the strongest separation in the walk
+($P$ = 4×10⁻⁸); both are consequences of where the cuts fell, not reasons they
+fell there, which is why `02_cohorts.png` keeps `P` on the profile line and off
+the criterion line.
 
 ### `04_subcluster_variants/<variant>/` [7]
 

@@ -76,24 +76,38 @@ _MARK = {"narrow": "D", "intermediate": "s", "full": "o"}
 
 #: What each figure is, for the footer that numbers them.
 FIGURE_SERIES: "tuple[tuple[str, str], ...]" = (
-    ("00_problem", "the problem, and what we watch"),
-    ("01_tradeoff", "how the three are traded off"),
-    ("02_cohorts", "the three cohorts"),
+    ("00_problem", "three quantities along one walk"),
+    ("01_tradeoff", "two criteria, and the weight"),
+    ("02_cohorts", "three cohorts, and their profiles"),
 )
 
-#: What the left card of each figure holds. Names the stage rather than
-#: repeating the page title -- on ``02`` the two were the same words twice.
+#: What the left card of each figure holds. A noun phrase naming the stage:
+#: it must not repeat the page title, and it must not be a question in
+#: disguise -- "What we watch" and "where the three stop" were both of those.
 _SECTION = {
-    "00_problem": "What we watch",
-    "01_tradeoff": "How we trade off",
-    "02_cohorts": "What we get",
+    "00_problem": "Three quantities along the walk",
+    "01_tradeoff": "Two criteria",
+    "02_cohorts": "Three resolved cuts",
 }
 
-#: When each cohort is the right one -- the decision the reader actually makes.
+#: What distinguishes each cohort from the other two, and the rule that stopped
+#: the walk there. The two are separate lines on the card for a reason: P is
+#: reported at every cut and selected on at none, so it belongs with the
+#: profile and never with the criterion. An earlier version said only
+#: "both worries matter" of ``intermediate``, which is both vague and wrong --
+#: k = 12 is the one cut of the three whose arms do not separate, and it
+#: carries more effective samples than ``narrow`` as well.
 _WHEN = {
-    "narrow": "stratification is the main worry",
-    "intermediate": "both worries matter",
-    "full": "power matters most, or a reference is wanted",
+    "narrow": "tightest spread; arms clearly separated",
+    "intermediate": "more power than narrow; arms not separated",
+    "full": "most power; widest spread — the reference",
+}
+
+#: The rule that stopped the walk at that cut. Never mentions P.
+_STOPS = {
+    "narrow": r"stops at the peak of $E_k$",
+    "intermediate": r"stops nearest the ideal corner",
+    "full": "every component of the major cluster",
 }
 
 #: One type scale. Every ``fontsize=`` in this module reads from it; passing a
@@ -535,6 +549,21 @@ def _reversals(a: np.ndarray) -> int:
     return int(np.sum(np.diff(signs) != 0)) if signs.size >= 2 else 0
 
 
+def _p_text(p: float) -> str:
+    """``P`` for a card, in the register a reader expects.
+
+    The table renders 3.9e-08 as ``0.0000``, which reads as "zero" rather than
+    "eight orders of magnitude", so anything below a thousandth is set in
+    powers of ten instead.
+    """
+    if not np.isfinite(p):
+        return r"$P$ n/a"
+    if p >= 0.001:
+        return rf"$P$ = {p:.3g}" if p >= 0.01 else rf"$P$ = {p:.2g}"
+    exponent = int(np.floor(np.log10(p)))
+    return (rf"$P$ = {p / 10.0 ** exponent:.0f}$\times$10$^{{{exponent}}}$")
+
+
 def _grid(ax: "plt.Axes") -> None:
     ax.grid(True, alpha=0.30, linewidth=0.7)
     ax.set_axisbelow(True)
@@ -591,7 +620,7 @@ def plot_problem(
          r"+\frac{1}{N_{\mathrm{ctrl}}}\right)$",
          "Sampling floor under that gap."),
         (r"$\mathbb{E}[\hat{D}^2_k] = D^2_k + b_k$",
-         "Why the floor is subtracted."),
+         "The floor sits in the expectation."),
         (r"$T^2 = \hat{D}^2_k N_{\mathrm{case}}N_{\mathrm{ctrl}}"
          r"/N_{\mathrm{tot}}$", "Hotelling's two-sample statistic."),
         (r"$F = \frac{\nu-d+1}{d\nu}T^2 \sim F_{d,\nu-d+1}$",
@@ -672,7 +701,7 @@ def plot_tradeoff(
     case_label: str = "Case",
     control_label: str = "Control",
 ) -> Figure:
-    """2 of 3 — how the three quantities are traded off against each other."""
+    """2 of 3 — the two criteria the three quantities are traded off by."""
     rank, neff, het, sep, *_ = _walk(decision_table, rgv_column)
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_nar = int(rows["narrow"]["Resolved_Rank"])
@@ -694,16 +723,17 @@ def plot_tradeoff(
                 f"cut_record.tsv records k = {want}")
 
     nar, inter = _EDGE["narrow"], _EDGE["intermediate"]
-    price = _Cell("price the walk", colour=nar).says(
+    price = _Cell("the exchange rate", colour=nar).says(
         r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1})"
         r" - \gamma(H_k - H_1)$").concludes(
         rf"$\Rightarrow$  narrow, $k$ = {k_nar}")
-    blend = _Cell(rf"blend at $w = {blend_weight:g}$", colour=inter).says(
+    blend = _Cell(rf"the blend at $w = {blend_weight:g}$",
+                  colour=inter).says(
         r"$\tilde{u}_k = \mathrm{minmax}(w\tilde{H}_k + (1-w)\tilde{s}_k)$",
         r"$k^{*} = \arg\min_k \sqrt{\tilde{u}_k^{2} "
         r"+ (1-\tilde{N}_k)^{2}}$").concludes(
         rf"$\Rightarrow$  intermediate, $k$ = {k_int}")
-    weight = _Cell(r"$w$ does not decide it", colour=inter).says(
+    weight = _Cell("admissible weights", colour=inter).says(
         r"$w \geq \frac{1}{2} \Longleftrightarrow w \geq 1 - w$").concludes(
         rf"$k^{{*}}$ = {k_int} on a plateau of $w$")
 
@@ -743,10 +773,18 @@ def plot_tradeoff(
     ax.plot([het[i_nar]], [neff[i_nar]], _MARK["narrow"], color=nar,
             markersize=13.0, markeredgecolor="white", markeredgewidth=1.5,
             zorder=6)
-    ax.annotate(rf"$E_k$ at $k$ = {k_nar}", xy=(het[i_nar], neff[i_nar]),
-                xytext=(9, -4), textcoords="offset points",
+    # Beside the middle of the bar, which is the one pocket of this panel with
+    # nothing in it: the walk runs above and the chord below.
+    # Just the symbol, beside the middle of the bar. Spelling out "at k = 9"
+    # ran the label into the chord, and the diamond and the answer line below
+    # already say which cut this is.
+    ax.annotate(r"$E_k$",
+                xy=(het[i_nar],
+                    (neff[i_nar] + neff[0] + gamma * (het[i_nar] - het[0]))
+                    / 2.0),
+                xytext=(9, 0), textcoords="offset points",
                 fontsize=_MAIN["annot"], fontweight="bold", color=nar,
-                ha="left", va="top", zorder=7)
+                ha="left", va="center", zorder=7)
     ax.set_xlabel(r"$H_k$   $\rightarrow$", fontsize=_MAIN["axis"], labelpad=3)
     ax.set_ylabel(r"$N_{\mathrm{eff},k}$   $\rightarrow$", fontsize=_MAIN["axis"])
     ax.legend(loc="lower right", fontsize=_MAIN["tick"], frameon=True,
@@ -821,7 +859,7 @@ def plot_cohorts(
     case_label: str = "Case",
     control_label: str = "Control",
 ) -> Figure:
-    """3 of 3 — the three cohorts, and when to use each."""
+    """3 of 3 — the three cohorts, their criteria and their profiles."""
     rank, neff, het, *_ = _walk(decision_table, rgv_column)
     rows = {str(r["Variant"]): r for _, r in cut_selection.iterrows()}
     k_of = {n: int(rows[n]["Resolved_Rank"]) for n in rows}
@@ -844,8 +882,8 @@ def plot_cohorts(
         ("full", "Every component of the major cluster."),
     ]
 
-    where = _Cell("where the three stop")
-    which = _Cell("which one to use", plot=False, width=_CARD_W_IN).concludes(
+    where = _Cell("positions on the trade-off")
+    which = _Cell("cohort profiles", plot=False, width=_CARD_W_IN).concludes(
         r"narrow $\subset$ intermediate $\subset$ full")
 
     fig = _story_row(
@@ -854,9 +892,18 @@ def plot_cohorts(
         f"the third. They are nested. Cuts resolved in mode: {mode}.",
         (where, which), notation, eq_lines=0)
 
+    # Three cohorts are three prefixes of one walk, so the walk is drawn in
+    # three colours rather than the nesting only being asserted underneath.
+    # The segments share their endpoints, which is what keeps the curve
+    # continuous across a change of colour.
     ax = where.ax
-    ax.plot(het, neff, "-o", color=_GR, markersize=4.6, linewidth=1.5,
-            markerfacecolor="white", markeredgewidth=1.0, zorder=3)
+    starts = [0] + [at[n] for n in order[:-1]]
+    for name, i0 in zip(order, starts):
+        i1 = at[name]
+        ax.plot(het[i0:i1 + 1], neff[i0:i1 + 1], "-o", color=_EDGE[name],
+                markersize=4.6, linewidth=2.0, markerfacecolor="white",
+                markeredgewidth=1.2, zorder=3,
+                label=f"{name}: $k \\leq$ {k_of[name]}")
     for name in order:
         i = at[name]
         ax.plot([het[i]], [neff[i]], _MARK[name], color=_EDGE[name],
@@ -879,27 +926,35 @@ def plot_cohorts(
     card_h = 1.0 / len(order)
     for i, name in enumerate(order):
         top = 1.0 - i * card_h
+        # Four rows to a card now -- name, what sets it apart, the rule that
+        # stopped the walk there, the counts -- so the rows are placed as
+        # fractions of the card rather than offset from its top; at the old
+        # spacing the last row sat on the border.
         ax.add_patch(FancyBboxPatch(
-            (0.0, top - card_h + 0.030), 1.0, card_h - 0.048,
+            (0.0, top - card_h + 0.020), 1.0, card_h - 0.032,
             boxstyle="round,pad=0.004", facecolor=_TINT[name],
             edgecolor=_EDGE[name], linewidth=1.4, alpha=0.85, zorder=1))
-        ax.plot([0.018, 0.018], [top - card_h + 0.052, top - 0.020],
+        ax.plot([0.018, 0.018], [top - card_h + 0.040, top - 0.014],
                 color=_EDGE[name], linewidth=5.5, solid_capstyle="butt",
                 zorder=3)
-        ax.text(0.055, top - 0.062, name, fontsize=_MAIN["card_name"],
-                fontweight="bold", ha="left", va="top", color=_EDGE[name],
-                zorder=3)
-        ax.text(0.982, top - 0.062, f"$k$ = {k_of[name]}",
+        ax.text(0.055, top - card_h * 0.14, name,
+                fontsize=_MAIN["card_name"], fontweight="bold", ha="left",
+                va="top", color=_EDGE[name], zorder=3)
+        ax.text(0.982, top - card_h * 0.14, f"$k$ = {k_of[name]}",
                 fontsize=_MAIN["card_name"], fontweight="bold", ha="right",
                 va="top", color=_EDGE[name], zorder=3)
-        ax.text(0.055, top - 0.062 - card_h * 0.29, _WHEN[name],
+        ax.text(0.055, top - card_h * 0.41, _WHEN[name],
                 fontsize=_MAIN["card_when"], ha="left", va="top", color=_BK,
                 zorder=3)
-        ax.text(0.055, top - 0.062 - card_h * 0.56,
+        ax.text(0.055, top - card_h * 0.60, _STOPS[name],
+                fontsize=_MAIN["card_num"], ha="left", va="top", color=_GR,
+                fontstyle="italic", zorder=3)
+        ax.text(0.055, top - card_h * 0.78,
                 f"{val(name, f'{case_label}_Count'):,.0f}"
                 f" + {val(name, f'{control_label}_Count'):,.0f}"
                 f" = {val(name, 'Total_Count'):,.0f}"
-                f"   effective {val(name, 'GWAS_Neff'):,.0f}",
+                f"  ·  eff. {val(name, 'GWAS_Neff'):,.0f}"
+                f"  ·  {_p_text(val(name, 'Mainland_CaseCtrl_P'))}",
                 fontsize=_MAIN["card_num"], ha="left", va="top", color=_GR,
                 zorder=3)
 
