@@ -4576,36 +4576,36 @@
       ]
     },
     "03_rank_selection/00_problem.png": {
-      "bytes": 2481834,
+      "bytes": 2013342,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.01546730142164,
-      "sha256": "67e526a79ad9e0eff01d78a0b55e7dfc531b681e4e20955345108b542737cd3e",
+      "pixel_mean": 247.5831494852945,
+      "sha256": "c2d970aeb06b2d2339f298df34ef75ed4e08a2c8db17b13332e868d48964bd90",
       "size": [
-        11558,
-        5814
+        11976,
+        4960
       ]
     },
     "03_rank_selection/01_tradeoff.png": {
-      "bytes": 1843952,
+      "bytes": 1685394,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.0340286751346,
-      "sha256": "cfb07a74d4ceab0cc15640d8e0876f0d05e8814c38d340704b677ff6d22e105b",
+      "pixel_mean": 247.28979177958226,
+      "sha256": "4361a9b675fa036fb6c6ca7cbe86d0861d323c03af4c325e32ae346c7756ff3f",
       "size": [
-        11430,
-        5082
+        11976,
+        4962
       ]
     },
     "03_rank_selection/02_cohorts.png": {
-      "bytes": 1437898,
+      "bytes": 1405723,
       "kind": "png",
       "mode": "RGBA",
-      "pixel_mean": 248.9218084464885,
-      "sha256": "8cc00525c58596f8b458b7e614bf433eafc24ebf1a16089f3632c58cd21e4555",
+      "pixel_mean": 248.1261900018114,
+      "sha256": "7861b173bf0566b56e95a1222a7c3f7a127252eb69bbfec2086687cd9cf962b0",
       "size": [
-        11456,
-        4764
+        11976,
+        4960
       ]
     },
     "03_rank_selection/component_ranking.tsv": {

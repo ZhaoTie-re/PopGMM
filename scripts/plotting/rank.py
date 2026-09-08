@@ -39,8 +39,11 @@ if TYPE_CHECKING:
 # One spec for the figure
 # ---------------------------------------------------------------------------
 
-#: Canvas width. The height follows from the content and is computed below.
-FIGURE_SIZE: "tuple[float, float]" = (19.0, 13.0)
+#: Canvas. Every figure in this stage is exactly this size: the three are meant
+#: to be read one after another, and a deck that has to rescale them page by
+#: page loses the thing that makes them one argument. The plot band absorbs
+#: whatever the equations do not use, so a fixed height costs no white space.
+FIGURE_SIZE: "tuple[float, float]" = (21.0, 8.6)
 
 #: Narrow to full, which is the order they nest in and the order they are read.
 CUT_ORDER: "tuple[str, str, str]" = ("narrow", "intermediate", "full")
@@ -61,6 +64,13 @@ _THIRD = "#B35806"
 _BARRED = "#F4C7C3"
 _HAIR = "#CFCFCF"
 
+#: The page furniture: the ground a card sits on, the fill of a card, the rule
+#: that draws every border and every row line, and the band behind a table head.
+_PAGE = "#F7F9FC"
+_CARD = "#FFFFFF"
+_RULE = "#DDE3EA"
+_HEAD_FILL = "#EDF1F6"
+
 #: Marker shape per cut, so the three stay distinguishable without colour.
 _MARK = {"narrow": "D", "intermediate": "s", "full": "o"}
 
@@ -70,6 +80,14 @@ FIGURE_SERIES: "tuple[tuple[str, str], ...]" = (
     ("01_tradeoff", "how the three are traded off"),
     ("02_cohorts", "the three cohorts"),
 )
+
+#: What the left card of each figure holds. Names the stage rather than
+#: repeating the page title -- on ``02`` the two were the same words twice.
+_SECTION = {
+    "00_problem": "What we watch",
+    "01_tradeoff": "How we trade off",
+    "02_cohorts": "What we get",
+}
 
 #: When each cohort is the right one -- the decision the reader actually makes.
 _WHEN = {
@@ -81,38 +99,48 @@ _WHEN = {
 #: One type scale. Every ``fontsize=`` in this module reads from it; passing a
 #: bare number is how several different sizes once ended up on one figure.
 _MAIN = {
-    "suptitle": 26.0, "lead": 15.0, "step": 17.0, "axis": 13.5, "tick": 12.0,
-    "annot": 13.5, "equation": 15.0, "answer": 15.5, "card_name": 17.0,
-    "card_when": 13.5, "card_num": 13.0, "foot": 13.0,
-    "note_head": 14.0, "note_sym": 12.5, "note_gloss": 11.0,
+    "title": 24.0, "section": 17.0, "subtitle": 13.0, "step": 17.0,
+    "axis": 13.0, "tick": 11.5, "annot": 13.0, "equation": 15.0,
+    "answer": 15.5, "card_name": 17.0, "card_when": 13.5, "card_num": 13.0,
+    "foot": 12.5, "note_head": 15.0, "note_sub": 11.5, "note_col": 12.0,
+    "note_sym": 11.5, "note_gloss": 11.0,
 }
 
 #: Inches. Every length on this figure is one, so a change to one cannot
 #: silently mean something different somewhere else.
 _SIDE_IN = 0.62
-_TITLE_IN = 1.05
-_LEAD_IN = 0.52
-_STEP_IN = 0.46
-_PLOT_IN = 3.05
-_XLABEL_IN = 0.62
-_EQ_IN = 1.66
-_ANSWER_IN = 0.52
-_FOOT_IN = 0.85
-_GUTTER_IN = 0.72
+_TITLE_IN = 0.92
+_FOOT_IN = 0.55
+_CARD_PAD_IN = 0.26
+_SECT_IN = 0.40
+_SUB_IN = 0.34
+_STEP_IN = 0.40
+_XLABEL_IN = 0.56
+_EQ_LINE_IN = 0.44
+_ANSWER_IN = 0.50
+_GUTTER_IN = 0.50
+_CARD_GAP_IN = 0.44
+_BOX_PAD_IN = 0.16
 
-#: The right-hand notation region, and the columns inside it. Every symbol a
-#: figure uses is defined once, on that figure -- an earlier version carried one
-#: general table repeated on all four pages, which is why it was deleted.
-_NOTE_W_IN = 3.60
-_NOTE_PAD_IN = 0.24
-_NOTE_SYM_IN = 0.98
-_NOTE_GAP_IN = 0.12
-_NOTE_LINE_IN = 0.175
-_NOTE_ENTRY_IN = 0.105
+#: A plot needs room for its y-axis label and tick labels, which are drawn
+#: outside its own rectangle; at the text padding they hung out of the box and
+#: over the card behind it.
+_AX_LEFT_IN = 0.80
+_AX_RIGHT_IN = 0.20
+_AX_TOP_IN = 0.10
 
-#: The fourth step is three cards rather than a plot, and needs the width for
-#: them; the three plots share what is left.
-_CARD_W_IN = 5.20
+#: The notation card, and the two columns of the table inside it.
+_NOTE_W_IN = 5.21
+_NOTE_SYM_IN = 2.33
+_NOTE_DEF_IN = 2.36
+_TBL_PAD_IN = 0.14
+_TBL_HEAD_IN = 0.34
+_TBL_LINE_IN = 0.165
+_TBL_ROWPAD_IN = 0.115
+
+#: The last step of ``02`` is three cards rather than a plot, and needs the
+#: width for them; the plot beside it takes what is left.
+_CARD_W_IN = 5.60
 
 
 def _note_axis(ax: "plt.Axes") -> None:
@@ -122,16 +150,46 @@ def _note_axis(ax: "plt.Axes") -> None:
     ax.set_ylim(0.0, 1.0)
 
 
-def _arrow(fig: Figure, x: float, y: float) -> None:
+def _panel(fig: Figure, x_in: float, y_in: float, w_in: float, h_in: float,
+           *, face: str, edge: str, lw: float = 1.2,
+           zorder: float = -5.0) -> None:
+    """A rounded card, placed in inches on the page.
+
+    ``mutation_aspect`` keeps the corners round: the figure is more than twice
+    as wide as it is tall, so a radius in figure fractions is an ellipse without
+    it. The zorder is negative because a figure-level patch and an axes both
+    default to zero and the patch is drawn second -- at zero these cards cover
+    the plots they are meant to sit behind.
+    """
+    w_fig, h_fig = fig.get_size_inches()
+    fig.patches.append(FancyBboxPatch(
+        (x_in / w_fig, y_in / h_fig), w_in / w_fig, h_in / h_fig,
+        boxstyle="round,pad=0,rounding_size=0.006",
+        mutation_aspect=w_fig / h_fig, transform=fig.transFigure,
+        facecolor=face, edgecolor=edge, linewidth=lw, zorder=zorder,
+        clip_on=False))
+
+
+def _rule(fig: Figure, x0_in: float, x1_in: float, y_in: float,
+          *, colour: str = _RULE, lw: float = 1.0) -> None:
+    """One horizontal hairline, placed in inches."""
+    w_fig, h_fig = fig.get_size_inches()
+    fig.lines.append(plt.Line2D([x0_in / w_fig, x1_in / w_fig],
+                                [y_in / h_fig] * 2, transform=fig.transFigure,
+                                color=colour, linewidth=lw, zorder=-3.5))
+
+
+def _arrow(fig: Figure, x_in: float, y_in: float) -> None:
     """The join between two steps -- the story line, drawn.
 
-    On the heading row rather than beside the plots: level with the plots it sat
-    on top of the next panel's y-axis label, and two of the three arrows were
-    unreadable.
+    In the gutter between two cell boxes. Before the boxes existed this sat on
+    top of the next panel's y-axis label and two of three arrows were
+    unreadable; the box edges now keep the gutter clear.
     """
-    fig.text(x, y, "→", fontsize=_MAIN["step"] * 1.35, color=_DIM,
-             ha="center", va="bottom")
-
+    w_fig, h_fig = fig.get_size_inches()
+    fig.text(x_in / w_fig, y_in / h_fig, "→",
+             fontsize=_MAIN["step"] * 1.45, color=_DIM, ha="center",
+             va="center")
 
 
 def _wrap_to(fig: Figure, text: str, avail_in: float, size: float) -> str:
@@ -140,83 +198,153 @@ def _wrap_to(fig: Figure, text: str, avail_in: float, size: float) -> str:
     A character count is not a width -- the same forty characters are a
     different length with a subscript in them -- and an unwrapped lead line is
     what pushed these figures four inches past their own canvas.
-    """
-    import textwrap
 
-    best = textwrap.wrap(text, width=40)
-    for n in range(40, 400, 6):
-        lines = textwrap.wrap(text, width=n)
-        t = fig.text(0.0, -9.0, "\n".join(lines), fontsize=size)
-        box = t.get_window_extent(renderer=fig.canvas.get_renderer())
+    Math spans are atoms. ``textwrap`` split one across two lines and mathtext
+    then printed the raw source of both halves into the notation table.
+    """
+    import re
+
+    words: "list[str]" = []
+    glue = False        # whether this piece continues the word before it
+    for piece in re.split(r"(\$[^$]*\$)", text):
+        if not piece:
+            continue
+        if piece.startswith("$"):
+            if glue and words:
+                words[-1] += piece
+            else:
+                words.append(piece)
+            glue = True
+        else:
+            parts = piece.split()
+            if parts and glue and not piece[0].isspace() and words:
+                words[-1] += parts.pop(0)
+            words.extend(parts)
+            glue = not piece[-1].isspace()
+
+    def width_of(line: str) -> float:
+        t = fig.text(0.0, -9.0, line, fontsize=size)
+        w = t.get_window_extent(renderer=fig.canvas.get_renderer()).width
         t.remove()
-        if box.width / fig.dpi > avail_in:
-            break
-        best = lines
-    return "\n".join(best)
+        return w / fig.dpi
+
+    lines: "list[str]" = []
+    for word in words:
+        if lines and width_of(f"{lines[-1]} {word}") <= avail_in:
+            lines[-1] = f"{lines[-1]} {word}"
+        else:
+            lines.append(word)
+    return "\n".join(lines)
+
+
+def _measure(fig: Figure, text: str, size: float) -> "tuple[float, float]":
+    """Width and height of a string in inches, at the dpi it will be drawn at."""
+    t = fig.text(0.0, -9.0, text, fontsize=size)
+    box = t.get_window_extent(renderer=fig.canvas.get_renderer())
+    t.remove()
+    return box.width / fig.dpi, box.height / fig.dpi
 
 
 def _notation(fig: Figure, name: str, entries: "Sequence[tuple[str, str]]",
-              left_in: float, top: float, bottom: float) -> None:
-    """Define, once per figure, every symbol that figure uses.
+              left_in: float, bottom_in: float, height_in: float) -> None:
+    """The symbols this figure uses, as a two-column table.
 
-    A definition list in the reserved right-hand column: symbol, then one line
-    of plain words. No ranges and no values -- those are on the plots and in
-    ``rank_decision_table.tsv``, and repeating them here is what turned an
-    earlier symbol table into three pages of the same text.
+    The left column carries the symbol *and*, where the formula is the
+    definition, the formula: that is what keeps the cells to one headline
+    expression each instead of a stack of five. The right column is a short
+    noun phrase, not a sentence -- written as sentences the same fourteen rows
+    need 6.98in of a 5.91in card.
 
-    Glosses are wrapped by measurement, and a column that would not hold its
-    own entries fails the build rather than running off the page.
+    Row heights are measured, not assumed: a row whose symbol is a built-up
+    fraction is taller than one whose symbol is a letter, and at a fixed height
+    the fractions printed over the row beneath them.
+
+    Every symbol here appears on this figure and nowhere else in the series; an
+    earlier version carried one general table repeated on all four pages, which
+    is why that one was deleted.
     """
-    width, height = fig.get_size_inches()
-    gloss_in = _NOTE_W_IN - _NOTE_PAD_IN - _NOTE_SYM_IN - _NOTE_GAP_IN
-    x_sym = (left_in + _NOTE_PAD_IN) / width
-    x_gloss = (left_in + _NOTE_PAD_IN + _NOTE_SYM_IN + _NOTE_GAP_IN) / width
+    w_fig, h_fig = fig.get_size_inches()
+    x0 = left_in + _CARD_PAD_IN
+    tbl_w = _NOTE_W_IN - 2.0 * _CARD_PAD_IN
+    sym_x = x0 + _TBL_PAD_IN
+    def_x = x0 + _NOTE_SYM_IN + _TBL_PAD_IN
+    sym_room = _NOTE_SYM_IN - 2.0 * _TBL_PAD_IN
+    def_room = _NOTE_DEF_IN - 2.0 * _TBL_PAD_IN
+    top = bottom_in + height_in
+
+    y = top - _CARD_PAD_IN
+    fig.text(x0 / w_fig, (y - _SECT_IN * 0.62) / h_fig,
+             "Notation and definitions", fontsize=_MAIN["note_head"],
+             fontweight="bold", color=_BK, ha="left", va="baseline")
+    y -= _SECT_IN
+    fig.text(x0 / w_fig, (y - _SUB_IN * 0.52) / h_fig,
+             "Symbols and formulas used on this figure",
+             fontsize=_MAIN["note_sub"], color=_GR, ha="left", va="baseline")
+    y -= _SUB_IN
+
+    rows: "list[tuple[str, str, float]]" = []
+    for sym, gloss in entries:
+        wrapped = _wrap_to(fig, gloss, def_room, _MAIN["note_gloss"])
+        sym_w, sym_h = _measure(fig, sym, _MAIN["note_sym"])
+        if sym_w > sym_room:
+            raise AssertionError(
+                f"{name}: notation entry {sym!r} is {sym_w:.2f}in in a "
+                f"{sym_room:.2f}in column")
+        gloss_h = _TBL_LINE_IN * (wrapped.count("\n") + 1)
+        rows.append((sym, wrapped,
+                     max(gloss_h, sym_h + 0.05) + _TBL_ROWPAD_IN))
+
+    need = _TBL_HEAD_IN + sum(h for _, _, h in rows)
+    have = y - (bottom_in + _CARD_PAD_IN)
+    if need > have:
+        raise AssertionError(
+            f"{name}: the notation table needs {need:.2f}in for "
+            f"{len(entries)} rows but the card has {have:.2f}in")
+
+    _panel(fig, x0, y - need, tbl_w, need, face=_CARD, edge=_RULE, lw=1.0,
+           zorder=-4.0)
+    _panel(fig, x0, y - _TBL_HEAD_IN, tbl_w, _TBL_HEAD_IN, face=_HEAD_FILL,
+           edge=_RULE, lw=1.0, zorder=-3.8)
+    for label, x in (("Notation", sym_x), ("Definition", def_x)):
+        fig.text(x / w_fig, (y - _TBL_HEAD_IN * 0.68) / h_fig, label,
+                 fontsize=_MAIN["note_col"], fontweight="bold", color=_BK,
+                 ha="left", va="baseline")
+    y -= _TBL_HEAD_IN
+    body_top = y
+
+    for i, (sym, gloss, row_h) in enumerate(rows):
+        mid = y - row_h / 2.0
+        fig.text(sym_x / w_fig, mid / h_fig, sym, fontsize=_MAIN["note_sym"],
+                 color=_BK, ha="left", va="center")
+        fig.text(def_x / w_fig, mid / h_fig, gloss,
+                 fontsize=_MAIN["note_gloss"], color=_GR, ha="left",
+                 va="center", linespacing=1.30)
+        y -= row_h
+        if i < len(rows) - 1:
+            _rule(fig, x0, x0 + tbl_w, y)
 
     fig.lines.append(plt.Line2D(
-        [(left_in - _GUTTER_IN * 0.42) / width] * 2, [bottom, top + 0.014],
-        transform=fig.transFigure, color=_HAIR, linewidth=1.1))
-    fig.text(x_sym, top, "Notation and definitions", fontsize=_MAIN["note_head"],
-             fontweight="bold", color=_BK, ha="left", va="bottom")
-
-    have_in = (top - bottom) * height
-    wrapped = [(sym, _wrap_to(fig, gloss, gloss_in, _MAIN["note_gloss"]))
-               for sym, gloss in entries]
-    need_in = sum(_NOTE_LINE_IN * (g.count("\n") + 1) + _NOTE_ENTRY_IN
-                  for _, g in wrapped)
-    if need_in > have_in:
-        raise AssertionError(
-            f"{name}: the notation column needs {need_in:.2f}in for "
-            f"{len(entries)} entries but has {have_in:.2f}in")
-
-    y = top - 0.34 / height
-    for sym, gloss in wrapped:
-        t = fig.text(x_sym, y, sym, fontsize=_MAIN["note_sym"], color=_BK,
-                     ha="left", va="top")
-        used = t.get_window_extent(renderer=fig.canvas.get_renderer())
-        if used.width / fig.dpi > _NOTE_SYM_IN:
-            raise AssertionError(
-                f"{name}: notation symbol {sym!r} is "
-                f"{used.width / fig.dpi:.2f}in in a {_NOTE_SYM_IN:.2f}in column")
-        fig.text(x_gloss, y, gloss, fontsize=_MAIN["note_gloss"], color=_GR,
-                 ha="left", va="top", linespacing=1.34)
-        y -= (_NOTE_LINE_IN * (gloss.count("\n") + 1) + _NOTE_ENTRY_IN) / height
+        [(x0 + _NOTE_SYM_IN) / w_fig] * 2, [y / h_fig, body_top / h_fig],
+        transform=fig.transFigure, color=_RULE, linewidth=1.0, zorder=-3.5))
 
 
-def _series_footer(fig: Figure, name: str, x0: float, y: float) -> None:
+def _series_footer(fig: Figure, name: str, x_in: float, y_in: float) -> None:
     """Stamp which of the three this is, so the three read as one argument."""
+    w_fig, h_fig = fig.get_size_inches()
     names = [n for n, _ in FIGURE_SERIES]
     i = names.index(name)
-    fig.text(x0, y,
+    fig.text(x_in / w_fig, y_in / h_fig,
              f"{i + 1} of {len(names)} · {FIGURE_SERIES[i][1]}",
-             fontsize=_MAIN["foot"], color=_DIM, ha="left", va="bottom",
+             fontsize=_MAIN["foot"], color=_DIM, ha="left", va="baseline",
              fontstyle="italic")
 
 
 class _Cell:
-    """One step of the argument: a heading, a plot, equations, an answer.
+    """One step of the argument: a heading, a plot, one equation, an answer.
 
     Filled in by the figure that owns it; :func:`_story_row` places all of them
-    and is the only thing that knows where anything goes.
+    and is the only thing that knows where anything goes. The equation is the
+    headline one; the derivation behind it belongs in the notation table.
     """
 
     def __init__(self, head: str, *, colour: str = _BK, plot: bool = True,
@@ -245,91 +373,132 @@ def _story_row(
     cells: "Sequence[_Cell]",
     notation: "Sequence[tuple[str, str]]",
     *,
-    plot_in: float = _PLOT_IN,
-    eq_lines: int = 2,
+    eq_lines: int = 1,
 ) -> Figure:
-    """Lay out one figure of the argument: a row of cells joined by arrows.
+    """Lay out one figure of the argument: two cards on one page.
 
     Every figure in this stage goes through here. That is what makes the three
     read as one thing -- four figures each with its own layout was what made an
     earlier version of this argument impossible to follow.
 
-    Each cell is measured against its own column; an equation or an answer that
-    would run into the next cell fails the build rather than being drawn over
-    its neighbour. ``notation`` fills the reserved column on the right, one
-    ``(symbol, gloss)`` per row, and is held to the same rule.
+    Left card: a row of cell boxes joined by arrows, each a heading, a plot,
+    the headline equation and the answer it reaches. Right card: the notation
+    table. The canvas is the same size on all three, and the plot band takes
+    whatever the equations leave, so nothing has to be rescaled between pages.
+
+    Each cell is measured against its own box; a heading, an equation or an
+    answer that would run past it fails the build rather than being drawn over
+    its neighbour.
     """
-    width = FIGURE_SIZE[0]
-    inner = width - 2.0 * _SIDE_IN - _NOTE_W_IN - _GUTTER_IN
+    width, height = FIGURE_SIZE
     n = len(cells)
+    body_h = height - _TITLE_IN - _FOOT_IN
+    body_top = height - _TITLE_IN
+    left_w = width - 2.0 * _SIDE_IN - _NOTE_W_IN - _CARD_GAP_IN
+    usable = left_w - 2.0 * _CARD_PAD_IN
     fixed = sum(c.width for c in cells if c.width is not None)
     flex = [c for c in cells if c.width is None]
-    w_flex = (inner - (n - 1) * _GUTTER_IN - fixed) / max(len(flex), 1)
+    w_flex = (usable - (n - 1) * _GUTTER_IN - fixed) / max(len(flex), 1)
     widths = [c.width if c.width is not None else w_flex for c in cells]
+    lefts = [_SIDE_IN + _CARD_PAD_IN + sum(widths[:i]) + i * _GUTTER_IN
+             for i in range(n)]
 
-    eq_in = 0.28 + 0.46 * eq_lines
-    lead_w = width - 2.0 * _SIDE_IN   # the lead runs over the notation column
-    probe = plt.figure(figsize=(width, 3.0))
-    lead_lines = _wrap_to(probe, lead, lead_w, _MAIN["lead"]).count("\n") + 1
-    plt.close(probe)
-    lead_in = _LEAD_IN + 0.30 * (lead_lines - 1)
-    height = (_TITLE_IN + lead_in + _STEP_IN + plot_in + _XLABEL_IN
-              + eq_in + _ANSWER_IN + _FOOT_IN)
+    box_h = body_h - 2.0 * _CARD_PAD_IN - _SECT_IN - _SUB_IN
+    eq_in = _EQ_LINE_IN * eq_lines
+    plot_in = (box_h - 2.0 * _BOX_PAD_IN - _STEP_IN - _XLABEL_IN - eq_in
+               - _ANSWER_IN)
+    if plot_in < 1.8:
+        raise AssertionError(
+            f"{name}: {eq_lines} equation lines leave only {plot_in:.2f}in "
+            f"for the plots on a {height:.1f}in page")
 
     fig = plt.figure(figsize=(width, height))
-    x0 = _SIDE_IN / width
-    lefts = [_SIDE_IN + sum(widths[:i]) + i * _GUTTER_IN for i in range(n)]
-    y_ans = _FOOT_IN / height
-    y_eq = y_ans + _ANSWER_IN / height
-    y_plot = y_eq + (eq_in + _XLABEL_IN) / height
-    y_step = y_plot + (plot_in + _STEP_IN * 0.34) / height
+    fig.patch.set_facecolor(_CARD)
+    box_bottom = _FOOT_IN + _CARD_PAD_IN
+    _panel(fig, _SIDE_IN, _FOOT_IN, left_w, body_h, face=_PAGE, edge=_RULE)
+    _panel(fig, width - _SIDE_IN - _NOTE_W_IN, _FOOT_IN, _NOTE_W_IN, body_h,
+           face=_PAGE, edge=_RULE)
 
     def fits(t, i: int, what: str) -> None:
-        box = t.get_window_extent(renderer=fig.canvas.get_renderer())
-        used = box.width / fig.dpi
-        if used > widths[i] + 0.04:
+        room = widths[i] - 2.0 * _BOX_PAD_IN
+        used = t.get_window_extent(
+            renderer=fig.canvas.get_renderer()).width / fig.dpi
+        if used > room + 0.04:
             raise AssertionError(
                 f"{name} cell {i + 1}: {what} is {used:.2f}in wide in a "
-                f"{widths[i]:.2f}in column — {t.get_text()[:44]!r}")
+                f"{room:.2f}in box — {t.get_text()[:44]!r}")
+
+    # the page: title, its rule, and the footer
+    fig.text(_SIDE_IN / width, (height - _TITLE_IN * 0.60) / height, title,
+             fontsize=_MAIN["title"], fontweight="bold", color=_BK, ha="left",
+             va="baseline")
+    _rule(fig, _SIDE_IN, width - _SIDE_IN, height - _TITLE_IN + 0.16,
+          colour=_HAIR, lw=1.3)
+    _series_footer(fig, name, _SIDE_IN, _FOOT_IN * 0.46)
+
+    # the left card: what this page is, then the row of steps
+    y = body_top - _CARD_PAD_IN
+    fig.text((_SIDE_IN + _CARD_PAD_IN) / width, (y - _SECT_IN * 0.62) / height,
+             _SECTION[name], fontsize=_MAIN["section"], fontweight="bold",
+             color=_BK, ha="left", va="baseline")
+    y -= _SECT_IN
+    sub = _wrap_to(fig, lead, usable, _MAIN["subtitle"])
+    if "\n" in sub:
+        raise AssertionError(
+            f"{name}: the subtitle wraps to {sub.count(chr(10)) + 1} lines in "
+            f"{usable:.2f}in; it is meant to be one")
+    fig.text((_SIDE_IN + _CARD_PAD_IN) / width, (y - _SUB_IN * 0.52) / height,
+             sub, fontsize=_MAIN["subtitle"], color=_GR, ha="left",
+             va="baseline")
+
+    y_ans = box_bottom + _BOX_PAD_IN
+    y_eq = y_ans + _ANSWER_IN
+    y_plot = y_eq + eq_in + _XLABEL_IN
+    y_step = y_plot + plot_in + _STEP_IN * 0.28
 
     for i, c in enumerate(cells):
-        c.ax = fig.add_axes((lefts[i] / width, y_plot, widths[i] / width,
-                             plot_in / height))
+        _panel(fig, lefts[i], box_bottom, widths[i], box_h, face=_CARD,
+               edge=c.colour if c.colour != _BK else _RULE, lw=1.3)
+        c.ax = fig.add_axes((
+            (lefts[i] + (_BOX_PAD_IN if not c.plot else _AX_LEFT_IN)) / width,
+            y_plot / height,
+            (widths[i] - (2.0 * _BOX_PAD_IN if not c.plot
+                          else _AX_LEFT_IN + _AX_RIGHT_IN)) / width,
+            (plot_in - (0.0 if not c.plot else _AX_TOP_IN)) / height))
         if not c.plot:
             _note_axis(c.ax)
-        t = fig.text(lefts[i] / width, y_step, f"{i + 1} ·  {c.head}",
-                     fontsize=_MAIN["step"], fontweight="bold", ha="left",
-                     va="bottom", color=c.colour)
+        t = fig.text((lefts[i] + _BOX_PAD_IN) / width, y_step / height,
+                     f"{i + 1} ·  {c.head}", fontsize=_MAIN["step"],
+                     fontweight="bold", ha="left", va="bottom", color=c.colour)
         fits(t, i, "a heading")
         if i:
-            _arrow(fig, (lefts[i] - _GUTTER_IN / 2.0) / width, y_step)
+            _arrow(fig, lefts[i] - _GUTTER_IN / 2.0, box_bottom + box_h / 2.0)
 
     def draw_text() -> None:
         for i, c in enumerate(cells):
+            if len(c.equations) > eq_lines:
+                raise AssertionError(
+                    f"{name} cell {i + 1}: {len(c.equations)} equations in a "
+                    f"{eq_lines}-line band")
             for j, tex in enumerate(c.equations):
-                t = fig.text(lefts[i] / width,
-                             y_eq + (eq_in - 0.28 - j * 0.46) / height, tex,
-                             fontsize=_MAIN["equation"], ha="left",
+                t = fig.text((lefts[i] + _BOX_PAD_IN) / width,
+                             (y_eq + eq_in - _EQ_LINE_IN * (j + 0.5)) / height,
+                             tex, fontsize=_MAIN["equation"], ha="left",
                              va="center", color=_BK)
                 fits(t, i, "an equation")
             if c.answer is not None:
                 text, colour = c.answer
-                t = fig.text(lefts[i] / width, y_ans + 0.10 / height, text,
+                t = fig.text((lefts[i] + _BOX_PAD_IN) / width,
+                             (y_ans + 0.08) / height, text,
                              fontsize=_MAIN["answer"], fontweight="bold",
                              ha="left", va="bottom", color=colour)
                 fits(t, i, "the answer")
 
-    fig.suptitle(title, fontsize=_MAIN["suptitle"], fontweight="bold",
-                 y=1.0 - 0.46 / height)
-    fig.text(x0, 1.0 - (_TITLE_IN + 0.16) / height,
-             _wrap_to(fig, lead, lead_w, _MAIN["lead"]),
-             fontsize=_MAIN["lead"], color=_GR, ha="left", va="top",
-             linespacing=1.4)
-    _notation(fig, name, notation, _SIDE_IN + inner + _GUTTER_IN,
-              y_step, y_ans)
-    _series_footer(fig, name, x0, 0.30 / height)
+    _notation(fig, name, notation, width - _SIDE_IN - _NOTE_W_IN, _FOOT_IN,
+              body_h)
     fig._draw_story_text = draw_text  # type: ignore[attr-defined]
     return fig
+
 
 def _walk(decision_table: pd.DataFrame, rgv_column: str):
     """The three quantities every figure here is about, in walk order.
@@ -390,62 +559,53 @@ def plot_problem(
     flips = _reversals(sep)
 
     power = _Cell("statistical power").says(
-        r"$N_{\mathrm{eff},k} = \dfrac{4\,N_{\mathrm{case}}N_{\mathrm{ctrl}}}"
-        r"{N_{\mathrm{case}} + N_{\mathrm{ctrl}}}"
-        r" = N_{\mathrm{tot}}\dfrac{4r}{(1+r)^2}$",
-        r"$r = N_{\mathrm{case}}/N_{\mathrm{ctrl}}$").concludes(
-        f"rises with $k$ — {neff[-1]:,.0f} effective")
+        r"$N_{\mathrm{eff},k} = 4N_{\mathrm{case}}N_{\mathrm{ctrl}}"
+        r"/N_{\mathrm{tot}}$").concludes(
+        f"rises to {neff[-1]:,.0f} effective")
     spread = _Cell("residual stratification").says(
-        rf"$H_k = \left|\Sigma_k\right|^{{1/2d}}"
-        rf" = \left(\prod_i\lambda_i\right)^{{1/2d}}\!,\; d = {d}$").concludes(
+        rf"$H_k = \left|\Sigma_k\right|^{{1/2d}},\; d = {d}$").concludes(
         "rises with $k$ too")
     shift = _Cell(f"{case_label}$-${control_label} shift", colour=_THIRD).says(
-        r"$\hat{D}^2_k = \Delta\bar{x}^{\mathsf{T}} S^{-1} \Delta\bar{x},"
-        r"\quad b_k = d\left(\frac{1}{N_{\mathrm{case}}}"
-        r"+\frac{1}{N_{\mathrm{ctrl}}}\right)$",
-        r"$\mathbb{E}\!\left[\hat{D}^2_k\right] = D^2_k + b_k"
-        r" \;\Rightarrow\; s_k = \hat{D}^2_k - b_k$",
-        r"$T^2 = \hat{D}^2_k\dfrac{N_{\mathrm{case}}N_{\mathrm{ctrl}}}"
-        r"{N_{\mathrm{tot}}}, \quad \nu = N_{\mathrm{tot}} - 2$",
-        r"$F = \dfrac{\nu-d+1}{d\,\nu}T^2 \sim F_{d,\,\nu-d+1}$",
-        r"$P_k = \Pr\!\left(F_{d,\,\nu-d+1} > F\right)$").concludes(
-        f"reverses {flips}×; {int(sig.sum())} of {len(pval)} at $P < 0.05$",
-        _THIRD)
+        r"$s_k = \hat{D}^2_k - b_k$").concludes(
+        f"reverses {flips}×, not monotone", _THIRD)
 
+    # The left column carries the formula wherever the formula is the
+    # definition. That is what lets each cell above keep to one headline
+    # expression: the derivation behind s_k, and the F test the significance
+    # marks come from, are here rather than stacked under the third plot.
     notation = [
-        ("$k$", f"the cut: components ranked by {case_label}/{control_label} "
-                f"ratio, cut $k$ keeps the top $k$"),
-        ("$d$", "mainland PCA axes carried along the walk"),
-        (r"$N_{\mathrm{case}},\,N_{\mathrm{ctrl}}$",
-         "samples in each arm at that cut"),
-        (r"$N_{\mathrm{tot}},\,r$", "the two arms together, and their ratio"),
-        (r"$N_{\mathrm{eff},k}$",
-         "effective size: the balanced study of equal power"),
-        (r"$\Sigma_k,\,\lambda_i$",
-         "covariance of the retained set, and its eigenvalues"),
-        ("$H_k$", "root generalized variance: the spread that survives"),
-        ("$S$", "within-arm covariance, pooled over the two arms"),
-        (r"$\Delta\bar{x}$",
-         f"{case_label} centroid minus {control_label} centroid"),
-        (r"$\hat{D}^2_k$", "squared gap between the arms, in units of $S$"),
-        ("$b_k$", "the gap sampling alone leaves when the arms are one people"),
-        ("$s_k$", "that gap with the floor taken off — the comparable one"),
-        (r"$T^2,\,\nu$",
-         "Hotelling's statistic and its degrees of freedom"),
-        ("$P_k$", "chance of a gap this large were the arms one people"),
+        ("$k$", "Cut index; the top $k$ of "
+                f"{int(rank.max())} ranked components."),
+        (f"$d = {d}$", "Mainland PCA axes retained."),
+        (r"$N_{\mathrm{case}},\,N_{\mathrm{ctrl}},\,N_{\mathrm{tot}}$",
+         "Arm sizes and their sum."),
+        (r"$N_{\mathrm{eff},k}$", "Effective sample size."),
+        (r"$\Sigma_k,\;\lambda_i$",
+         "Retained-set covariance and eigenvalues."),
+        ("$H_k$", "Root generalized variance."),
+        (r"$S,\;\Delta\bar{x}$",
+         "Pooled within-arm covariance; centroid gap."),
+        (r"$\hat{D}^2_k = \Delta\bar{x}^{\mathsf{T}}S^{-1}\Delta\bar{x}$",
+         "Squared Mahalanobis gap."),
+        (r"$b_k = d\left(\frac{1}{N_{\mathrm{case}}}"
+         r"+\frac{1}{N_{\mathrm{ctrl}}}\right)$",
+         "Sampling floor under that gap."),
+        (r"$\mathbb{E}[\hat{D}^2_k] = D^2_k + b_k$",
+         "Why the floor is subtracted."),
+        (r"$T^2 = \hat{D}^2_k N_{\mathrm{case}}N_{\mathrm{ctrl}}"
+         r"/N_{\mathrm{tot}}$", "Hotelling's two-sample statistic."),
+        (r"$F = \frac{\nu-d+1}{d\nu}T^2 \sim F_{d,\nu-d+1}$",
+         r"Exact $F$ transform; $\nu = N_{\mathrm{tot}}-2$."),
+        (r"$P_k = \Pr(F_{d,\nu-d+1} > F)$",
+         "Tail probability under one population."),
     ]
 
     fig = _story_row(
         "00_problem",
         "The problem — a wider set has more power and more residual structure",
-        f"The major cluster splits into {int(rank.max())} components. Order them "
-        f"by {case_label}/{control_label} ratio and let cut $k$ keep the top $k$: "
-        f"one nested set per $k$. Three quantities move along that walk, and no "
-        f"cut is best on all three. The third needs care: the retained set grows "
-        f"more than tenfold along the walk, so the gap two arms show by sampling "
-        f"alone shrinks with it. Subtract that floor $b_k$, or a raw distance "
-        f"falls across the walk for arithmetic reasons and reads as progress.",
-        (power, spread, shift), notation, eq_lines=5)
+        f"{int(rank.max())} components ranked by {case_label}/{control_label} "
+        f"ratio; cut $k$ keeps the top $k$. No cut is best on all three.",
+        (power, spread, shift), notation, eq_lines=1)
 
     ax = power.ax
     ax.fill_between(rank, neff, n1 + n2, color=_MUTED, alpha=0.75, zorder=2,
@@ -487,8 +647,7 @@ def plot_problem(
             markeredgecolor="white", markeredgewidth=1.0, linestyle="none",
             label=rf"$P < 0.05$ ({int(sig.sum())} of {len(pval)})")
     ax.plot(rank[~sig], sep[~sig], "^", color="white", markersize=6.0, zorder=5,
-            markeredgecolor=_THIRD, markeredgewidth=1.4, linestyle="none",
-            label=r"$P \geq 0.05$")
+            markeredgecolor=_THIRD, markeredgewidth=1.4, linestyle="none")
     ax.set_xticks(rank[::4])
     ax.set_ylim(top=float(np.nanmax(d2)) * 1.62)
     ax.set_xlabel("cut $k$", fontsize=_MAIN["axis"], labelpad=3)
@@ -536,50 +695,41 @@ def plot_tradeoff(
 
     nar, inter = _EDGE["narrow"], _EDGE["intermediate"]
     price = _Cell("price the walk", colour=nar).says(
-        r"$\gamma = \dfrac{N_{\mathrm{eff},K} - N_{\mathrm{eff},1}}{H_K - H_1}$"
-        rf"$\;=\;{gamma:,.0f}$",
-        r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1}) - \gamma(H_k - H_1)$",
-        r"$k_{\mathrm{narrow}} = \arg\max_k E_k$").concludes(
+        r"$E_k = (N_{\mathrm{eff},k} - N_{\mathrm{eff},1})"
+        r" - \gamma(H_k - H_1)$").concludes(
         rf"$\Rightarrow$  narrow, $k$ = {k_nar}")
-    blend = _Cell("blend, take the nearest", colour=inter).says(
-        r"$\tilde{u}_k(w) = \mathrm{minmax}\!\left(w\tilde{H}_k "
-        r"+ (1-w)\tilde{s}_k\right)$",
-        r"$k^{*}(w) = \arg\min_k \sqrt{\tilde{u}_k(w)^{2} "
-        r"+ (1-\tilde{N}_k)^{2}}$",
-        rf"drawn at $w = {blend_weight:g}$ — one slice").concludes(
+    blend = _Cell(rf"blend at $w = {blend_weight:g}$", colour=inter).says(
+        r"$\tilde{u}_k = \mathrm{minmax}(w\tilde{H}_k + (1-w)\tilde{s}_k)$",
+        r"$k^{*} = \arg\min_k \sqrt{\tilde{u}_k^{2} "
+        r"+ (1-\tilde{N}_k)^{2}}$").concludes(
         rf"$\Rightarrow$  intermediate, $k$ = {k_int}")
-    weight = _Cell(r"and $w$ does not decide it", colour=inter).says(
-        r"$w \geq \frac{1}{2} \;\Longleftrightarrow\; w \geq 1 - w$").concludes(
+    weight = _Cell(r"$w$ does not decide it", colour=inter).says(
+        r"$w \geq \frac{1}{2} \Longleftrightarrow w \geq 1 - w$").concludes(
         rf"$k^{{*}}$ = {k_int} on a plateau of $w$")
 
     notation = [
-        ("$k$", f"the cut: the top $k$ of {int(rank.max())} ranked components"),
-        (r"$N_{\mathrm{eff},k}$", "effective size — figure 1 of 3"),
-        ("$H_k$", "residual spread of the retained set"),
-        ("$s_k$", "arm shift with the sampling floor removed"),
-        (r"$\gamma$",
-         r"average rate: effective samples bought per unit of $H$"),
-        ("$E_k$",
-         r"how far cut $k$ beats that average rate, end to end"),
-        (r"$\tilde{x}$",
-         r"a tilde is min-max onto $[0,1]$, over the 17 cuts"),
-        ("$w$", r"weight on $\tilde{H}$; $1-w$ goes to $\tilde{s}$"),
-        (r"$\tilde{u}_k(w)$",
-         "the blend of the two, rescaled again so the plane is square"),
-        (r"$k^{*}(w)$",
-         r"the cut nearest the ideal corner at that $w$"),
+        ("$k$", f"Cut index; the top $k$ of {int(rank.max())} components."),
+        (r"$N_{\mathrm{eff},k},\;H_k,\;s_k$",
+         "The three quantities of figure 1 of 3."),
+        (r"$\gamma = \frac{N_{\mathrm{eff},K}-N_{\mathrm{eff},1}}{H_K-H_1}$",
+         "Average exchange rate over the walk."),
+        ("$E_k$", "Excess over that rate, end to end."),
+        (r"$k_{\mathrm{narrow}} = \arg\max_k E_k$",
+         "Cut that beats the rate by most."),
+        (r"$\tilde{x}$", r"Min-max onto $[0,1]$ over the 17 cuts."),
+        ("$w$", r"Weight on $\tilde{H}$; $1-w$ on $\tilde{s}$."),
+        (r"$\tilde{u}_k(w)$", "The blend, rescaled again."),
+        (r"$\tilde{N}_k$", "Effective size on the same scale."),
+        (r"$k^{*}(w)$", "Cut nearest the ideal corner."),
     ]
 
     fig = _story_row(
         "01_tradeoff",
         "The trade-off — one rate prices two of them, and nothing prices the third",
-        "Power and residual stratification move together, so the walk has a "
-        "single average rate and every cut can be scored against it. The "
-        f"{case_label}$-${control_label} shift does not — it reverses {flips} "
-        "times along the walk (figure 1 of 3), so there is no rate to read off "
-        "it. That is why there are two criteria and not one: one prices the "
-        "pair, the other blends all three and takes the nearest cut.",
-        (price, blend, weight), notation, eq_lines=3)
+        f"Power and stratification move together and share one rate; the "
+        f"{case_label}$-${control_label} shift reverses {flips} times and has "
+        f"none. Hence two criteria, not one.",
+        (price, blend, weight), notation, eq_lines=2)
 
     ax = price.ax
     i_nar = int(np.argmin(np.abs(rank - k_nar)))
@@ -685,16 +835,13 @@ def plot_cohorts(
         return float(to_numeric_array(r[col])[0])
 
     notation = [
-        ("$k$", f"the cut: the top $k$ of {int(rank.max())} ranked components"),
-        (r"$N_{\mathrm{eff},k}$",
-         "effective size: the balanced study of equal power"),
-        ("$H_k$", "residual spread of the retained set, on 4 mainland axes"),
-        (r"$\subset$",
-         "nesting: every cut keeps everything the tighter cut keeps"),
-        ("narrow", r"stops at $\arg\max_k E_k$ — the best rate on the walk"),
-        ("intermediate",
-         r"stops at $k^{*}$ — nearest the ideal corner of the blend"),
-        ("full", "stops nowhere: every component of the major cluster"),
+        ("$k$", f"Cut index; the top $k$ of {int(rank.max())} components."),
+        (r"$N_{\mathrm{eff},k}$", "Effective sample size."),
+        ("$H_k$", "Residual spread on 4 mainland axes."),
+        (r"$\subset$", "Nesting of the three cohorts."),
+        ("narrow", r"Stops at $\arg\max_k E_k$."),
+        ("intermediate", r"Stops at $k^{*}$, nearest the ideal corner."),
+        ("full", "Every component of the major cluster."),
     ]
 
     where = _Cell("where the three stop")
@@ -703,10 +850,9 @@ def plot_cohorts(
 
     fig = _story_row(
         "02_cohorts", "The three cohorts",
-        "Two criteria stop the walk in two places; taking every component is the "
-        "third. They are nested, so this is a choice of where to stop along one "
-        f"walk. Cuts resolved in mode: {mode}.",
-        (where, which), notation, plot_in=4.20, eq_lines=0)
+        "Two criteria stop the walk in two places; taking every component is "
+        f"the third. They are nested. Cuts resolved in mode: {mode}.",
+        (where, which), notation, eq_lines=0)
 
     ax = where.ax
     ax.plot(het, neff, "-o", color=_GR, markersize=4.6, linewidth=1.5,
