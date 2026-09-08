@@ -11,20 +11,22 @@ rises as more components are included. Residual genetic spread rises too, and is
 reported in two bases that are never compared with each other: ``RGV_Global`` on
 the global PCA's PC1-PC2, and ``RGV_Mainland`` on a PCA fitted to the major
 cluster, over as many axes as the caller asks for. ``rgv_basis`` picks which one
-the Pareto front and the distance-to-ideal score are computed from.
+both criteria are computed from.
 
 The global PCA's leading axes separate the major cluster from the other regions,
 so within it they are nearly constant; a major-cluster PCA spends its axes on the
 structure that actually remains. That is the reason for the second basis.
 
 Alongside the trade-off, each cumulative set carries a case/control separation
-diagnostic -- how far the two group centroids sit apart within the retained set,
-which residual spread cannot express. It is reported in the same two bases and
+diagnostic -- how far the two arm centroids sit apart within the retained set,
+which residual structure cannot express. It is reported in the same two bases and
 is never optimised against; ``scripts.common.case_ctrl_separation`` gives the
 three reasons why.
 
-This module produces evidence, not a decision. A cut may be forced by the
-caller; otherwise the Pareto optimum is reported.
+This module produces the evidence *and* the cuts: it applies each variant's
+rule to the table it just built, and hands the resolved cuts on. A cut may be
+pinned by the caller instead; either way both answers are computed and recorded
+side by side in ``cut_record.tsv``.
 
 Inputs
 ------
@@ -32,8 +34,9 @@ Cohort assignment results, the merge map, the fitted mixture, case/control lists
 
 Outputs
 -------
-Component rank table, cumulative metrics, decision table, the trade-off figure,
-and a supplementary case/control separation figure (PNG + PDF).
+Three tables -- the component ranking, the decision table carrying every number
+at every cut, and the cut record -- and three figures that read as one argument:
+the three quantities, the two criteria, and the three cohorts.
 """
 
 from __future__ import annotations
@@ -69,16 +72,18 @@ _SEPARATION_NAN = _CaseControlSeparation(
 )
 
 
-#: Weight at which residual spread and case/control separation are given equal
+#: Weight at which residual structure and the case/control shift are given equal
 #: say when the intermediate cut is derived. Stated rather than fitted: no data
 #: can supply it, and sweeping it (``_weight_sweep``) is what shows the answer
 #: does not hinge on the value. Equal weight is the one choice that needs no
 #: argument for preferring either measure.
 INTERMEDIATE_BLEND_WEIGHT: float = 0.5
 
-#: Operator names written to ``cut_record.tsv``. Which one applies to a
-#: cut follows from the geometry of its objective space, not from a choice; see
-#: ``_choose_operator``.
+#: Operator names written to ``cut_record.tsv``. Which one applies to a cut
+#: follows from the geometry of its objective space rather than from a
+#: preference -- ``monotone`` and ``chord_span`` are recorded beside the answer
+#: so the pairing can be checked -- but the pairing itself is written into
+#: ``resolve_rank_cuts``, not inferred at run time.
 OPERATOR_EXCESS_RETURN = "peak_excess_return"
 OPERATOR_NEAREST_IDEAL = "nearest_ideal"
 OPERATOR_WHOLE_CLUSTER = "whole_cluster"
@@ -106,17 +111,13 @@ class RankSelectionConfig:
     """Configuration for the rank-selection trade-off analysis."""
 
     output_dir: str | Path = "results/03_rank_selection"
-    # Two numbered figures, in reading order; tables carry descriptive names
+    # Three numbered figures, in reading order; tables carry descriptive names
     # because they are reference rather than steps of the argument.
     problem_figure_file: str = "00_problem.png"
     tradeoff_figure_file: str = "01_tradeoff.png"
     cohorts_figure_file: str = "02_cohorts.png"
     rank_table_file: str = "component_ranking.tsv"
     decision_table_file: str = "rank_decision_table.tsv"
-
-    # Supplementary case/control separation figure, in the mainland basis over
-    # the same axes as RGV_Mainland. Only written when a mainland projection was
-    # supplied, since without one its four columns are all NaN.
 
     # Variant name -> declared cut: an int pins it, "auto" defers to that
     # variant's rule, "full" is the uncut set. The stage resolves these and
@@ -132,8 +133,8 @@ class RankSelectionConfig:
     # cut_record.tsv, so switching cannot move a cut silently.
     rank_cut_mode: Literal["auto", "manual"] = "auto"
 
-    # Weight given to residual spread when the intermediate cut is derived; the
-    # remainder goes to case/control separation. Equal weight by default.
+    # Weight given to residual structure when the intermediate cut is derived;
+    # the remainder goes to the case/control shift. Equal weight by default.
     blend_weight: float = INTERMEDIATE_BLEND_WEIGHT
 
     cut_selection_file: str = "cut_record.tsv"
@@ -154,9 +155,9 @@ class RankSelectionConfig:
     # exists when `mainland_coordinates` is supplied.
     mainland_rgv_n_pcs: int = 2
 
-    # Which basis the Pareto front, the normalised utility and the recommended
-    # rank are computed from. Defaults to "global" so the stage behaves exactly
-    # as before unless a caller opts in.
+    # Which basis both criteria and the resolved cuts are computed from.
+    # Defaults to "global" so the stage behaves exactly as before unless a
+    # caller opts in.
     rgv_basis: Literal["global", "mainland"] = "global"
 
     # Last-resort override of the recommended rank, which is otherwise the
@@ -280,7 +281,7 @@ def _weight_sweep(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Which cut wins as the two homogeneity measures are re-weighted.
 
-    Residual spread and case/control separation disagree about which way to go:
+    Residual structure and the case/control shift disagree about which way to go:
     RGV rises monotonically with the cut, while the de-biased separation falls.
     Blending them therefore produces an interior optimum, where either alone
     would only trade against ``GWAS_Neff``.
@@ -329,8 +330,9 @@ class ObjectiveSpace(NamedTuple):
     structure: np.ndarray
     #: GWAS_Neff per cut, min-max normalised to [0, 1].
     power: np.ndarray
-    #: Whether the structure axis increases strictly with the cut. This decides
-    #: which operator is admissible -- see ``_choose_operator``.
+    #: Whether the structure axis increases strictly with the cut. A monotone
+    #: axis admits ``_excess_return``; a folded one leaves only
+    #: ``_nearest_ideal``. Recorded so the pairing can be checked.
     monotone: bool
     #: How far the structure axis travels between the first and last cut. A
     #: monotone axis spans the full [0, 1]; a folded one barely moves.
@@ -353,7 +355,7 @@ def _excess_return(
 
     Both quantities rise strictly with the cut here, so the walk has a
     well-defined average exchange rate -- how much ``GWAS_Neff`` one unit of
-    residual spread buys, taken end to end:
+    residual structure buys, taken end to end:
 
         rate = (N_K - N_1) / (H_K - H_1)
 
@@ -396,8 +398,9 @@ def _nearest_ideal(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None
     """The cut closest to the unattainable corner (no structure, all the power).
 
     What is left when the frontier is not a curve. A folded axis has no turn in
-    its exchange rate to find, so there is nothing for ``_knee`` to measure and
-    the remaining well-defined choice is proximity to the ideal corner.
+    its exchange rate to find, so there is nothing for ``_excess_return`` to
+    measure and the remaining well-defined choice is proximity to the ideal
+    corner.
     """
     x, y = space.structure, space.power
     ok = np.isfinite(x) & np.isfinite(y)
@@ -410,10 +413,10 @@ def _nearest_ideal(space: ObjectiveSpace, ranks: np.ndarray) -> tuple[int | None
 def _direction_reversals(values: np.ndarray) -> int:
     """How many times a series changes direction.
 
-    Zero for a monotone series. It is what separates the two cuts: residual
-    spread never reverses, so a rate can be read off it; case/control separation
-    reverses repeatedly, so it has no rate to read and must be combined with
-    something that does.
+    Zero for a monotone series. It is what separates the two criteria: residual
+    structure never reverses, so a rate can be read off it; the case/control
+    shift reverses repeatedly, so it has no rate to read and must be combined
+    with something that does.
     """
     v = np.asarray(values, dtype=np.float64)
     v = v[np.isfinite(v)]
@@ -456,15 +459,17 @@ def resolve_rank_cuts(
     ``full``          the major cluster itself -- every component of it. Not an
                       optimum of anything; it is the population the other two
                       are selected *within*.
-    ``narrow``        inside it, effective sample size and residual spread both
-                      rise strictly with the cut, so the walk has an average
+    ``narrow``        inside it, effective sample size and residual structure
+                      both rise strictly with the cut, so the walk has an average
                       exchange rate and ``_excess_return`` can ask which cut has
-                      bought the most power for its cost.
-    ``intermediate``  case/control separation does *not* fall monotonically as
-                      spread improves -- it reverses direction repeatedly -- so
-                      there is no rate to read off that axis. The two are
-                      combined into one parameter instead, and the cut nearest
-                      the ideal corner is taken.
+                      bought the most power for its cost. The case/control shift
+                      plays no part in this one.
+    ``intermediate``  the case/control shift does *not* fall monotonically as
+                      structure improves -- it reverses direction repeatedly --
+                      so there is no rate to read off that axis. It is blended
+                      into the structure axis instead, and the cut nearest the
+                      ideal corner is taken. This is the only criterion the shift
+                      has a vote in.
 
     That is why there are three: one population, one cut priced on the axis that
     has a price, and one that answers the axis that does not.
@@ -489,6 +494,10 @@ def resolve_rank_cuts(
     max_rank = int(ranks.max()) if ranks.size else 0
     w = float(blend_weight)
 
+    # These two strings reach cut_record.tsv's Structure_Counted column, and the
+    # keys below reach Axis_Reversals, so they are frozen: the prose and the
+    # figures now say "residual structure" and "case/control shift", but
+    # renaming these would change a committed table for a wording change.
     spread = _objective_space("residual spread", het, neff)
     blended = _objective_space(
         f"residual spread and case/control separation, weighted {w:g} / {1 - w:g}",
@@ -632,7 +641,7 @@ def run_rank_selection(
     of a major-cluster PCA; supplying it adds the RGV_Mainland column. It is a
     frame rather than a path because every other input to this stage is one.
 
-    Cumulative trade-off metrics (case/ctrl counts, Neff, residual spread) use
+    Cumulative trade-off metrics (case/ctrl counts, Neff, residual structure) use
     the same composite posterior recomputation the subcluster stage performs: for each k,
     the top-k clusters are merged into a composite group, posteriors are
     re-normalized, and assignment is via argmax.  This ensures consistency
@@ -906,7 +915,7 @@ def run_rank_selection(
         # out. All three are laid out by the same row framework.
         builders = (
             (config.problem_figure_file, lambda: plot_problem(
-                rank_table=rank_table, mainland_axes=mainland_axes,
+                mainland_axes=mainland_axes,
                 **{k: v for k, v in shared.items() if k != "cut_selection"})),
             (config.tradeoff_figure_file, lambda: plot_tradeoff(
                 objective_spaces=objective_spaces,
@@ -929,10 +938,10 @@ def run_rank_selection(
 
     if bool(config.verbose):
         print("\n" + "=" * 92)
-        print("RANK SELECTION: EFFECTIVE SAMPLE SIZE vs RESIDUAL SPREAD".center(92))
+        print("RANK SELECTION: THREE QUANTITIES, TWO CRITERIA".center(92))
         print("=" * 92)
         print(f"Mainland clusters ranked (top {max_rank}): {selected_clusters}")
-        _rec_source = "(forced)" if config.forced_recommended_rank is not None else "(Pareto-auto)"
+        _rec_source = "(forced)" if config.forced_recommended_rank is not None else "(rule)"
         print(f"Recommended rank k   : {recommended_rank}  {_rec_source}")
         print(f"Rank table saved      : {rank_table_path}")
         print(f"Decision table saved  : {decision_table_path}")

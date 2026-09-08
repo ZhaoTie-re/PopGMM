@@ -8,8 +8,9 @@ that structure as a probability density, and projects the study cohort into the
 fitted model — without letting study phenotypes influence ancestry estimation.
 
 The deliverable is a set of PLINK-compatible `--keep` files defining nested study
-subsets that make the trade-off between association power and residual
-heterogeneity explicit.
+cohorts. Three quantities are watched as the cohort widens — effective sample
+size, residual structure, and the case/control shift — and two stated criteria
+cut that walk, so the trade-off is explicit rather than hidden in a threshold.
 
 ---
 
@@ -19,11 +20,11 @@ Three nested sample lists, plus the same selection applied to the reference pane
 
 | File in `results/keep_lists/` | Contents |
 |---|---|
-| `narrow_mainland.fid_iid.txt` | Tightest cut — least residual spread, fewest samples |
-| `intermediate_mainland.fid_iid.txt` | Between narrow and full |
-| `full_mainland.fid_iid.txt` | Every component of the major cluster — the widest defensible set |
+| `narrow_mainland.fid_iid.txt` | `k` = 9 — effective sample size weighed against residual structure; the case/control shift plays no part |
+| `intermediate_mainland.fid_iid.txt` | `k` = 12 — effective sample size, residual structure and the case/control shift, all three weighed |
+| `full_mainland.fid_iid.txt` | `k` = 17 — nothing weighed: every major-cluster component, the population the other two are cut from |
 | `reference_full_mainland.fid_iid.txt` | Reference-panel samples in the same region |
-| `keep_list_summary.tsv` | The lists side by side: counts, balance, effective sample size, residual spread |
+| `keep_list_summary.tsv` | The lists side by side: the rank cut each came from, counts, balance, effective sample size, and residual structure in both bases |
 
 Each list is headerless, tab-separated `FID IID` — feed it straight to PLINK:
 
@@ -66,7 +67,7 @@ flowchart TB
     subgraph ASSIGN["② Study assignment — no refitting"]
         direction LR
         B1["<b>5</b> · Posterior projection<br/>membership probabilities<br/>+ confidence"]:::step
-        B2["<b>6</b> · Assess nested subsets<br/>N_eff vs RGV"]:::step
+        B2["<b>6</b> · Rank selection<br/>N_eff · residual structure · case/control shift<br/>two criteria fix the three cuts"]:::step
         B3["<b>7</b> · Composite-posterior<br/>reassignment per<br/>selected component group"]:::step
         B1 --> B2 --> B3
     end
@@ -139,8 +140,10 @@ loadings** that define the reference scores — PopGMM does not repair incompati
 PCA coordinate systems.
 
 Inputs live under `data/` and are not tracked here. Paths, cohort labels, seeds
-and selection choices are centralized in
-[`scripts/params.py`](scripts/params.py).
+and the cut mode are centralized in [`scripts/params.py`](scripts/params.py);
+under the default `RANK_CUT_MODE = "auto"` the cuts themselves are resolved by
+their stated rules in the rank-selection stage, with the hand-set values kept
+beside them as a cross-check.
 
 ---
 
@@ -151,7 +154,7 @@ results/
 ├── keep_lists/              the deliverable, above
 ├── 01_reference_model/      denoising · mixture fit · component merging
 ├── 02_cohort_assignment/    per-sample posteriors and confidence
-├── 03_rank_selection/       the power-versus-homogeneity evidence
+├── 03_rank_selection/       the three quantities, the two criteria, the cuts
 ├── 04_subcluster_variants/  narrow · intermediate · full
 └── provenance/              configuration and environment snapshots
 ```
@@ -166,9 +169,10 @@ Every file is described in [`docs/outputs.md`](docs/outputs.md).
   infer ethnicity, identity, or ancestry independently of that reference.
 - The major cluster is defined algorithmically; its display name is an analyst's
   interpretation, not a model-discovered label.
-- The narrow and intermediate cuts are points on a power-versus-homogeneity
-  curve, not biological boundaries. Neither is the "better" list: a narrower set
-  buys homogeneity with effective sample size, and a broader one the reverse.
+- The narrow and intermediate cuts are points on the walk that trades effective
+  sample size against residual structure, not biological boundaries. Neither is
+  the "better" list: a narrower set buys less residual structure with effective
+  sample size, and a broader one the reverse.
   Each is derived by a stated rule (`params.RANK_CUT_MODE = "auto"`) or set by
   hand (`"manual"`); either way both answers are computed and compared in
   `results/03_rank_selection/cut_record.tsv`.

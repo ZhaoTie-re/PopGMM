@@ -8,8 +8,8 @@ which would not have matched anything in a dataset where the two differ.
 
 A list is a headerless, tab-separated ``FID IID`` file, which is what
 ``plink --keep`` expects. Alongside them, ``write_keep_lists`` emits a summary
-table comparing the lists on the two quantities the rank cut trades off:
-effective sample size and residual genetic spread.
+table comparing the lists on the quantities the rank cut is taken over:
+effective sample size and residual structure, in both bases.
 
 Inputs
 ------
@@ -111,8 +111,8 @@ def _mainland_rgv(
     """RGV of `frame`'s samples in the major-cluster projection.
 
     NaN when no projection was supplied. A variant whose samples are not all
-    covered raises: a partially covered set would report the spread of a subset
-    while every other column describes the whole set.
+    covered raises: a partially covered set would report the residual structure
+    of a subset while every other column describes the whole set.
     """
     if mainland_coordinates is None:
         return float("nan")

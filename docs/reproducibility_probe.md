@@ -18,9 +18,9 @@ Two independent full runs, `RUN_MODE="fresh"`, default multi-threaded BLAS:
 
 | | |
 |---|---|
-| Artifacts compared | 139 |
-| Verification result | **139 pass, 0 warn, 0 fail — with no numeric tolerance of any kind** |
-| Figures byte-identical | **28 / 28** |
+| Artifacts compared | 141 |
+| Verification result | **141 pass, 0 warn, 0 fail — with no numeric tolerance of any kind** |
+| Figures byte-identical | **30 / 30** |
 
 The counts above are from the current layout. The probe was originally run
 against an 86-artifact tree; the pipeline has since gained the per-basis
@@ -165,6 +165,14 @@ hdbscan 0.8.42 via python-hdbscan, OpenBLAS 0.3.31, macOS arm64).
 ---
 
 ## Restructure around the three keep-lists
+
+> **A record of the restructure as it was verified at the time.** The counts and
+> column names below are those of that tree, not of the current one: a later
+> re-run moved the major cluster from 16 components to 17 and renumbered the
+> component ids, and `PC12_RGV` has since become `RGV_Global`. They are left as
+> they stand because they are the only surviving comparison against the
+> pre-restructure tree — rewriting them to today's numbers would make the
+> sentences false rather than current.
 
 The pipeline was later reorganised so that its output layout expresses its
 purpose: three deliverable sample lists in `results/keep_lists/`, with the

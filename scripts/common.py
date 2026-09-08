@@ -345,10 +345,11 @@ def case_ctrl_separation(
     Reported as a diagnostic, never optimised against. Three reasons, all
     measured on this dataset rather than assumed:
 
-    * It is not monotone in the rank cut -- Spearman -0.49 against k on the
-      global PC1-PC2, -0.78 on the four mainland axes, against +1.00 for
-      ``rgv`` -- and it bottoms out near the *uncut* set, which is also where
-      GWAS_Neff is largest. Selecting on it would put both objectives at nearly
+    * It is not monotone in the rank cut -- Spearman against k is -0.14 for
+      ``PC12_CaseCtrl_Mahalanobis``, -0.78 for ``Mainland_CaseCtrl_Mahalanobis``
+      and -0.73 for the de-biased ``Mainland_CaseCtrl_D2_Unbiased``, against
+      +1.00 for ``rgv`` -- and it bottoms out near the *uncut* set, which is
+      also where GWAS_Neff is largest. Selecting on it would put both objectives at nearly
       the same place, leaving no trade-off and so no decision to make.
     * ``E[D^2]`` carries the ``mahalanobis_bias`` term, which shrinks as the set
       grows. Minimising it therefore partly just selects for a larger set.
@@ -357,9 +358,9 @@ def case_ctrl_separation(
       a genuinely ancestry-linked risk would be selected away along with the
       confounding.
 
-    What it is good for is the question ``rgv`` cannot answer: residual spread
-    says how wide the retained set is, not whether cases and controls are drawn
-    from the same place within it. Only the second biases an association test.
+    What it is good for is the question ``rgv`` cannot answer: residual
+    structure says how wide the retained set is, not whether cases and controls
+    are drawn from the same place within it. Only the second biases an association test.
 
     Both arrays must carry the same axes, in the same order, from the same PCA;
     nothing here can detect a mismatch. Requires more samples than axes in each

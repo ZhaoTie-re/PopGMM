@@ -2,18 +2,26 @@
 
 The argument is in three parts, so it is in three figures:
 
-1. ``00_problem``  -- the problem, and the three quantities we watch along it
-2. ``01_tradeoff`` -- how those quantities are traded off against each other
-3. ``02_cohorts``  -- the three cohorts that falls out, and when to use each
+1. ``00_problem``  -- the three quantities watched along the walk
+2. ``01_tradeoff`` -- the two criteria taken on it, and the weight
+3. ``02_cohorts``  -- the three cohorts, their criteria and their profiles
 
-Every one of them is laid out by :func:`_story_row`: a row of cells, each a
-heading, a small plot, the equations that plot draws, and the answer they reach,
-joined left to right by arrows. Four figures once carried four different
-layouts and the reader had to assemble the line through them; here the line is
-the layout, and it is the same line on all three pages.
+Every one of them is laid out by :func:`_story_row`, on one 21 x 8.6in canvas:
+a left card holding a row of cell boxes -- heading, plot, the single headline
+equation that plot draws, and the answer it reaches -- joined left to right by
+arrows, and a right card holding that figure's notation as a bordered
+two-column table. Four figures once carried four different layouts and the
+reader had to assemble the line through them; here the line is the layout, and
+it is the same line, at the same size, on all three pages.
 
-Equations stay on the figures because they *are* the reasoning. What is not
-here is the reviewer's layer -- what each choice rules out, and the
+The split between the two cards is what keeps a cell readable. A cell carries
+**one** expression. Everything behind it -- the definition of the sampling
+floor, the expectation that explains why it is subtracted, the T^2 -> F -> P
+chain -- lives in the table's left column, which holds the formula wherever the
+formula is the definition. Stacked under the plots the same content was five
+equations deep.
+
+What is not here is the reviewer's layer -- what each choice rules out, and the
 alternatives it was taken against -- which is the *Methodological notes* in
 ``docs/outputs.md``, alongside ``cut_record.tsv`` and
 ``rank_decision_table.tsv``.
@@ -21,7 +29,7 @@ alternatives it was taken against -- which is the *Methodological notes* in
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,9 +38,6 @@ from matplotlib.figure import Figure
 from matplotlib.patches import FancyBboxPatch
 
 from scripts.common import to_numeric_array
-
-if TYPE_CHECKING:
-    from scripts.rank_selection import RankSelectionConfig
 
 
 # ---------------------------------------------------------------------------
@@ -519,11 +524,14 @@ def _story_row(
 
 
 def _walk(decision_table: pd.DataFrame, rgv_column: str):
-    """The three quantities every figure here is about, in walk order.
+    """Seven arrays in walk order: the cut index, the three quantities, and three
+    more the third is built from or judged by.
 
-    Plus the two the third is built from: the raw squared distance and the
-    floor subtracted off it, which ``00_problem`` draws so the subtraction is
-    something the reader sees rather than something they are told.
+    In order: ``rank``, ``neff``, ``het`` (read from ``rgv_column``), ``sep``
+    (the de-biased shift), ``pval``, ``d2`` (the raw squared distance) and
+    ``floor``. ``00_problem`` draws the last two beside ``sep`` so the
+    subtraction is something the reader sees rather than something they are
+    told.
     """
     return (
         decision_table["Included_Max_Rank"].to_numpy(dtype=int, copy=False),
@@ -539,33 +547,12 @@ def _walk(decision_table: pd.DataFrame, rgv_column: str):
     )
 
 
-def _norm(a: np.ndarray) -> np.ndarray:
-    """Min-max to [0, 1]; zeros for a degenerate range."""
-    lo, hi = float(np.nanmin(a)), float(np.nanmax(a))
-    return (a - lo) / (hi - lo) if np.isfinite(hi - lo) and hi > lo else np.zeros_like(a)
-
-
 def _reversals(a: np.ndarray) -> int:
     """How many times a series changes direction; zero when monotone."""
     v = a[np.isfinite(a)]
     signs = np.sign(np.diff(v))
     signs = signs[signs != 0]
     return int(np.sum(np.diff(signs) != 0)) if signs.size >= 2 else 0
-
-
-def _p_text(p: float) -> str:
-    """``P`` for a card, in the register a reader expects.
-
-    The table renders 3.9e-08 as ``0.0000``, which reads as "zero" rather than
-    "eight orders of magnitude", so anything below a thousandth is set in
-    powers of ten instead.
-    """
-    if not np.isfinite(p):
-        return r"$P$ n/a"
-    if p >= 0.001:
-        return rf"$P$ = {p:.3g}" if p >= 0.01 else rf"$P$ = {p:.2g}"
-    exponent = int(np.floor(np.log10(p)))
-    return (rf"$P$ = {p / 10.0 ** exponent:.0f}$\times$10$^{{{exponent}}}$")
 
 
 def _grid(ax: "plt.Axes") -> None:
@@ -577,7 +564,6 @@ def _grid(ax: "plt.Axes") -> None:
 def plot_problem(
     *,
     decision_table: pd.DataFrame,
-    rank_table: pd.DataFrame,
     rgv_column: str,
     mainland_axes: "Sequence[str]",
     case_label: str = "Case",

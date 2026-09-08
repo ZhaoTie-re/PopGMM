@@ -105,7 +105,7 @@ THRESHOLD_ROBUSTNESS_DIR = MERGING_DIR / "threshold_robustness"
 #: Projecting the study cohort into the mixture and assigning it.
 ASSIGNMENT_DIR = RESULTS_ROOT / "02_cohort_assignment"
 
-#: Evidence for the rank cut: effective sample size against residual spread.
+#: The walk, the two criteria taken on it, and the three resolved cuts.
 RANK_SELECTION_DIR = RESULTS_ROOT / "03_rank_selection"
 
 #: One subdirectory per subcluster variant (see SUBCLUSTER_VARIANTS).
@@ -133,22 +133,29 @@ MERGE_THRESHOLD_ROBUSTNESS: tuple[float, ...] = (2.5, 3.0, 3.5, 4.0, 4.5, 8.0)
 # The deliverable: three sample lists
 # ---------------------------------------------------------------------------
 #
-# The major cluster is split into nested variants by a rank cut. Components are
-# ranked by case/control ratio; including the top-k of them trades effective
-# sample size (GWAS_Neff) against residual genetic spread (RGV, the root
-# generalized variance of the retained samples). The rank-selection stage
-# tabulates and plots that trade-off; the cut itself is a human decision.
+# The major cluster is split into nested cohorts by a rank cut. Components are
+# ranked by case/control ratio, and cut k keeps the top k of them -- one nested
+# set per k, which is the walk. Three quantities are watched along it: effective
+# sample size (GWAS_Neff), residual structure (RGV, the root generalized variance
+# of the retained samples), and the case/control shift (the squared Mahalanobis
+# gap between the arm centroids, with its sampling floor removed). The
+# rank-selection stage tabulates them, plots them, and resolves the cuts.
 #
 # RGV is reported in two bases, side by side and never compared with each other:
 # RGV_Global on the global PCA's PC1-PC2 (always two axes, so the number stays
 # comparable with earlier runs), and RGV_Mainland on the major-cluster PCA over
-# MAINLAND_RGV_N_PCS axes. RGV_BASIS picks which one the Pareto front and the
-# recommendation are computed from.
+# MAINLAND_RGV_N_PCS axes. RGV_BASIS picks which one both criteria are computed
+# from.
 #
-#   narrow       -- the tightest cut: least residual spread, fewest samples.
-#   intermediate -- between the two.
-#   full         -- every major-cluster component. No cut: most samples, most
-#                   residual spread.
+# What separates the three cohorts is which of the three quantities each
+# criterion weighs:
+#
+#   narrow       -- effective sample size against residual structure. The
+#                   case/control shift plays no part in it.
+#   intermediate -- all three: the shift is blended into the structure axis at
+#                   equal weight, and the cut nearest the ideal corner is taken.
+#   full         -- none of them. Every major-cluster component; not an optimum
+#                   of any rule, but the population the other two are cut from.
 #
 # The names describe position on that trade-off, not quality. `narrow` is not a
 # better list than `full`: it buys homogeneity with effective sample size, and
@@ -179,18 +186,24 @@ RankCut = int | Literal["full", "auto"]
 #: mode changes which column is *used*, never which are computed -- switching it
 #: can therefore never silently change a cut without the table saying so.
 #:
-#: A variant can also override the mode on its own: writing an int in
-#: SUBCLUSTER_VARIANTS pins that cut even under "auto", and writing "auto" lets
-#: the rule decide even under "manual".
+#: A variant can override the mode in one direction only: writing an int in
+#: SUBCLUSTER_VARIANTS pins that cut whatever the mode is. Writing "auto" does
+#: NOT do the reverse -- under RANK_CUT_MODE = "manual" a variant left on "auto"
+#: still takes its MANUAL_RANK_CUTS value, and cut_record.tsv records it as
+#: Source = manual.
 RANK_CUT_MODE: Literal["auto", "manual"] = "auto"
 
-#: Tightest cut. Under RANK_CUT_MODE = "auto" this is the cross-check value, not
-#: the one used; the rule is the knee of the N_eff-vs-RGV curve. Both give 9 on
-#: the committed run.
+#: Under RANK_CUT_MODE = "auto" this is the cross-check value, not the one used.
+#: The rule is the peak of the excess-return curve: the cut that has bought the
+#: most N_eff over the walk's end-to-end exchange rate, which is the same point
+#: as the knee -- the excess IS the distance to the chord joining the walk's
+#: ends. Both give 9 on the committed run.
 NARROW_RANK_K: RankCut = 9
 
-#: Between narrow and full. Under "auto" the rule is the equal-weight optimum of
-#: residual spread against case/control separation. Both give 12.
+#: Under "auto" the rule blends residual structure with the case/control shift at
+#: equal weight, rescales, and takes the cut nearest the ideal corner against
+#: effective sample size -- the only criterion the shift has a vote in. Both give
+#: 12 on the committed run.
 INTERMEDIATE_RANK_K: RankCut = 12
 
 #: Leading axes of the major-cluster PCA that RGV_Mainland is computed over,
@@ -206,11 +219,11 @@ INTERMEDIATE_RANK_K: RankCut = 12
 #: The value is not comparable across settings of this parameter: it is a
 #: geometric-mean SD over however many axes are included, so it falls as d rises
 #: (0.00744 / 0.00654 / 0.00551 / 0.00466 at d = 2 / 3 / 5 / 10 for the full set).
-#: Changing it therefore changes RGV_Mainland, the Pareto front, and the
+#: Changing it therefore changes RGV_Mainland, both criteria, and the
 #: recommended rank -- it is not a display setting.
 MAINLAND_RGV_N_PCS: int = 4
 
-#: Which basis the Pareto front and the recommended rank are computed from.
+#: Which basis both criteria and the resolved cuts are computed from.
 #: "mainland" needs MAINLAND_SSCORE_PATH to be present and loaded.
 RGV_BASIS: Literal["global", "mainland"] = "mainland"
 
@@ -218,7 +231,8 @@ RGV_BASIS: Literal["global", "mainland"] = "mainland"
 #:
 #: "full" is definitional -- every major-cluster component, no rule and no
 #: choice. The other two follow RANK_CUT_MODE unless an int is written here, in
-#: which case that variant is pinned whatever the mode.
+#: which case that variant is pinned whatever the mode. Writing "auto" here does
+#: not override a "manual" mode; see RANK_CUT_MODE.
 SUBCLUSTER_VARIANTS: dict[str, RankCut] = {
     "full": "full",
     "narrow": "auto",

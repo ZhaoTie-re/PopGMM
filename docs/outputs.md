@@ -12,9 +12,9 @@ at. Nothing outside that directory is written.
 
 | File | Contents |
 |---|---|
-| `full_mainland.fid_iid.txt` | Study samples in the complete major cluster |
-| `narrow_mainland.fid_iid.txt` | Tightest cut — least residual spread, fewest samples |
-| `intermediate_mainland.fid_iid.txt` | Between narrow and full |
+| `full_mainland.fid_iid.txt` | `k` = 17 — nothing weighed: every major-cluster component, the population the other two are cut from |
+| `narrow_mainland.fid_iid.txt` | `k` = 9 — effective sample size weighed against residual structure; the case/control shift plays no part |
+| `intermediate_mainland.fid_iid.txt` | `k` = 12 — effective sample size, residual structure and the case/control shift, all three weighed |
 | `reference_full_mainland.fid_iid.txt` | Reference-panel samples in the major cluster |
 | `keep_list_summary.tsv` | The lists side by side: counts, balance, $N_{\mathrm{eff}}$, RGV, components |
 
@@ -26,7 +26,7 @@ display label (`params.MAJOR_CLUSTER_DISPLAY_NAME`), not a model output.
 applied to the reference panel, for anyone who needs the panel side of it (to
 re-derive a PCA, or as an ancestry-matched external control set). Its case and
 control counts are zero by construction; its RGV is the useful number, being the
-residual spread of the region the cohort variants approximate.
+residual structure of the region the three cohorts approximate.
 
 ---
 
@@ -141,7 +141,7 @@ rather than kept.
 
 | File | Contents |
 |---|---|
-| `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual stratification `H`, and the case−control shift `s_k`. The third panel draws the raw `D̂²`, the sampling floor `b_k` beneath it and their difference `s_k` on one pair of axes, so the subtraction is shown rather than asserted; `E[D̂²] = D² + b_k` and the chain `T² → F → P` that the significance marks come from are rows of the notation table |
+| `00_problem.png` | The problem, and the three quantities we watch: statistical power `N_eff`, residual structure `H`, and the case−control shift `s_k`. The third panel draws the raw `D̂²`, the sampling floor `b_k` beneath it and their difference `s_k` on one pair of axes, so the subtraction is shown rather than asserted; `E[D̂²] = D² + b_k` and the chain `T² → F → P` that the significance marks come from are rows of the notation table |
 | `01_tradeoff.png` | How they are traded off: one average rate prices power against `H` and fixes `narrow`; `s_k` reverses so it has no rate, which is why it is blended instead and fixes `intermediate`; and the weight does not decide the answer. The blend panel is one slice at `w = ½` and says so on its heading, its equations and its axis; the sweep panel next to it points back at that slice |
 | `02_cohorts.png` | The three cohorts: their positions on the trade-off — drawn as three coloured stretches of one walk, so the nesting is seen rather than asserted — and a profile card each, carrying which of the three quantities that cohort's criterion weighs, as a row of filled and hollow marks that reads down the three cards, plus its counts and effective size |
 | `component_ranking.tsv` | Major-cluster components ordered by case/control ratio — the order the walk follows |
@@ -219,9 +219,12 @@ the two terms peak at different cuts and their average never reaches either end.
 $k^{*}$ then measures a distance in a unit square; left unrescaled one of its two
 axes would span a fraction of that square and the other all of it, so the
 vertical and horizontal parts of the same distance would not be in the same
-units. This is not cosmetic: without the second rescale the minimum is 0.3446
-rather than 0.3596 and does not fall at the same cut. It is the step most likely
-to be dropped by someone reimplementing this from the formulas.
+units. It is not cosmetic, but it is worth saying exactly what it does: without
+the second rescale the minimum is 0.3446 rather than the recorded 0.3596. On this
+walk both still fall at $k = 12$, so the rescale fixes the score rather than the
+answer — a reimplementation that drops it lands on the same cut and still fails to
+reproduce `cut_record.tsv`. It is the step most likely to be dropped by someone
+working from the formulas alone.
 
 **Admissible range of $w$.** Nothing in the data fixes $w$, so the honest thing
 is to bound it rather than fit it: $w \geq \frac12 \iff w \geq 1-w$. Below ½ the
@@ -282,7 +285,7 @@ All three variants run through identical code, so they are directly comparable.
 
 | File | Contents |
 |---|---|
-| `run_config_snapshot.json` | Every stage config, plus the derived quantities (major-cluster components, recommended rank, variant definitions) |
+| `run_config_snapshot.json` | Every stage config, plus the derived quantities (major-cluster components, recommended rank, variant definitions). **Its `rank_selection` block predates the stage-6 rewrite on this branch** — it names `rank_cumulative_metrics.tsv`, `rank_selection_tradeoff.png` and `component_rank_table.tsv`, none of which exist any more, and carries none of `blend_weight`, `rank_cut_mode`, `manual_cuts`, `variant_cuts` or the three figure filenames. It is left as the record of the run that produced it rather than rewritten to describe a run that did not happen; the next full run refreshes it |
 | `run_environment.json` | Run mode, Python and library versions, platform, threading environment, HDBSCAN backend |
 
 Diffing two config snapshots proves a refactor did not alter a parameter without
