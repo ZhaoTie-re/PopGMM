@@ -12,6 +12,6 @@ it, and use the sample lists it produces. These documents cover everything else.
 | [`reproducibility_probe.md`](reproducibility_probe.md) | Whether the pipeline is bit-deterministic, and what the float32 → float64 change fixed | Anyone who gets a different number than the committed one |
 | [`environment_snapshot.txt`](environment_snapshot.txt) | The exact interpreter, BLAS build and package versions behind the committed artifacts | Anyone reproducing them |
 
-`published_structure.png` is the reference figure embedded in
-[`method.md`](method.md#4-merging-components-into-ancestry-regions); it is not a
-document on its own.
+`figures/` holds the figures embedded in [`../README.md`](../README.md) and
+[`method.md`](method.md#4-merging-components-into-ancestry-regions); they are not
+documents on their own.

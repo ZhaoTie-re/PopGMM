@@ -144,12 +144,15 @@ tighter cut subdivides the same regions rather than rearranging them — so the
 components do carry ancestry information, even though no single component is a
 population.
 
-![Merged clusters compared against published BBJ population structure](published_structure.png)
+![Component merging at distance thresholds 6 and 3](figures/merged_clusters.png)
 
-*Illustrative, from an earlier fit of the same panel. Published structure
-reproduced from Yamamoto et al. (2024),* Genetic legacy of ancient
+*Merged clusters at distance thresholds 6 (left) and 3 (right). Top: the
+average-linkage dendrogram of the 27 components; the dashed line is the cut.
+Bottom: the merged clusters on PC1–PC2. The published structure they are compared
+with is Fig. 1b–c of Yamamoto et al. (2024),* Genetic legacy of ancient
 hunter-gatherer Jomon in Japanese populations, *Nature Communications 15, 9780
-(CC BY 4.0).*
+([doi:10.1038/s41467-024-54052-0](https://doi.org/10.1038/s41467-024-54052-0)).
+That article is licensed CC BY-NC-ND 4.0, so its panels are not reproduced here.*
 
 ### 5. Projecting the study cohort
 
