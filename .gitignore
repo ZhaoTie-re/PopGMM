@@ -32,14 +32,20 @@ Thumbs.db
 # exactly by re-running the notebook and their checksums live in
 # tools/baseline_manifest.json, so `verify_results --manifest` still validates a
 # run without them in version control.
-# Everything else under results/ stays tracked: the keep_lists/ deliverables, the
-# summary and evidence tables, the audit logs and the figures.
+# Everything else under results/ stays tracked, apart from the sample lists below:
+# the keep-list summary, the summary and evidence tables, the audit logs and the
+# figures.
 results/01_reference_model/denoising/reference_samples_denoised.tsv
 results/01_reference_model/mixture_model/reference_samples_clustered.tsv
 results/01_reference_model/component_merging/**/reference_samples_merged.tsv
 results/01_reference_model/component_merging/**/merged_posterior_probabilities.npy
 results/01_reference_model/component_merging/reference_samples_merged.tsv
 results/01_reference_model/component_merging/merged_posterior_probabilities.npy
+
+# Sample lists: individual sample IDs. A run writes them locally; they never
+# enter version control. Their checksums are in tools/baseline_manifest.json.
+results/keep_lists/*.fid_iid.txt
+results/02_cohort_assignment/major_cluster_component_ranks.tsv
 
 # Verification scratch trees and the artifact cache
 results_verify/

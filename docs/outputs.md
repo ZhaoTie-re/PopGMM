@@ -329,3 +329,8 @@ files — so the tree would be a mix of this run and a previous one.
 Some large regenerable intermediates are gitignored: the per-threshold copies of
 the merged panel and the posterior arrays. Their checksums are in
 `tools/baseline_manifest.json`, so a run can still be validated without them.
+
+The sample lists are gitignored too: the four `.fid_iid.txt` keep lists and
+`02_cohort_assignment/major_cluster_component_ranks.tsv`. They hold individual
+sample IDs, so a run writes them locally and only `keep_list_summary.tsv` and
+their checksums are tracked.
